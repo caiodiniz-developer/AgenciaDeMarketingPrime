@@ -1,0 +1,1110 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — CLAUDE.md §2 e §3
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-ink: #000000;
+  --color-ink-050: #050505;
+  --color-ink-100: #0a0a0a;
+  --color-ink-200: #111111;
+  --color-bone: #ffffff;
+  --color-ash: #d9d9d9;
+  --color-gold: #c9a84c;
+  --color-gold-soft: #e4d3a2;
+
+  --font-display: "League Spartan", ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: "Playfair Display", ui-serif, Georgia, serif;
+}
+
+:root {
+  /* Gradiente dos títulos — vertical, para que cada fatia de texto
+     (char ou linha) carregue a sua parte sem quebrar a continuidade. */
+  --grad-title: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fffdf6 30%,
+    #f7ebd2 56%,
+    #e2ce9b 78%,
+    #cbab52 100%
+  );
+  --grad-title-soft: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fffdf6 48%,
+    #f3e8cd 76%,
+    #d9c188 100%
+  );
+
+  --pad-x: clamp(1.5rem, 6vw, 8rem);
+  --stage-h: 100svh;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: auto; /* o Lenis cuida da suavização */
+  background: #000;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-ash);
+  font-family: var(--font-display);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  /* `hidden` transformaria o body em scroller próprio e mataria o Lenis. */
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: #000;
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-gold);
+  outline-offset: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Trilho + palco  (§9.3 do Frontend Motion Agent)
+   O trilho define a duração da sequência; o palco gruda dentro dele.
+   ───────────────────────────────────────────────────────────── */
+.track {
+  position: relative;
+  width: 100%;
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: var(--stage-h);
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-ink);
+  isolation: isolate;
+}
+
+.stage__media,
+.stage__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage__media {
+  object-fit: cover;
+  /* Grade fixo: a poeira estoura em branco puro no meio do clipe.
+     Puxar o brilho e aquecer levemente devolve o preto de base da marca. */
+  filter: brightness(0.66) contrast(1.08) saturate(0.72) sepia(0.22);
+  transform: scale(1.06);
+}
+
+.stage__poster {
+  z-index: 1;
+}
+
+.stage__video {
+  z-index: 2;
+  opacity: 0;
+}
+
+/* A luz da cena: entre o vídeo e os overlays, para que os gradientes e a
+   vinheta caiam sobre ela como cairiam sobre qualquer luz do quadro. */
+.stage__rays {
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transform-origin: 50% 30%;
+}
+
+/* Véu dourado: tinge o branco da poeira sem sujar os pretos. */
+.stage__gold {
+  z-index: 4;
+  background: radial-gradient(
+    68% 58% at 50% 46%,
+    rgba(201, 168, 76, 0.3) 0%,
+    rgba(201, 168, 76, 0.1) 46%,
+    rgba(201, 168, 76, 0) 78%
+  );
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+/* Cortina de leitura: quase aberta na hero (quadro preto) e fechando
+   conforme a poeira toma a tela. Só a opacidade é animada. */
+.stage__scrim {
+  z-index: 5;
+  background:
+    linear-gradient(
+      104deg,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 0, 0, 0.52) 38%,
+      rgba(0, 0, 0, 0.4) 62%,
+      rgba(0, 0, 0, 0.66) 100%
+    ),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 46%);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.stage__vignette {
+  z-index: 6;
+  background: radial-gradient(
+    82% 74% at 50% 48%,
+    rgba(0, 0, 0, 0) 42%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
+  pointer-events: none;
+}
+
+/* Grain: quebra o banding do preto e dá textura de película. */
+.stage__grain {
+  z-index: 7;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("/media/grain.svg");
+  background-size: 180px 180px;
+}
+
+/* Corte para preto no fim do trilho — cobre a emenda com a próxima seção. */
+.stage__blackout {
+  z-index: 8;
+  background: var(--color-ink);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage__content {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Hero — centralizada no viewport, nada além do essencial
+   ───────────────────────────────────────────────────────────── */
+.hero {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--pad-x);
+  text-align: center;
+}
+
+.hero__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 68rem;
+}
+
+/* Luz dourada por trás do wordmark: dá profundidade ao quadro 0, quase preto. */
+.hero__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(130vw, 80rem);
+  aspect-ratio: 1.7 / 1;
+  translate: -50% -50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(201, 168, 76, 0.18) 0%,
+    rgba(201, 168, 76, 0.06) 40%,
+    rgba(201, 168, 76, 0) 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hero__title {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(4.25rem, 19vw, 17rem);
+  line-height: 0.94;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em; /* compensa o tracking sobrando na última letra */
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-bone);
+}
+
+.hero__char {
+  display: inline-block;
+}
+
+.hero__sub {
+  position: relative;
+  margin: clamp(1.75rem, 3.4vw, 3.25rem) 0 0;
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.0625rem, 1.9vw, 1.75rem);
+  line-height: 1.5;
+  letter-spacing: 0.015em;
+  color: var(--color-ash);
+}
+
+.hero__cue {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: clamp(3.5rem, 9vh, 7rem);
+  font-size: clamp(0.625rem, 0.78vw, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-ash);
+}
+
+.hero__cue-rule {
+  display: block;
+  width: clamp(1.5rem, 3vw, 2.5rem);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0) 0%, var(--color-gold) 100%);
+}
+
+.hero__cue-rule--right {
+  transform: scaleX(-1);
+}
+
+.hero__cue-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6em;
+  white-space: nowrap;
+}
+
+.hero__cue-arrow {
+  display: inline-block;
+  color: var(--color-gold);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Fallback estático — saveData, conexão lenta ou aparelho fraco.
+   A narrativa por scroll continua; só o vídeo sai de cena.
+   ───────────────────────────────────────────────────────────── */
+.stage[data-tier="static"] .stage__poster {
+  transform: scale(1.02);
+  filter: brightness(0.58) contrast(1.06) saturate(0.7) sepia(0.24);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsivo — adapta a composição, não só o tamanho (§17)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  :root {
+    --pad-x: 1.5rem;
+  }
+
+  .hero__title {
+    letter-spacing: 0.045em;
+    text-indent: 0.045em;
+  }
+
+  .hero__cue-rule {
+    width: 1.25rem;
+  }
+
+  .stage__scrim {
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.92) 0%,
+      rgba(0, 0, 0, 0.42) 54%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .hero__cue {
+    margin-top: clamp(1.5rem, 5vh, 3rem);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   prefers-reduced-motion (§19)
+   Some o movimento decorativo. O scroll continua conduzindo a
+   sequência — é resposta 1:1 ao gesto, não movimento autônomo.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .stage__media {
+    transform: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   NAVEGAÇÃO — barra flutuante de vidro
+   Fica fora de qualquer contêiner transformado: dentro de um,
+   `position: fixed` deixa de ser fixo.
+   ═════════════════════════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: clamp(0.85rem, 2vh, 1.5rem);
+  left: 50%;
+  z-index: 100;
+  width: min(72rem, calc(100vw - 2 * clamp(1rem, 4vw, 3rem)));
+  opacity: 0;
+  transform: translate(-50%, -14px);
+  pointer-events: none;
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav[data-visible="true"] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.nav__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: 0.55rem 0.6rem 0.55rem clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+
+  /* Vidro: o desfoque do fundo é o que faz a barra pertencer à página
+     em vez de flutuar por cima dela. */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.025) 100%
+  );
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 18px 44px -22px rgba(0, 0, 0, 0.9);
+}
+
+.nav__brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 1.9rem;
+}
+
+
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.1rem, 2.4vw, 2.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav__links a {
+  position: relative;
+  display: inline-block;
+  padding: 0.35rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-ash);
+  transition: color 0.35s ease;
+}
+
+/* Linha dourada crescendo da esquerda: scaleX em vez de width, para o
+   compositor resolver sozinho. */
+.nav__links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav__links a:hover {
+  color: var(--color-bone);
+}
+
+.nav__links a:hover::after {
+  transform: scaleX(1);
+}
+
+.nav__cta {
+  flex: 0 0 auto;
+  padding: 0.7rem 1.35rem;
+  border-radius: 999px;
+  background: var(--color-gold);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.35s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav__cta:hover {
+  background: #e0c179;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 860px) {
+  .nav__links {
+    display: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   WORDMARK — "AGÊNCIA" abre a leitura, "PRIME" carrega a presença
+   ═════════════════════════════════════════════════════════════ */
+.hero__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.4vw, 1.15rem);
+  white-space: normal;
+  text-indent: 0;
+  font-size: inherit;
+}
+
+.hero__kicker {
+  display: block;
+  font-size: clamp(0.7rem, 1.5vw, 1.15rem);
+  font-weight: 500;
+  letter-spacing: 0.52em;
+  text-indent: 0.52em;
+  line-height: 1;
+  color: var(--color-ash);
+}
+
+.hero__mark {
+  display: block;
+  font-size: clamp(3.75rem, 18vw, 16rem);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+  white-space: nowrap;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SEÇÕES — a luz e o laptop atravessam todas; só o texto troca
+   ═════════════════════════════════════════════════════════════ */
+.story {
+  position: relative;
+  z-index: 1;
+  background: var(--color-ink);
+  isolation: isolate;
+}
+
+/* Luz e 3D são sticky: a cena é contínua, o conteúdo é que passa por ela.
+   A margem negativa devolve a altura ao fluxo, senão cada camada empurraria
+   uma tela inteira de espaço vazio. */
+.story__rays,
+.story__laptop,
+.story__veil {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  width: 100%;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+
+.story__rays {
+  z-index: 0;
+  mix-blend-mode: screen;
+  transform-origin: 50% 34%;
+}
+
+/* Acima das seções: o bege é opaco e engoliria o modelo. As poses do
+   conteúdo mantêm o laptop fora da coluna de texto, então ele nunca
+   disputa legibilidade mesmo estando por cima. */
+.story__laptop {
+  z-index: 4;
+}
+
+.story__laptop canvas {
+  display: block;
+}
+
+/* Amaciador entre a luz e a tipografia: sem ele o texto disputa contraste
+   com o miolo mais claro dos raios. */
+.story__veil {
+  z-index: 2;
+  background: radial-gradient(
+    72% 62% at 50% 44%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.44) 62%,
+    rgba(0, 0, 0, 0.84) 100%
+  );
+}
+
+.rays,
+.rays__shader {
+  width: 100%;
+  height: 100%;
+}
+
+.sec {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  align-content: center;
+  min-height: 100svh;
+  padding: clamp(7rem, 16vh, 11rem) var(--pad-x);
+}
+
+.sec__inner {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+/* Rótulo da seção: um ponto dourado e o nome. Sem numeração de sumário —
+   quem carrega a hierarquia é a tipografia. */
+.sec__label {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 clamp(1.5rem, 3vw, 2.5rem);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.sec__label-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.14);
+}
+
+.sec__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.375rem, 6.4vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+
+.sec__body {
+  margin: clamp(1.5rem, 3vw, 2.5rem) 0 0;
+  max-width: 36rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.0625rem, 1.45vw, 1.3125rem);
+  line-height: 1.75;
+  color: var(--color-ash);
+}
+
+.sec__body strong {
+  font-weight: 500;
+  color: var(--color-bone);
+}
+
+.sec__body em {
+  font-style: italic;
+  color: var(--color-gold);
+}
+
+/* ── layout "split": título à esquerda, texto deslocado à direita ─────── */
+.sec__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: end;
+}
+
+.sec__aside {
+  position: relative;
+  padding-left: clamp(1.25rem, 2.5vw, 2.25rem);
+}
+
+/* Fio dourado vertical: cresce de cima para baixo na entrada da seção. */
+.sec__hair {
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    rgba(201, 168, 76, 0.12) 100%
+  );
+  transform-origin: top center;
+}
+
+.sec__split .sec__body {
+  margin-top: 0;
+}
+
+/* ── layout "grid": as três frentes de trabalho ──────────────────────── */
+.sec__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.75rem);
+  margin: clamp(3rem, 6vw, 5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: clamp(1.5rem, 2.6vw, 2.25rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.012) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    border-color 0.45s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card:hover {
+  border-color: rgba(201, 168, 76, 0.42);
+  transform: translateY(-3px);
+}
+
+.card__name {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+
+.card__text {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-ash);
+}
+
+/* ── layout "steps": o método, em quatro tempos ──────────────────────── */
+.sec__steps {
+  margin: clamp(3rem, 6vw, 5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: clamp(3.5rem, 7vw, 6rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 3rem);
+  align-items: baseline;
+  padding: clamp(1.4rem, 2.6vw, 2rem) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.step:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.step__num {
+  font-size: clamp(0.8125rem, 1.1vw, 0.9375rem);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+}
+
+.step__name {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.875rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+
+.step__text {
+  margin: 0;
+  max-width: 34rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--color-ash);
+}
+
+/* ── layout "cta" ────────────────────────────────────────────────────── */
+.sec--cta {
+  text-align: center;
+}
+
+.sec--cta .sec__label {
+  justify-content: center;
+}
+
+.sec--cta .sec__body {
+  margin-inline: auto;
+}
+
+.sec__cta {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.05rem 2.2rem;
+  border: 1px solid var(--color-gold);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-bone);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.45s ease;
+}
+
+.btn__arrow {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn:hover {
+  background: var(--color-gold);
+  color: #000;
+}
+
+.btn:hover .btn__arrow {
+  transform: translateX(4px);
+}
+
+/* ── responsivo das seções ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sec__split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.75rem, 5vw, 2.5rem);
+    align-items: start;
+  }
+
+  .sec__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav {
+    transition: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   LOGO DA BARRA — duas versões sobrepostas; o CSS acende a certa
+   conforme o tema da seção que passa por baixo. Trocar o `src`
+   de uma única imagem daria um piscada a cada transição.
+   ═════════════════════════════════════════════════════════════ */
+.nav__brand {
+  position: relative;
+}
+
+.nav__logo {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease;
+}
+
+.nav__logo--dark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+html[data-nav-theme="bone"] .nav__logo--light {
+  opacity: 0;
+}
+
+html[data-nav-theme="bone"] .nav__logo--dark {
+  opacity: 1;
+}
+
+.nav__brand:hover .nav__logo {
+  filter: brightness(0.8);
+}
+
+/* Sobre o bege, o vidro escuro vira vidro claro. */
+html[data-nav-theme="bone"] .nav__bar {
+  border-color: rgba(20, 18, 14, 0.14);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.34) 100%
+  );
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 18px 44px -26px rgba(40, 34, 22, 0.55);
+}
+
+html[data-nav-theme="bone"] .nav__links a {
+  color: #4a4438;
+}
+
+html[data-nav-theme="bone"] .nav__links a:hover {
+  color: #14120e;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   TEMAS DAS SEÇÕES
+   "ink"  → transparente: a luz e o laptop atravessam.
+   "bone" → bege opaco: corta a cena de propósito e devolve
+            respiro à leitura, fazendo a volta ao preto valer.
+   ═════════════════════════════════════════════════════════════ */
+:root {
+  --bone-bg: #e9e3d6;
+  --bone-ink: #14120e;
+  --bone-soft: #57503f;
+  --bone-line: rgba(20, 18, 14, 0.14);
+}
+
+.sec[data-theme="ink"] {
+  background: transparent;
+}
+
+.sec[data-theme="bone"] {
+  /* Papel: um bege quente com um leve gradiente para não parecer chapado. */
+  background:
+    radial-gradient(120% 80% at 50% 0%, #f3eee3 0%, rgba(243, 238, 227, 0) 60%),
+    var(--bone-bg);
+  color: var(--bone-soft);
+}
+
+/* Emenda entre preto e bege: uma faixa de transição, não um corte seco. */
+.sec[data-theme="bone"]::before,
+.sec[data-theme="bone"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: clamp(3rem, 7vh, 6rem);
+  pointer-events: none;
+}
+
+.sec[data-theme="bone"]::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.sec[data-theme="bone"]::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.sec[data-theme="bone"] .sec__title {
+  color: var(--bone-ink);
+}
+
+.sec[data-theme="bone"] .sec__body {
+  color: var(--bone-soft);
+}
+
+.sec[data-theme="bone"] .sec__body strong {
+  color: var(--bone-ink);
+}
+
+.sec[data-theme="bone"] .sec__body em,
+.sec[data-theme="bone"] .sec__label {
+  color: #8a7128;
+}
+
+.sec[data-theme="bone"] .sec__label-dot {
+  background: #8a7128;
+  box-shadow: 0 0 0 4px rgba(138, 113, 40, 0.16);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   MARCAS EM TRAÇO — desenhadas na entrada da seção
+   ═════════════════════════════════════════════════════════════ */
+.mark {
+  display: block;
+  width: clamp(2.75rem, 4.5vw, 3.5rem);
+  height: auto;
+  margin-bottom: clamp(1.25rem, 2.4vw, 1.75rem);
+  stroke: currentColor;
+  color: var(--bone-ink);
+  overflow: visible;
+}
+
+.mark__accent {
+  stroke: #8a7128;
+}
+
+.sec[data-theme="ink"] .mark {
+  color: var(--color-bone);
+}
+
+.sec[data-theme="ink"] .mark__accent {
+  stroke: var(--color-gold);
+}
+
+/* ── layout "glyphs" ─────────────────────────────────────────────────── */
+.sec__glyphs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3.5vw, 3rem);
+  margin: clamp(3.5rem, 7vw, 5.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.glyph {
+  padding-top: clamp(1.25rem, 2.4vw, 1.75rem);
+  border-top: 1px solid var(--bone-line);
+}
+
+.glyph__name {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1rem, 1.35vw, 1.1875rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bone-ink);
+}
+
+.glyph__text {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--bone-soft);
+}
+
+/* ── layout "statement" ──────────────────────────────────────────────── */
+.sec--statement .sec__title {
+  font-size: clamp(2.75rem, 8vw, 7rem);
+  max-width: 16ch;
+}
+
+.sec--statement .sec__body {
+  max-width: 42rem;
+  font-size: clamp(1.125rem, 1.7vw, 1.5rem);
+}
+
+.sec__underline {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  max-width: 40rem;
+  color: var(--color-gold);
+}
+
+.underline {
+  display: block;
+  width: 100%;
+  height: clamp(1.5rem, 3vw, 2.5rem);
+  overflow: visible;
+}
+
+/* ── layout "list" ───────────────────────────────────────────────────── */
+.sec__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.75rem, 4vw, 3.25rem) clamp(2rem, 5vw, 4.5rem);
+  margin: clamp(3rem, 6vw, 5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  padding-top: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+/* Fio que cresce da esquerda: scaleX, não width — o compositor resolve. */
+.row__rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--bone-line);
+  transform-origin: left center;
+}
+
+.row__name {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.0625rem, 1.5vw, 1.3125rem);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bone-ink);
+}
+
+.row__text {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--bone-soft);
+}
+
+/* ── responsivo dos layouts novos ────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .sec__glyphs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sec__glyphs,
+  .sec__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
