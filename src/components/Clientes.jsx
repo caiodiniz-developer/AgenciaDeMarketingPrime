@@ -45,10 +45,11 @@ export default function Clientes({ section }) {
           <span className="painel__veu" aria-hidden="true" />
 
           <div className="painel__conteudo">
-            {/* Placa clara: a marca do cliente foi desenhada para fundo
-                branco, e recolorir marca de terceiro é mexer no que não é
-                nosso. A placa resolve o contraste sem tocar no arquivo. */}
-            <span className="painel__placa">
+            {/* Placa clara SÓ quando a marca é escura. Recolorir marca de
+                terceiro é mexer no que não é nosso; a placa resolve o
+                contraste sem tocar no arquivo. Numa marca já clara, ela
+                faria o contrário — apagaria o nome. */}
+            <span className="painel__placa" data-placa={cliente.placa !== false}>
               <img
                 className="painel__logo"
                 src={cliente.logo}

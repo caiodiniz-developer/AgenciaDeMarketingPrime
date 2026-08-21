@@ -2142,7 +2142,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .mac__conteudo {
   width: 100%;
-  will-change: transform;
+  /* Sem `will-change` fixo: fora da seção do computador esta camada não se
+     move, e promovê-la para sempre é memória de vídeo parada. O GSAP anima
+     com translate3d, que promove durante a tween e devolve depois. */
 }
 
 /* Reflexo: uma faixa de luz atravessando o vidro. Só deve ser percebido sem
@@ -2713,4 +2715,17 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    marca. Encolhe e a seção deixa de parecer vazia. */
 .duelo[data-quantos="1"] {
   height: clamp(18rem, 40vh, 24rem);
+}
+
+/* Marca já clara dispensa a placa — e sobre ela sumiria. */
+.painel__placa[data-placa="false"] {
+  background: none;
+  box-shadow: none;
+  width: clamp(10rem, 20vw, 15rem);
+}
+
+/* Altura menor: com título, texto e painéis, a seção passava da tela e os
+   nomes dos clientes ficavam cortados na dobra. */
+.duelo {
+  height: clamp(19rem, 44vh, 27rem);
 }

@@ -261,9 +261,9 @@ export const sections = [
     label: "Quem confia",
     title: ["Quem já tem", "a Prime por perto."],
     body: [
-      { text: "Marca de verdade, trabalho de verdade. A parede ainda é " },
-      { text: "curta", tone: "gold" },
-      { text: " — e é assim que ela deve ser mostrada." },
+      { text: "Duas marcas que decidiram não deixar a comunicação " },
+      { text: "para depois", tone: "gold" },
+      { text: ". Passe o cursor para ver cada uma." },
     ],
     laptop: null,
   },
@@ -329,6 +329,8 @@ export const sections = [
  *
  * Para completar, largue os arquivos em `public/clientes/` e preencha aqui:
  *   nome       — como o cliente se chama
+ *   placa      — true se a marca for escura e precisar de fundo claro.
+ *                `node scripts/trim-clientes.mjs` mede e diz qual é o caso.
  *   video      — "/clientes/cliente-1.mp4" (mudo, em loop, entra no hover)
  *   poster     — primeiro quadro do vídeo
  *   frentes    — só o que a Prime realmente fez para ele
@@ -339,10 +341,23 @@ export const sections = [
  */
 export const clientes = [
   {
-    id: "cliente-1",
+    id: "real-pisos",
     // Lido da própria arte da logo, não inventado.
     nome: "Real Pisos",
-    logo: "/clientes/cliente-1.png",
+    logo: "/clientes/cliente-1-aparada.png",
+    // A marca já é clara: sobre placa branca, o nome dela desapareceria.
+    placa: false,
+    video: null,
+    poster: null,
+    frentes: [],
+    depoimento: null,
+  },
+  {
+    id: "wanderson-carvalho",
+    nome: "Wanderson Carvalho",
+    logo: "/clientes/cliente-2-aparada.png",
+    // Tinta escura sobre papel: precisa da placa clara para existir no preto.
+    placa: true,
     video: null,
     poster: null,
     frentes: [],

@@ -1,7 +1,7 @@
 # Agência Prime
 
 Site da Prime: uma hero em vídeo dirigido pelo scroll, seguida de uma narrativa
-em seis seções — cada uma com uma interação-assinatura própria.
+em oito seções — cada uma com uma interação-assinatura própria.
 
 ```bash
 npm install
@@ -19,15 +19,19 @@ como esse negócio é visto**. A página inteira serve a essa ideia, nesta ordem
 | Seção | Trabalho que ela faz | Interação-assinatura |
 |---|---|---|
 | hero | primeira impressão | vídeo dirigido pelo scroll |
-| diagnóstico | o problema é do leitor | reveal conduzido + faixa tipográfica |
+| diagnóstico | o problema é do leitor | palavras acendendo + faixa tipográfica |
 | serviços | a extensão do que a Prime assume | lista interativa, uma composição por frente |
-| audiovisual | capacidade demonstrada | o vídeo toma a tela |
+| digital | prova de capacidade em web | computador CSS 3D: tela rola por dentro e toma a viewport |
+| audiovisual | prova de capacidade em vídeo | íris de `clip-path` abrindo até a tela cheia |
 | sistema | como as frentes se conectam | cena presa que se reorganiza em 4 estados |
+| clientes | prova social | disputa por espaço: o apontado toma a tela |
 | prova | por que funciona | respiro: tema claro, leitura calma |
 | contato | o próximo passo | fecho cinematográfico + botão magnético |
 
-Nenhuma interação se repete. É isso que separa uma página projetada de uma
-pilha de seções com fade-in.
+Oito técnicas, recombinadas: SplitText com máscara, `clip-path`, pin + scrub,
+parallax em camadas, timelines sobrepostas, perspectiva CSS 3D, disputa por
+`flex-grow` e desenho de SVG. Nenhuma seção repete a combinação da anterior.
+
 
 ## Como funciona
 
@@ -73,15 +77,26 @@ inferior esquerdo e `(1,1)` o superior direito; acima de 1 ele espia por fora.
 `laptop: null` apaga o modelo — use quando a seção tiver palco próprio. A regra
 é nunca invadir a coluna de texto.
 
-## Cases: vazio de propósito
+## Clientes e cases: só o que é real
 
-`cases` em `story.js` está vazio e a seção de portfólio não existe ainda.
-**Não há nenhum trabalho real da Prime no repositório** — só o vídeo de pó
-(genérico), o `laptop.glb` (modelo de terceiro) e o logo.
+A seção de clientes é dirigida por `clientes` em `story.js` e desenha apenas o
+que existe. Hoje há duas marcas reais — **Real Pisos** e **Wanderson Carvalho**
+— e os nomes vieram das próprias artes, não de suposição.
 
-Inventar cliente, print ou número seria fabricar prova, e prova fabricada é o
-oposto do que esta página vende. Para ligar a seção, preencha `cases` com peças
-reais no formato documentado no arquivo e acrescente a seção em `sections`.
+Continua faltando, e por isso não é desenhado:
+
+- `video` e `poster` de cada cliente (o painel em foco ganha vídeo de fundo);
+- `frentes` — só o que a Prime realmente fez para cada um;
+- `depoimento` — só se a pessoa tiver dito de fato.
+
+`cases` segue vazio: não há peça de trabalho no repositório. Inventar cliente,
+print, serviço prestado ou depoimento seria fabricar prova — o oposto do que
+esta página vende.
+
+**A logo de cliente nunca é recolorida.** Recolorir marca de terceiro é mexer
+no que não é nosso. `node scripts/trim-clientes.mjs` apara a margem vazia,
+mede a luminância e diz se a marca precisa de placa clara (`placa: true`) ou
+já é clara o bastante para o fundo preto.
 
 ## Assets gerados
 
@@ -144,3 +159,19 @@ final, as entregas dos serviços ficam todas abertas, e o Lenis continua, só co
 a inércia encurtada.
 
 A lista de serviços responde a teclado (`focusin`), não só a ponteiro.
+
+## Duas armadilhas de ScrollTrigger que este projeto encontrou
+
+Ambas custaram diagnóstico errado antes de aparecerem numa medição:
+
+**1. Ordem de criação com `pin`.** Cada seção presa acrescenta telas de altura
+ao documento. Um trigger criado *antes* dela guarda a posição de um layout que
+deixou de existir — e a seção seguinte nasce com o estado final já aplicado.
+Em `Story.jsx`, as assinaturas que prendem são criadas primeiro, e um
+`ScrollTrigger.refresh()` fecha a montagem.
+
+**2. Faixas precisam ser contíguas.** Com `start: "top 60%"` e
+`end: "bottom 40%"`, uma seção presa por três telas sai da própria faixa logo
+no início do pin: dali até a próxima não há nenhuma ativa, e a cena congela no
+estado da anterior. A faixa de cada seção termina onde a próxima começa
+(`endTrigger`), o que também a imuniza contra o pin.

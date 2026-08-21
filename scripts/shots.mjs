@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5376/";
+const URL = process.argv[2] || "http://localhost:5382/";
 const OUT = process.argv[3] || "./.verify/tour";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
@@ -48,10 +48,15 @@ await shot("00-hero");
 // Uma parada por seção, ancorada no elemento — fração do documento erra
 // assim que o número de seções muda.
 const stops = [
-  { id: 'diagnostico', avanco: 0.35, name: '01-palavras' },
-  { id: 'audiovisual', avanco: 0.8, name: '02-iris' },
-  { id: 'clientes', name: '03-clientes' },
-  { id: 'sistema', avanco: 3.1, name: '04-sistema-fim' },
+  { p: 0.04, name: '01-hero' },
+  { id: 'diagnostico', avanco: 0.4, name: '02-diagnostico' },
+  { id: 'servicos', name: '03-servicos' },
+  { id: 'digital', avanco: 0.9, name: '04-computador' },
+  { id: 'audiovisual', avanco: 0.9, name: '05-filme' },
+  { id: 'sistema', avanco: 3.1, name: '06-sistema' },
+  { id: 'clientes', name: '07-clientes' },
+  { id: 'prova', name: '08-prova' },
+  { id: 'contato', name: '09-cta' },
 ];
 
 /* Com seções presas, um salto único erra o destino: o espaçador do pin

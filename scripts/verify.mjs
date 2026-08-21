@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5376/";
+const URL = process.argv[2] || "http://localhost:5382/";
 const OUT = process.argv[3] || "./.verify";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
@@ -370,6 +370,55 @@ const andou = Math.hypot(pecaDepois.x - pecaAntes.x, pecaDepois.y - pecaAntes.y)
 log(`  peças se reorganizam ... ${pecaAntes.x},${pecaAntes.y} → ${pecaDepois.x},${pecaDepois.y}  ${ok(andou)}`);
 log(`  estado avança .......... ${pecaAntes.estado} → ${pecaDepois.estado}  ${ok(pecaDepois.estado !== pecaAntes.estado)}`);
 log(`  empresa no centro ...... opacidade ${pecaDepois.centro}  ${ok(pecaDepois.centro > 0.9)}`);
+
+/* Computador: chega, o conteúdo rola dentro da tela e ela toma a viewport. */
+await irPara(page, "digital");
+await sleep(900);
+const macBase = await page.evaluate(() => window.scrollY);
+const macAntes = await page.evaluate(() => {
+  const r = document.querySelector("[data-mac-tela]").getBoundingClientRect();
+  const c = document.querySelector("[data-mac-conteudo]");
+  return { w: Math.round(r.width), y: Math.round(c.getBoundingClientRect().top) };
+});
+await page.evaluate((b) => window.scrollTo(0, b + window.innerHeight * 2), macBase);
+await sleep(2000);
+const macMeio = await page.evaluate(() => ({
+  y: Math.round(document.querySelector("[data-mac-conteudo]").getBoundingClientRect().top),
+}));
+await page.evaluate((b) => window.scrollTo(0, b + window.innerHeight * 3.45), macBase);
+await sleep(2400);
+const macFim = await page.evaluate(() => {
+  const r = document.querySelector("[data-mac-tela]").getBoundingClientRect();
+  return { w: Math.round(r.width), cobre: r.width >= window.innerWidth && r.height >= window.innerHeight };
+});
+log(`  tela rola por dentro .... ${macAntes.y} → ${macMeio.y}px  ${ok(macMeio.y < macAntes.y - 120)}`);
+log(`  tela toma a viewport .... ${macAntes.w} → ${macFim.w}px  ${ok(macFim.cobre)}`);
+
+/* Clientes: apontar um painel faz ele tomar espaço do outro. */
+await irPara(page, "clientes");
+await sleep(900);
+const painelAlvo = await page.evaluate(() => {
+  const r = document.querySelectorAll("[data-painel]")[0].getBoundingClientRect();
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+});
+/* O cursor do teste anterior pode ter ficado parado sobre um painel, e a
+   rolagem o traz para baixo dele — medir sem neutralizar compara o estado
+   ativo com ele mesmo. */
+await page.mouse.move(20, 20);
+await sleep(1300);
+const larguraAntes = await page.evaluate(() =>
+  [...document.querySelectorAll("[data-painel]")].map((e) => Math.round(e.getBoundingClientRect().width))
+);
+await page.mouse.move(painelAlvo.x, painelAlvo.y);
+await sleep(1300);
+const duelo = await page.evaluate(() => ({
+  larguras: [...document.querySelectorAll("[data-painel]")].map((e) => Math.round(e.getBoundingClientRect().width)),
+  ativos: [...document.querySelectorAll("[data-painel]")].filter((e) => e.dataset.active === "true").length,
+  placaClara: getComputedStyle(document.querySelector('[data-placa="true"]')).backgroundColor,
+}));
+log(`  cliente apontado cresce . ${larguraAntes.join("/")} → ${duelo.larguras.join("/")}  ${ok(duelo.larguras[0] > larguraAntes[0] + 60)}`);
+log(`  só um em foco ........... ${duelo.ativos}  ${ok(duelo.ativos === 1)}`);
+log(`  placa do logo escuro .... ${duelo.placaClara}  ${ok(!/0, 0, 0/.test(duelo.placaClara))}`);
 
 /* Botão magnético e alcance do CTA. */
 await irPara(page, "contato");

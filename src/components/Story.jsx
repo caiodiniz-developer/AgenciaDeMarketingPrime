@@ -203,15 +203,24 @@ export default function Story() {
             // Sem movimento: a cena do sistema nasce montada, no estado final.
             sistemaEstatico(q);
           } else {
+            /* Ordem importa: as assinaturas que PRENDEM seções vêm primeiro.
+               Cada pin acrescenta telas de altura ao documento e empurra para
+               baixo tudo que vem depois. Um trigger criado antes disso guarda
+               a posição de um layout que deixou de existir — e a seção
+               seguinte nasce já com o estado final aplicado, como a de
+               clientes, que chegava escurecida sem nada a escurecê-la. */
+            limpezas.push(
+              computadorCinematografico(q, desktop, reduce),
+              filmeQueCresce(q, desktop),
+              cenaDoSistema(q, desktop)
+            );
+
             limpezas.push(
               transicaoEntreSecoes(q, desktop),
               faixaDoDiagnostico(q),
               palavrasAcendendo(q),
               clientesEmDisputa(q, desktop),
               frentesInterativas(q, desktop),
-              computadorCinematografico(q, desktop, reduce),
-              filmeQueCresce(q, desktop),
-              cenaDoSistema(q, desktop),
               ctaCinematografico(q, desktop)
             );
 
@@ -418,7 +427,10 @@ function transicaoEntreSecoes(q, desktop) {
           scale: 0.97,
           filter: "brightness(0.55)",
           ease: "none",
-          scrollTrigger: { trigger: el, start: "top bottom", end: "top top", scrub: 0.5 },
+          /* Começa em "top 45%", e não em "top bottom": com o gatilho na base
+             da tela, a seção anterior já escurecia enquanto ainda estava
+             sendo lida — e um painel branco chegava cinza ao leitor. */
+          scrollTrigger: { trigger: el, start: "top 45%", end: "top top", scrub: 0.5 },
         }
       )
     );
