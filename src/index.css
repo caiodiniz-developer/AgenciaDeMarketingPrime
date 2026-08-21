@@ -544,6 +544,12 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* A luz é escalada para além da tela de propósito (é o que dá o movimento
+     de câmera). Sem recorte, esse excesso entra no `scrollWidth` do
+     documento e a página passa a ter rolagem horizontal fantasma.
+     `clip` recorta sem criar um contêiner de rolagem, então o sticky de
+     dentro continua funcionando. */
+  overflow: clip;
 }
 
 .story__scene--back {
@@ -679,91 +685,8 @@ body {
   color: var(--color-gold);
 }
 
-/* ── layout "split": título à esquerda, texto deslocado à direita ─────── */
-.sec__split {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: clamp(2rem, 6vw, 6rem);
-  align-items: end;
-}
-
-.sec__aside {
-  position: relative;
-  padding-left: clamp(1.25rem, 2.5vw, 2.25rem);
-}
-
-/* Fio dourado vertical: cresce de cima para baixo na entrada da seção. */
-.sec__hair {
-  position: absolute;
-  left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    var(--color-gold) 0%,
-    rgba(201, 168, 76, 0.12) 100%
-  );
-  transform-origin: top center;
-}
-
-.sec__split .sec__body {
-  margin-top: 0;
-}
-
-.step {
-  display: grid;
-  grid-template-columns: clamp(3.5rem, 7vw, 6rem) minmax(0, 1fr);
-  gap: clamp(1.25rem, 3vw, 3rem);
-  align-items: baseline;
-  padding: clamp(1.4rem, 2.6vw, 2rem) 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.step:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.step__num {
-  font-size: clamp(0.8125rem, 1.1vw, 0.9375rem);
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--color-gold);
-}
-
-.step__name {
-  margin: 0 0 0.4rem;
-  font-size: clamp(1.25rem, 2.2vw, 1.875rem);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  color: var(--color-bone);
-}
-
-.step__text {
-  margin: 0;
-  max-width: 34rem;
-  font-family: var(--font-editorial);
-  font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
-  line-height: 1.7;
-  color: var(--color-ash);
-}
-
 /* ── responsivo das seções ───────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .sec__split {
-    grid-template-columns: minmax(0, 1fr);
-    gap: clamp(1.75rem, 5vw, 2.5rem);
-    align-items: start;
-  }
-
-}
-
 @media (max-width: 600px) {
-  .step {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.6rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -895,100 +818,6 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .sec[data-theme="bone"] .sec__label-dot {
   background: #8a7128;
   box-shadow: 0 0 0 4px rgba(138, 113, 40, 0.16);
-}
-
-/* ═════════════════════════════════════════════════════════════
-   MARCAS EM TRAÇO — desenhadas na entrada da seção
-   ═════════════════════════════════════════════════════════════ */
-.mark {
-  display: block;
-  width: clamp(2.75rem, 4.5vw, 3.5rem);
-  height: auto;
-  margin-bottom: clamp(1.25rem, 2.4vw, 1.75rem);
-  stroke: currentColor;
-  color: var(--bone-ink);
-  overflow: visible;
-}
-
-.mark__accent {
-  stroke: #8a7128;
-}
-
-.sec[data-theme="ink"] .mark {
-  color: var(--color-bone);
-}
-
-.sec[data-theme="ink"] .mark__accent {
-  stroke: var(--color-gold);
-}
-
-/* ── layout "glyphs" ─────────────────────────────────────────────────── */
-.sec__glyphs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(1.5rem, 3.5vw, 3rem);
-  margin: clamp(3.5rem, 7vw, 5.5rem) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.glyph {
-  padding-top: clamp(1.25rem, 2.4vw, 1.75rem);
-  border-top: 1px solid var(--bone-line);
-}
-
-.glyph__name {
-  margin: 0 0 0.6rem;
-  font-size: clamp(1rem, 1.35vw, 1.1875rem);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--bone-ink);
-}
-
-.glyph__text {
-  margin: 0;
-  font-family: var(--font-editorial);
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  color: var(--bone-soft);
-}
-
-/* ── layout "statement" ──────────────────────────────────────────────── */
-.sec--statement .sec__title {
-  font-size: clamp(2.75rem, 8vw, 7rem);
-  max-width: 16ch;
-}
-
-.sec--statement .sec__body {
-  max-width: 42rem;
-  font-size: clamp(1.125rem, 1.7vw, 1.5rem);
-}
-
-.sec__underline {
-  margin-top: clamp(2rem, 4vw, 3rem);
-  max-width: 40rem;
-  color: var(--color-gold);
-}
-
-.underline {
-  display: block;
-  width: 100%;
-  height: clamp(1.5rem, 3vw, 2.5rem);
-  overflow: visible;
-}
-
-/* ── responsivo dos layouts novos ────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .sec__glyphs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .sec__glyphs {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -1339,299 +1168,6 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   SERVIÇOS — lista interativa
-   ═════════════════════════════════════════════════════════════ */
-.services {
-  margin: clamp(3rem, 6vw, 4.5rem) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.service {
-  position: relative;
-}
-
-.service__rule {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.12);
-  transform-origin: left center;
-}
-
-.service__row {
-  display: grid;
-  grid-template-columns: clamp(3rem, 6vw, 5rem) minmax(0, 1fr) minmax(0, 1.15fr) 2.5rem;
-  gap: clamp(1rem, 3vw, 2.5rem);
-  align-items: baseline;
-  padding: clamp(1.5rem, 3vw, 2.4rem) 0;
-  text-decoration: none;
-  color: inherit;
-  transition: opacity var(--t-ui) ease;
-}
-
-.service__num {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--color-gold);
-  opacity: 0.55;
-  transition: opacity var(--t-ui) ease;
-}
-
-.service__name {
-  font-size: clamp(1.5rem, 3.2vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  text-transform: uppercase;
-  color: var(--color-bone);
-  transition: transform var(--t-ui) cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.service__text {
-  font-family: var(--font-editorial);
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  color: var(--color-ash);
-  opacity: 0.75;
-  transition: opacity var(--t-ui) ease;
-}
-
-.service__go {
-  justify-self: end;
-  color: var(--color-gold);
-  opacity: 0;
-  transform: translateX(-8px);
-  transition:
-    opacity var(--t-ui) ease,
-    transform var(--t-ui) cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Com um item apontado, os demais recuam: o foco é do leitor. */
-.services[data-hovering] .service[data-active="false"] .service__row {
-  opacity: 0.34;
-}
-
-.service[data-active="true"] .service__num {
-  opacity: 1;
-}
-
-.service[data-active="true"] .service__name {
-  transform: translateX(clamp(0.5rem, 1.4vw, 1.25rem));
-}
-
-.service[data-active="true"] .service__go {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.service[data-active="true"] .service__rule {
-  background: var(--color-gold);
-}
-
-/* Marca que segue o cursor. */
-.services__preview {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 60;
-  width: clamp(6rem, 9vw, 8rem);
-  height: clamp(6rem, 9vw, 8rem);
-  margin: calc(clamp(6rem, 9vw, 8rem) / -2) 0 0 calc(clamp(6rem, 9vw, 8rem) / -2);
-  pointer-events: none;
-  opacity: 0;
-}
-
-.services__mark {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-}
-
-.services__mark .mark {
-  width: 100%;
-  margin: 0;
-  color: var(--color-gold);
-  opacity: 0.9;
-}
-
-@media (max-width: 900px) {
-  .service__row {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-    gap: 0.4rem 1rem;
-    align-items: start;
-  }
-  .service__text {
-    grid-column: 2;
-  }
-  .service__go {
-    display: none;
-  }
-}
-
-/* ═════════════════════════════════════════════════════════════
-   PROCESSO — storytelling preso
-   ═════════════════════════════════════════════════════════════ */
-.sec--process .sec__inner {
-  max-width: 82rem;
-}
-
-.process {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: clamp(2rem, 7vw, 7rem);
-  align-items: start;
-}
-
-.process__sticky {
-  position: sticky;
-  top: clamp(7rem, 22vh, 12rem);
-}
-
-.process__count {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  margin: clamp(2rem, 4vw, 3rem) 0 0;
-  font-size: clamp(0.8125rem, 1.1vw, 0.9375rem);
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--color-gold);
-  font-variant-numeric: tabular-nums;
-}
-
-.process__count-sep {
-  opacity: 0.4;
-}
-
-.process__steps {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.process .step {
-  display: grid;
-  grid-template-columns: clamp(3rem, 5vw, 4.5rem) minmax(0, 1fr);
-  gap: clamp(1rem, 2.5vw, 2rem);
-  align-items: baseline;
-  padding: clamp(2.5rem, 7vh, 5rem) 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  opacity: 0.4;
-  transition: opacity 0.6s ease;
-}
-
-.process .step[data-active="true"] {
-  opacity: 1;
-}
-
-.process .step:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-@media (max-width: 900px) {
-  .process {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .process__sticky {
-    position: static;
-  }
-  .process .step {
-    padding: clamp(1.75rem, 4vh, 2.5rem) 0;
-    opacity: 1;
-  }
-}
-
-/* ═════════════════════════════════════════════════════════════
-   ENTREGAS — trilho horizontal
-   ═════════════════════════════════════════════════════════════ */
-.sec--deliverables .sec__inner {
-  max-width: none;
-  padding-inline: 0;
-}
-
-.sec--deliverables .sec__label,
-.sec--deliverables .sec__title,
-.sec--deliverables .sec__body {
-  max-width: 76rem;
-  margin-inline: auto;
-}
-
-.rail {
-  margin-top: clamp(3rem, 6vw, 5rem);
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.rail__track {
-  display: flex;
-  gap: clamp(1.25rem, 2.5vw, 2rem);
-  padding-inline: max(var(--pad-x), calc((100vw - 76rem) / 2));
-}
-
-.deliverable {
-  position: relative;
-  flex: 0 0 clamp(17rem, 26vw, 24rem);
-  padding: clamp(1.75rem, 3vw, 2.5rem) 0 0;
-}
-
-.deliverable__rule {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: var(--bone-line);
-  transform-origin: left center;
-}
-
-.deliverable__num {
-  display: block;
-  margin-bottom: 1.1rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: #8a7128;
-}
-
-.deliverable__name {
-  margin: 0 0 0.7rem;
-  font-size: clamp(1.125rem, 1.7vw, 1.5rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--bone-ink);
-}
-
-.deliverable__text {
-  margin: 0;
-  font-family: var(--font-editorial);
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  color: var(--bone-soft);
-}
-
-/* No toque, prender a tela e girar o eixo briga com o gesto de rolar. */
-@media (max-width: 1023px) {
-  .rail {
-    overflow: visible;
-  }
-  .rail__track {
-    flex-direction: column;
-    gap: clamp(1.5rem, 4vw, 2.25rem);
-    padding-inline: var(--pad-x);
-    transform: none !important;
-  }
-  .deliverable {
-    flex: none;
-  }
-}
-
-/* ═════════════════════════════════════════════════════════════
    CTA — fecho cinematográfico
    ═════════════════════════════════════════════════════════════ */
 .sec--cta {
@@ -1747,32 +1283,6 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   CARDS — tilt discreto e realce de borda
-   ═════════════════════════════════════════════════════════════ */
-.card,
-.glyph {
-  transform-style: preserve-3d;
-}
-
-.card__glow {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--t-ui) ease;
-  background: radial-gradient(
-    30rem 30rem at var(--mx, 50%) var(--my, 50%),
-    rgba(201, 168, 76, 0.12),
-    transparent 60%
-  );
-}
-
-.card:hover .card__glow {
-  opacity: 1;
-}
-
-/* ═════════════════════════════════════════════════════════════
    NAVBAR — recolhe depois de andar um pouco
    ═════════════════════════════════════════════════════════════ */
 .nav__bar {
@@ -1824,13 +1334,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     filter: none !important;
   }
 
-  .rail__track {
-    transform: none !important;
-  }
 
-  .process .step {
-    opacity: 1;
-  }
 
   .btn::before,
   .btn__line,
@@ -1875,29 +1379,688 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 /* Parágrafos: o navegador prefere encher a linha e sobra um traço solto no
    fim. `pretty` cuida das últimas linhas sem mudar o corpo do texto. */
 .sec__body,
-.step__text,
-.glyph__text,
-.deliverable__text,
-.service__text {
+.frente__legenda,
+.razao__texto,
+.estado__texto {
   text-wrap: pretty;
 }
 
-/* Entregas: o cabeçalho tem de nascer na MESMA guia lateral do trilho,
-   senão ele centraliza sozinho e parece um acidente. */
-.sec--deliverables .sec__label,
-.sec--deliverables .sec__title,
-.sec--deliverables .sec__body {
+
+
+
+/* ═════════════════════════════════════════════════════════════
+   DIAGNÓSTICO — o problema, e depois o problema em uma palavra
+   ═════════════════════════════════════════════════════════════ */
+.diag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: start;
+}
+
+/* Título em linha inteira; o parágrafo desce para a coluna da direita,
+   abaixo dele. É o deslocamento que dá a composição editorial. */
+.diag__titulo {
+  grid-column: 1 / -1;
+}
+
+.diag .sec__label {
+  grid-column: 1 / -1;
+}
+
+.diag__aside {
+  grid-column: 2 / -1;
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.diag__aside {
+  position: relative;
+  padding-left: clamp(1.25rem, 2.5vw, 2.25rem);
+}
+
+@media (max-width: 720px) {
+  .diag__aside {
+    grid-column: 1 / -1;
+  }
+}
+
+.diag__aside .sec__body {
+  margin-top: 0;
+}
+
+/* A faixa sangra até as bordas: dentro da guia lateral, viraria só mais um
+   bloco de texto. Aqui ela é textura, não parágrafo. */
+.faixa {
+  margin: clamp(4rem, 10vh, 8rem) calc(var(--pad-x) * -1) 0;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  padding: clamp(1rem, 2.2vw, 1.75rem) 0;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.faixa__fita {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  width: max-content;
+  /* Sem `will-change` fixo: a faixa só se move enquanto a seção está em
+     cena, e o GSAP já promove a camada durante a tween. */
+}
+
+.faixa__palavra {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  /* Contorno, não preenchimento: a palavra é atmosfera, e preenchida
+     competiria com o título logo acima. */
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(217, 217, 217, 0.34);
+}
+
+.faixa__ponto {
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: var(--color-gold);
+  -webkit-text-stroke: 0;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SERVIÇOS — a lista é o conteúdo, o palco é a prova
+   ═════════════════════════════════════════════════════════════ */
+.frentes {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: start;
+  margin-top: clamp(3rem, 6vw, 5rem);
+}
+
+.frentes__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frente {
+  position: relative;
+}
+
+.frente__rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  transform-origin: left center;
+  transition: background-color var(--t-ui) ease;
+}
+
+.frente__linha {
+  display: grid;
+  grid-template-columns: clamp(2.5rem, 4vw, 3.5rem) minmax(0, 1fr);
+  gap: 0.15rem clamp(0.75rem, 2vw, 1.5rem);
+  width: 100%;
+  padding: clamp(1.1rem, 2.4vw, 1.9rem) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.frente__num {
+  grid-row: 1 / 3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+  opacity: 0.5;
+  transition: opacity var(--t-ui) ease;
+}
+
+.frente__nome {
+  font-size: clamp(1.75rem, 4.4vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+  transition: transform var(--t-ui) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.frente__legenda {
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-ash);
+  opacity: 0.6;
+  transition: opacity var(--t-ui) ease;
+}
+
+/* As entregas são a resposta ao "isso inclui o quê?". Ficam fechadas até a
+   frente ser apontada — abertas todas de uma vez, a lista viraria um muro. */
+.frente__entregas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem clamp(1rem, 2vw, 2rem);
+  margin: 0;
+  padding: 0 0 0 calc(clamp(2.5rem, 4vw, 3.5rem) + clamp(0.75rem, 2vw, 1.5rem));
+  list-style: none;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease,
+    padding-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.frente__entregas li {
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ash);
+}
+
+.frente__entregas li::before {
+  content: "—";
+  margin-right: 0.5rem;
+  color: var(--color-gold);
+  opacity: 0.7;
+}
+
+.frente[data-active="true"] .frente__entregas {
+  max-height: 12rem;
+  opacity: 1;
+  padding-bottom: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.frente[data-active="true"] .frente__num,
+.frente[data-active="true"] .frente__legenda {
+  opacity: 1;
+}
+
+.frente[data-active="true"] .frente__nome {
+  transform: translateX(clamp(0.4rem, 1vw, 0.9rem));
+}
+
+.frente[data-active="true"] .frente__rule {
+  background: var(--color-gold);
+}
+
+.frentes[data-ativa] .frente[data-active="false"] .frente__linha {
+  opacity: 0.42;
+  transition: opacity var(--t-ui) ease;
+}
+
+/* O palco acompanha a leitura em vez de rolar junto com a lista. */
+.frentes__palco {
+  position: sticky;
+  top: clamp(7rem, 18vh, 10rem);
+}
+
+.frentes__moldura {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(201, 168, 76, 0.07), transparent 62%),
+    rgba(255, 255, 255, 0.018);
+  overflow: hidden;
+}
+
+.palco {
+  position: absolute;
+  inset: clamp(1.5rem, 3vw, 2.5rem);
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.palco[data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.palco svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Vocabulário compartilhado dos seis palcos: um traço, um cheio, um dourado.
+   É o que faz seis ilustrações diferentes parecerem a mesma família. */
+.pl-quadro,
+.pl-linha,
+.pl-celula,
+.pl-guia,
+.pl-bloco,
+.pl-no,
+.pl-alvo,
+.pl-rota,
+.pl-simbolo {
+  stroke: rgba(217, 217, 217, 0.5);
+  stroke-width: 1.25;
+  fill: none;
+}
+
+.pl-guia {
+  stroke: rgba(217, 217, 217, 0.18);
+  stroke-dasharray: 3 5;
+}
+
+.pl-celula,
+.pl-bloco {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.pl-barra,
+.pl-cheio,
+.pl-ponto {
+  fill: rgba(217, 217, 217, 0.42);
+  stroke: none;
+}
+
+.pl-destaque,
+.pl-alvo-miolo {
+  fill: var(--color-gold);
+  stroke: none;
+}
+
+.pl-alvo {
+  stroke: var(--color-gold);
+  stroke-width: 1.5;
+}
+
+.pl-rota--eleita {
+  stroke: var(--color-gold);
+  stroke-width: 1.75;
+}
+
+.pl-rec {
+  fill: var(--color-gold);
+}
+
+.pl-simbolo {
+  stroke: var(--color-bone);
+}
+
+.pl-texto {
+  fill: rgba(217, 217, 217, 0.55);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  font-weight: 500;
+}
+
+/* Entrada escalonada por `--i`: seis timelines de GSAP só para trocar
+   ilustração seria trabalho e memória à toa. */
+.palco [style*="--i"] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i) * 55ms);
+}
+
+.palco[data-active="true"] [style*="--i"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* O playhead corre sozinho: é a única coisa da página que se move sem o
+   scroll, e existe porque uma timeline parada não lê como timeline. */
+.palco[data-active="true"] [data-playhead] {
+  animation: correr 3.4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  stroke: var(--color-gold);
+  stroke-width: 1.75;
+}
+
+@keyframes correr {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(264px); }
+}
+
+@media (max-width: 1023px) {
+  .frentes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .frentes__palco {
+    position: static;
+    order: -1;
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  .frentes__moldura {
+    aspect-ratio: 4 / 3;
+  }
+  .frente__entregas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .frente[data-active="true"] .frente__entregas {
+    max-height: 16rem;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   AUDIOVISUAL — o vídeo toma a tela
+   ═════════════════════════════════════════════════════════════ */
+.sec--filme {
+  padding: 0;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.sec--filme .sec__inner {
   max-width: none;
-  margin-inline: 0;
-  padding-inline: max(var(--pad-x), calc((100vw - 76rem) / 2));
+  width: 100%;
+  height: 100svh;
+  padding: 0;
 }
 
-/* Processo: a coluna presa é estreita, e o corpo do título de fora quebraria
-   em três linhas — a composição foi escrita para duas. */
-.sec--process .sec__title {
-  font-size: clamp(2.25rem, 4.6vw, 4rem);
+.filme {
+  position: relative;
+  width: 100%;
+  height: 100svh;
 }
 
-.sec--process .sec__body {
-  max-width: 26rem;
+.filme__texto {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  padding: 0 var(--pad-x);
+  pointer-events: none;
+}
+
+.filme__texto > * {
+  max-width: 34rem;
+}
+
+/* A janela é sempre do tamanho da tela; quem cresce é o RECORTE. Animar
+   `width` re-layouta a página a cada quadro. */
+.filme__janela {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--color-ink-100);
+}
+
+.filme__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.72) contrast(1.06) saturate(0.78) sepia(0.18);
+}
+
+.filme__grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 60% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.5) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.55), transparent 45%);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SISTEMA — a composição que se organiza
+   ═════════════════════════════════════════════════════════════ */
+.sec--sistema {
+  min-height: 100svh;
+  padding-block: clamp(5rem, 10vh, 8rem);
+}
+
+.sistema {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(1.5rem, 5vw, 4.5rem);
+  align-items: center;
+  width: 100%;
+  /* `--marca` vai de 0 a 1 pelo scroll e é o que acende a identidade nas
+     peças. Uma variável só, em vez de doze tweens de cor. */
+  --marca: 0;
+}
+
+.sistema__coluna {
+  max-width: 30rem;
+}
+
+.sistema__estados {
+  position: relative;
+  margin-top: clamp(1.75rem, 3.5vw, 2.75rem);
+  min-height: 9.5rem;
+}
+
+/* Empilhados no mesmo lugar: em fluxo, a coluna pularia de altura a cada
+   troca de estado e a leitura saltaria junto. */
+.estado {
+  position: absolute;
+  inset: 0;
+}
+
+.estado__titulo {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.0625rem, 1.5vw, 1.3125rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.estado__texto {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--color-ash);
+}
+
+.sistema__contador {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: clamp(1.5rem, 3vw, 2.5rem) 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.sistema__contador-sep {
+  opacity: 0.4;
+}
+
+.sistema__palco {
+  position: relative;
+}
+
+.sistema__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.peca__caixa {
+  fill: rgba(255, 255, 255, 0.03);
+  /* A borda vai do cinza ao dourado conforme `--marca` sobe: é a identidade
+     chegando nas peças, e não um recolorir avulso. */
+  stroke: color-mix(in srgb, var(--color-gold) calc(var(--marca) * 100%), rgba(217, 217, 217, 0.28));
+  stroke-width: 1;
+}
+
+.peca__rotulo {
+  fill: color-mix(in srgb, var(--color-bone) calc(40% + var(--marca) * 60%), transparent);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-anchor: middle;
+}
+
+.sistema__linha {
+  stroke: var(--color-gold);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.sistema__centro-halo {
+  fill: rgba(201, 168, 76, 0.07);
+  stroke: none;
+}
+
+.sistema__centro-anel {
+  fill: var(--color-ink);
+  stroke: var(--color-gold);
+  stroke-width: 1.25;
+}
+
+.sistema__centro-linha1,
+.sistema__centro-linha2 {
+  fill: var(--color-bone);
+  text-anchor: middle;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.sistema__centro-linha1 {
+  font-size: 20px;
+  fill: var(--color-gold);
+}
+
+.sistema__centro-linha2 {
+  font-size: 26px;
+}
+
+@media (max-width: 1023px) {
+  .sistema {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+    align-content: center;
+  }
+  .sistema__estados {
+    min-height: 8rem;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   PROVA — quatro razões, tema claro
+   ═════════════════════════════════════════════════════════════ */
+.prova {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 4.5vw, 3.5rem) clamp(2rem, 5vw, 4.5rem);
+  margin: clamp(3rem, 6vw, 5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.razao {
+  position: relative;
+  padding-top: clamp(1.1rem, 2vw, 1.6rem);
+}
+
+.razao__rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--bone-line);
+  transform-origin: left center;
+}
+
+.razao__num {
+  display: block;
+  margin-bottom: 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #8a7128;
+}
+
+.razao__nome {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.0625rem, 1.5vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bone-ink);
+}
+
+.razao__texto {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--bone-soft);
+}
+
+@media (max-width: 720px) {
+  .diag,
+  .prova {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .diag {
+    gap: clamp(1.5rem, 5vw, 2.25rem);
+    align-items: start;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   REDUCED MOTION — o que depende de movimento autônomo sai
+   ═════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .palco[data-active="true"] [data-playhead] {
+    animation: none;
+  }
+  .faixa__fita {
+    transform: none !important;
+  }
+  /* Sem hover não há frente ativa: as entregas ficam todas abertas. */
+  .frente__entregas {
+    max-height: none;
+    opacity: 1;
+    padding-bottom: clamp(1.25rem, 2.5vw, 2rem);
+    transition: none;
+  }
+  .palco {
+    transition: none;
+  }
+}
+
+/* ── Ajustes de composição ───────────────────────────────────────────── */
+
+/* Sistema: a coluna de texto é estreita e o corpo padrão do título quebraria
+   em quatro linhas por cima dos estados. */
+.sec--sistema .sec__title {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* Filme: o texto vive na metade esquerda, que é a metade que o vídeo só
+   invade depois que ele sai. */
+.filme__texto > * {
+  max-width: min(34rem, 42vw);
+}
+
+.sec--filme .sec__title {
+  font-size: clamp(2.25rem, 5vw, 4.25rem);
+}
+
+/* A faixa sangra até as bordas de propósito, mas `100vw` conta a barra de
+   rolagem e sobra alguns pixels para o lado. */
+.faixa {
+  max-width: 100%;
 }

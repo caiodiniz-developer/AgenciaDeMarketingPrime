@@ -41,8 +41,14 @@ export function useMagnetic({ strength = 0.32, radius = 90, textStrength = 0.4 }
     };
 
     const onLeave = () => {
-      gsap.to(el, { x: 0, y: 0, duration: 0.9, ease: EASE.spring, overwrite: true });
-      if (inner) gsap.to(inner, { x: 0, y: 0, duration: 0.9, ease: EASE.spring, overwrite: true });
+      /* `overwrite: "auto"` e não `true`: o true mata TODAS as tweens do
+         elemento, e matar na mão quebra o quickTo, que depende de uma tween
+         persistente. "auto" desfaz só o conflito de x/y — que é o único que
+         existe, porque o reveal da seção anima o contêiner, não o botão. */
+      gsap.to(el, { x: 0, y: 0, duration: 0.9, ease: EASE.spring, overwrite: "auto" });
+      if (inner) {
+        gsap.to(inner, { x: 0, y: 0, duration: 0.9, ease: EASE.spring, overwrite: "auto" });
+      }
     };
 
     /* O raio é medido a partir da borda, não do centro: um botão largo
@@ -65,8 +71,9 @@ export function useMagnetic({ strength = 0.32, radius = 90, textStrength = 0.4 }
       window.removeEventListener("pointermove", onWindowMove);
       document.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("blur", onLeave);
-      gsap.killTweensOf([el, inner].filter(Boolean));
-      gsap.set([el, inner].filter(Boolean), { x: 0, y: 0 });
+      const alvos = [el, inner].filter(Boolean);
+      gsap.killTweensOf(alvos, "x,y");
+      gsap.set(alvos, { x: 0, y: 0 });
     };
   }, [strength, radius, textStrength]);
 

@@ -1,8 +1,7 @@
 # Agência Prime
 
-Experiência de scroll cinematográfico: uma hero em vídeo dirigido pelo scroll,
-seguida de uma narrativa em seções alternando preto e bege, com luz volumétrica
-(GodRays) e um modelo 3D atravessando a cena.
+Site da Prime: uma hero em vídeo dirigido pelo scroll, seguida de uma narrativa
+em seis seções — cada uma com uma interação-assinatura própria.
 
 ```bash
 npm install
@@ -11,12 +10,31 @@ npm run build        # produção → dist/
 npm run preview      # serve o build
 ```
 
+## Posicionamento
+
+A Prime não é apresentada como "uma agência que faz posts". Ela é o braço de
+comunicação da empresa cliente: **a empresa cuida do negócio, a Prime cuida de
+como esse negócio é visto**. A página inteira serve a essa ideia, nesta ordem:
+
+| Seção | Trabalho que ela faz | Interação-assinatura |
+|---|---|---|
+| hero | primeira impressão | vídeo dirigido pelo scroll |
+| diagnóstico | o problema é do leitor | reveal conduzido + faixa tipográfica |
+| serviços | a extensão do que a Prime assume | lista interativa, uma composição por frente |
+| audiovisual | capacidade demonstrada | o vídeo toma a tela |
+| sistema | como as frentes se conectam | cena presa que se reorganiza em 4 estados |
+| prova | por que funciona | respiro: tema claro, leitura calma |
+| contato | o próximo passo | fecho cinematográfico + botão magnético |
+
+Nenhuma interação se repete. É isso que separa uma página projetada de uma
+pilha de seções com fade-in.
+
 ## Como funciona
 
-**A hero não dá play no vídeo.** O scroll é que avança e recua os quadros: o
-trilho (`TRACK_VH`) define quanto scroll a sequência dura, o palco gruda dentro
-dele, e `useVideoScrub` persegue o alvo com amortecimento em vez de escrever
-`currentTime` a cada tique da roda — é o que separa "manteiga" de "travado".
+**A hero não dá play no vídeo.** O scroll avança e recua os quadros: o trilho
+(`TRACK_VH`) define a duração, o palco gruda dentro dele, e `useVideoScrub`
+persegue o alvo com amortecimento em vez de escrever `currentTime` a cada tique
+da roda — é o que separa "manteiga" de "travado".
 
 Camadas do palco, de trás para frente:
 
@@ -28,35 +46,42 @@ A luz nasce **dentro** da cena, entre o vídeo e os overlays. É por isso que el
 parece pertencer ao quadro em vez de estar colada por cima.
 
 Depois da hero, `Story` mantém a luz e o laptop 3D grudados (`sticky`)
-atravessando todas as seções. As seções de tema `bone` são opacas de propósito:
-cortam a cena, devolvem respiro à leitura e fazem a volta ao preto valer.
+atravessando as seções. As de tema `bone` são opacas de propósito: cortam a
+cena, devolvem respiro à leitura e fazem a volta ao preto valer.
 
-## Acrescentar uma seção
+## Sistema de motion
 
-Tudo vem de [`src/content/story.js`](src/content/story.js). Acrescente um objeto
-a `sections` — o trilho, a navegação, a luz e a pose do 3D se ajustam sozinhos:
+`src/lib/motion.js` guarda curvas, durações, staggers e a hierarquia de entrada
+(`BEAT`). Os valores vivem num lugar só porque é o ritmo compartilhado que faz
+o site parecer intencional — espalhados, cada seção inventa o próprio tempo.
 
-```js
-{
-  id: "novo",
-  layout: "split",     // split · grid · glyphs · steps · statement · list · cta
-  theme: "ink",        // ink (preto, deixa passar luz e 3D) · bone (bege opaco)
-  rays: true,          // liga a luz dourada; alternar é o que a mantém rara
-  label: "Rótulo",
-  title: ["Primeira linha,", "segunda linha."],
-  body: [{ text: "Texto com " }, { text: "destaque", tone: "gold" }, { text: "." }],
-  laptop: { x: 0.6, y: -0.4, scale: 0.8, rotY: -0.9, rotX: 0.18 },
-}
-```
+Regra de entrada: **os elementos se sobrepõem**. Se o título só começa quando o
+rótulo termina, a seção entra em degraus e denuncia a máquina.
 
-`laptop`: `x` e `y` vão de −1 a 1 — `(-1,-1)` é o canto inferior esquerdo da
-tela, `(1,1)` o superior direito. Acima de 1 o modelo espia por fora do quadro.
-A regra é nunca invadir a coluna de texto.
+## Acrescentar ou mudar conteúdo
 
-Para um layout novo, acrescente o ramo em [`Section.jsx`](src/components/Section.jsx)
-e o CSS correspondente. A coreografia é genérica: qualquer elemento com
-`data-sec-item` entra em cascata, `data-draw` é riscado pelo DrawSVG e
-`data-pop` aparece por escala depois do traço.
+Tudo vem de [`src/content/story.js`](src/content/story.js): copy, serviços,
+estados do sistema, temas, poses do 3D e a navegação.
+
+Para uma seção nova, acrescente um objeto a `sections`, um ramo em
+[`Section.jsx`](src/components/Section.jsx) e o CSS. A coreografia base é
+genérica: `data-sec-label`, `data-sec-title`, `data-sec-body`, `data-sec-item`
+e `data-sec-rule` entram sozinhos, na hierarquia certa.
+
+`laptop` posiciona o modelo 3D: `x` e `y` de −1 a 1, onde `(-1,-1)` é o canto
+inferior esquerdo e `(1,1)` o superior direito; acima de 1 ele espia por fora.
+`laptop: null` apaga o modelo — use quando a seção tiver palco próprio. A regra
+é nunca invadir a coluna de texto.
+
+## Cases: vazio de propósito
+
+`cases` em `story.js` está vazio e a seção de portfólio não existe ainda.
+**Não há nenhum trabalho real da Prime no repositório** — só o vídeo de pó
+(genérico), o `laptop.glb` (modelo de terceiro) e o logo.
+
+Inventar cliente, print ou número seria fabricar prova, e prova fabricada é o
+oposto do que esta página vende. Para ligar a seção, preencha `cases` com peças
+reais no formato documentado no arquivo e acrescente a seção em `sections`.
 
 ## Assets gerados
 
@@ -64,7 +89,7 @@ Os arquivos em `public/media/` e `public/logo-*.png` são **derivados** — não
 edite à mão, rode os scripts:
 
 ```bash
-npm run encode:hero   # media/hero-master.mp4 → variantes all-intra + poster
+npm run encode:hero          # media/hero-master.mp4 → variantes all-intra + poster
 node scripts/make-logo.mjs   # public/logo.png → versões clara e escura
 ```
 
@@ -86,20 +111,36 @@ Animação não se valida lendo código.
 
 ```bash
 npm run preview
-node scripts/verify.mjs http://localhost:4173/   # mede e reporta
+node scripts/verify.mjs http://localhost:4173/
 node scripts/shots.mjs  http://localhost:4173/ ./.verify/tour 1440 900
 ```
 
 `verify.mjs` mede overflow horizontal, razão entre entrelinha e corpo, folga
 para acentos nos títulos, o `currentTime` acompanhando o scroll nos dois
 sentidos, se o Lenis realmente intercepta a roda, framerate, `will-change`
-órfão, cada link da navegação e o caminho de `prefers-reduced-motion`.
+órfão, cada link da navegação, as interações (abertura, cursor, lista de
+serviços, expansão do vídeo, cena do sistema, botão magnético, rodapé) e o
+caminho de `prefers-reduced-motion`.
+
+Dois detalhes do harness que já custaram um diagnóstico errado:
+
+- **O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão.**
+  Sem desligar isso, toda verificação mede o caminho reduzido e conclui que o
+  site funciona — enquanto nada do movimento real é testado.
+- **Com seções presas, rolar por `getBoundingClientRect` erra o destino**: o
+  espaçador do pin muda o layout durante a própria rolagem. Os scripts
+  aproximam e corrigem (`irPara`).
+
 `SOFT_GL=1` força WebGL por software (reprodutível, mas mede o piso do
 renderizador, não o do site).
 
 ## Acessibilidade
 
-`prefers-reduced-motion` remove o movimento autônomo, mas **não** a sequência de
-scroll: rolar é resposta 1:1 ao gesto do usuário, e apagar a feature principal
-da página puniria quem ligou a preferência. O Lenis também continua — só com a
-inércia encurtada.
+`prefers-reduced-motion` remove o movimento autônomo — cursor, luz que segue o
+ponteiro, parallax, playhead — mas **não** a sequência de scroll: rolar é
+resposta 1:1 ao gesto do usuário, e apagar a feature principal da página
+puniria quem ligou a preferência. A cena do sistema nasce montada no estado
+final, as entregas dos serviços ficam todas abertas, e o Lenis continua, só com
+a inércia encurtada.
+
+A lista de serviços responde a teclado (`focusin`), não só a ponteiro.

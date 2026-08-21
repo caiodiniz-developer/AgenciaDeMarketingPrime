@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5345/";
+const URL = process.argv[2] || "http://localhost:5361/";
 const OUT = process.argv[3] || "./.verify/tour";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
@@ -49,28 +49,42 @@ await shot("00-hero");
 // assim que o número de seções muda.
 const stops = [
   { p: 0.06, name: "01-hero-saindo" },
-  { p: 0.14, name: "02-luz" },
-  { id: "visao", name: "03-visao" },
-  { id: "oficio", name: "04-oficio" },
-  { id: "pilares", name: "05-pilares" },
-  { id: "metodo", name: "06-metodo" },
-  { id: "manifesto", name: "07-manifesto" },
-  { id: "entrega", name: "08-entrega" },
-  { id: "contato", name: "09-contato" },
-  { p: 1, name: "10-rodape" },
+  { id: "diagnostico", name: "02-diagnostico" },
+  { id: "servicos", name: "03-servicos" },
+  { id: "audiovisual", name: "04-filme-fechado" },
+  { id: "audiovisual", avanco: 1.5, name: "05-filme-aberto" },
+  { id: "sistema", name: "06-sistema-solto" },
+  { id: "sistema", avanco: 1.6, name: "07-sistema-grade" },
+  { id: "sistema", avanco: 3.2, name: "08-sistema-anel" },
+  { id: "prova", name: "09-prova" },
+  { id: "contato", name: "10-contato" },
+  { p: 1, name: "11-rodape" },
 ];
 
+/* Com seções presas, um salto único erra o destino: o espaçador do pin
+   muda o layout durante a própria rolagem. Aproxima e corrige. */
+async function irPara(id) {
+  for (let i = 0; i < 4; i++) {
+    const d = await page.evaluate((s) => document.getElementById(s).getBoundingClientRect().top, id);
+    if (Math.abs(d) < 4) break;
+    await page.evaluate((v) => window.scrollTo(0, window.scrollY + v), d);
+    await sleep(1400);
+  }
+}
+
 for (const stop of stops) {
-  await page.evaluate((s) => {
-    if (s.id) {
-      const el = document.getElementById(s.id);
-      window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
-    } else {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      window.scrollTo(0, max * s.p);
+  if (stop.id) {
+    await irPara(stop.id);
+    if (stop.avanco) {
+      await page.evaluate((n) => window.scrollTo(0, window.scrollY + window.innerHeight * n), stop.avanco);
     }
-  }, stop);
-  await sleep(2800);
+  } else {
+    await page.evaluate((prog) => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      window.scrollTo(0, max * prog);
+    }, stop.p);
+  }
+  await sleep(2600);
   await shot(stop.name);
 }
 

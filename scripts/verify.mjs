@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5345/";
+const URL = process.argv[2] || "http://localhost:5361/";
 const OUT = process.argv[3] || "./.verify";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
@@ -14,6 +14,24 @@ mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 const ok = (cond) => (cond ? "OK" : "FALHOU");
+
+/**
+ * Leva a seção ao topo e CONFERE que chegou.
+ * Rolar de uma vez por `getBoundingClientRect` erra sempre que há uma seção
+ * pinada no caminho: o pin-spacer muda o layout durante a rolagem e o destino
+ * se desloca. Uma correção depois de assentar basta.
+ */
+async function irPara(page, id, espera = 1600) {
+  for (let i = 0; i < 3; i++) {
+    const delta = await page.evaluate((sid) => {
+      const el = document.getElementById(sid);
+      return el.getBoundingClientRect().top;
+    }, id);
+    if (Math.abs(delta) < 4) break;
+    await page.evaluate((d) => window.scrollTo(0, window.scrollY + d), delta);
+    await new Promise((r) => setTimeout(r, espera));
+  }
+}
 
 const browser = await puppeteer.launch({
   executablePath: CHROME,
@@ -217,11 +235,8 @@ log(`\n── framerate (${process.env.SOFT_GL ? "software: piso, não teto" : "
 await page.evaluate(() => window.scrollTo(0, window.innerHeight * 0.6));
 await sleep(900);
 await medirFps("hero (vídeo+luz)");
-await page.evaluate(() => {
-  const el = document.getElementById("oficio");
-  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 400);
-});
-await sleep(1200);
+await irPara(page, "servicos");
+await sleep(900);
 await medirFps("seções (luz+3D)");
 
 /* ── 6. will-change órfão ───────────────────────────────────────────────── */
@@ -252,12 +267,13 @@ for (const href of alvos) {
   log(`  ${href.padEnd(12)} → topo da seção a ${onde}px  ${ok(Math.abs(onde) < 90)}`);
 }
 
-/* ── 7b. interações novas ───────────────────────────────────────────────── */
+/* ── 7b. interações ─────────────────────────────────────────────────────── */
 log("\n── interações ──");
 
 // Abertura: some sozinha e devolve o scroll.
 {
   const p2 = await browser.newPage();
+  await p2.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
   await p2.setViewport({ width: 1440, height: 900 });
   await p2.goto(URL, { waitUntil: "domcontentloaded" });
   const inicial = await p2.evaluate(() => !!document.querySelector(".preloader"));
@@ -271,84 +287,118 @@ log("\n── interações ──");
   await p2.close();
 }
 
-// Cursor: existe no desktop com ponteiro fino.
 log(`  cursor customizado ..... ${ok(await page.evaluate(() => !!document.querySelector(".cursor")))}`);
 
-// Serviços: apontar um item acende ele e apaga os outros.
-await page.evaluate(() => {
-  const el = document.getElementById("oficio");
-  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
-});
-await sleep(1800);
-const alvoServico = await page.evaluate(() => {
-  const li = document.querySelectorAll("[data-service]")[1];
-  const r = li.getBoundingClientRect();
-  return { x: Math.round(r.left + 60), y: Math.round(r.top + r.height / 2) };
-});
-await page.mouse.move(alvoServico.x, alvoServico.y);
+/* Serviços: apontar uma frente acende ela, apaga as outras e troca o palco. */
+await irPara(page, "servicos");
 await sleep(700);
-const servico = await page.evaluate(() => {
-  const itens = [...document.querySelectorAll("[data-service]")];
-  const preview = document.querySelector("[data-services-preview]");
+const mira = await page.evaluate(() => {
+  /* Mira na primeira frente VISÍVEL que não seja a já ativa: a lista tem
+     seis itens e os últimos ficam fora da tela quando a seção encosta no
+     topo — mirar às cegas no terceiro acerta o vazio. */
+  const linhas = [...document.querySelectorAll("[data-frentes] .frente__linha")];
+  const alvo = linhas.find((l, i) => {
+    const r = l.getBoundingClientRect();
+    return i > 0 && r.top > 80 && r.bottom < window.innerHeight - 40;
+  });
+  const r = (alvo || linhas[1]).getBoundingClientRect();
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+});
+await page.mouse.move(mira.x, mira.y);
+await sleep(900);
+const frente = await page.evaluate(() => {
+  const itens = [...document.querySelectorAll("[data-frentes] [data-frente]")];
+  const ativos = itens.filter((e) => e.dataset.active === "true").map((e) => e.dataset.frente);
+  const palcos = [...document.querySelectorAll("[data-palco]")]
+    .filter((p) => p.dataset.active === "true")
+    .map((p) => p.dataset.palco);
+  const aberta = itens.find((e) => e.dataset.active === "true")?.querySelector(".frente__entregas");
   return {
-    ativos: itens.filter((e) => e.dataset.active === "true").map((e) => e.dataset.service),
-    previewVisivel: +getComputedStyle(preview).opacity > 0.5,
-    marcaAcesa: [...preview.querySelectorAll("[data-preview]")]
-      .filter((m) => +getComputedStyle(m).opacity > 0.5)
-      .map((m) => m.dataset.preview),
+    ativos,
+    palcos,
+    entregasAbertas: aberta ? aberta.getBoundingClientRect().height > 20 : false,
   };
 });
-log(`  serviço apontado ....... ${servico.ativos.join(",") || "nenhum"}  ${ok(servico.ativos.length === 1)}`);
-log(`  marca segue o cursor ... ${servico.marcaAcesa.join(",") || "nenhuma"}  ${ok(servico.previewVisivel && servico.marcaAcesa[0] === servico.ativos[0])}`);
+log(`  frente apontada ........ ${frente.ativos.join(",") || "nenhuma"}  ${ok(frente.ativos.length === 1)}`);
+log(`  palco acompanha ........ ${frente.palcos.join(",") || "nenhum"}  ${ok(frente.palcos[0] === frente.ativos[0])}`);
+log(`  entregas abrem ......... ${ok(frente.entregasAbertas)}`);
 
-// Trilho horizontal: rolar dentro da seção presa desloca a faixa.
-await page.evaluate(() => {
-  const el = document.getElementById("entrega");
-  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
-});
-await sleep(1500);
-const antesTrilho = await page.evaluate(() => document.querySelector("[data-rail-track]").getBoundingClientRect().left);
-await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 1.2));
+/* Audiovisual: o recorte do vídeo abre com o scroll. */
+await irPara(page, "audiovisual");
+await sleep(700);
+const clipAntes = await page.evaluate(
+  () => getComputedStyle(document.querySelector("[data-filme-janela]")).clipPath
+);
+await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 1.4));
 await sleep(1800);
-const depoisTrilho = await page.evaluate(() => document.querySelector("[data-rail-track]").getBoundingClientRect().left);
-log(`  trilho anda na horizontal ${Math.round(antesTrilho)}px → ${Math.round(depoisTrilho)}px  ${ok(depoisTrilho < antesTrilho - 80)}`);
+// O vídeo carrega sob demanda (`preload="none"`): esperar é mais honesto
+// que cronometrar e concluir que não toca.
+await page
+  .waitForFunction(() => !document.querySelector("[data-filme-video]").paused, { timeout: 8000 })
+  .catch(() => {});
+const clipDepois = await page.evaluate(() => ({
+  clip: getComputedStyle(document.querySelector("[data-filme-janela]")).clipPath,
+  tocando: !document.querySelector("[data-filme-video]").paused,
+}));
+const abriu = clipAntes !== clipDepois.clip;
+log(`  vídeo toma a tela ...... ${abriu ? "abriu" : "parado"}  ${ok(abriu)}`);
+log(`  vídeo tocando em cena .. ${ok(clipDepois.tocando)}`);
 
-// Botão magnético: aproximar o ponteiro desloca o botão.
-await page.evaluate(() => {
-  const el = document.getElementById("contato");
-  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
+/* Sistema: as peças saem da bagunça e fecham em anel em torno da empresa. */
+await irPara(page, "sistema");
+await sleep(1000);
+const pecaAntes = await page.evaluate(() => {
+  const r = document.querySelector('[data-peca="post"]').getBoundingClientRect();
+  return {
+    x: Math.round(r.left),
+    y: Math.round(r.top),
+    estado: document.querySelector("[data-sistema-atual]").textContent,
+  };
 });
-await sleep(1800);
+await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 3));
+await sleep(2400);
+const pecaDepois = await page.evaluate(() => {
+  const r = document.querySelector('[data-peca="post"]').getBoundingClientRect();
+  return {
+    x: Math.round(r.left),
+    y: Math.round(r.top),
+    estado: document.querySelector("[data-sistema-atual]").textContent,
+    centro: +getComputedStyle(document.querySelector("[data-centro]")).opacity,
+  };
+});
+const andou = Math.hypot(pecaDepois.x - pecaAntes.x, pecaDepois.y - pecaAntes.y) > 60;
+log(`  peças se reorganizam ... ${pecaAntes.x},${pecaAntes.y} → ${pecaDepois.x},${pecaDepois.y}  ${ok(andou)}`);
+log(`  estado avança .......... ${pecaAntes.estado} → ${pecaDepois.estado}  ${ok(pecaDepois.estado !== pecaAntes.estado)}`);
+log(`  empresa no centro ...... opacidade ${pecaDepois.centro}  ${ok(pecaDepois.centro > 0.9)}`);
+
+/* Botão magnético e alcance do CTA. */
+await irPara(page, "contato");
+await sleep(900);
 const btn = await page.evaluate(() => {
-  const b = document.querySelector(".btn");
-  const r = b.getBoundingClientRect();
+  const r = document.querySelector(".btn").getBoundingClientRect();
   return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
 });
 const antesBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
 await page.mouse.move(btn.x + 55, btn.y);
 await sleep(700);
 const depoisBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
-await page.mouse.move(60, 60); // longe do botão, mas ainda dentro da janela
+await page.mouse.move(60, 60);
 await sleep(1100);
 const voltouBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
-log(`  botão magnético ........ ${Math.round(antesBtn)} → ${Math.round(depoisBtn)} → ${Math.round(voltouBtn)}  ${ok(depoisBtn > antesBtn + 4 && Math.abs(voltouBtn - antesBtn) < 3)}`);
+log(
+  `  botão magnético ........ ${Math.round(antesBtn)} → ${Math.round(depoisBtn)} → ${Math.round(voltouBtn)}  ${ok(
+    depoisBtn > antesBtn + 4 && Math.abs(voltouBtn - antesBtn) < 3
+  )}`
+);
 
-// O botão do CTA precisa estar alcançável: a cena 3D cobre a tela inteira,
-// e basta um `pointer-events` errado nela para o botão virar decoração.
-const btnAlcancavel = await page.evaluate(() => {
-  const b = document.querySelector(".btn");
-  const r = b.getBoundingClientRect();
-  const cs = getComputedStyle(b);
+const alcance = await page.evaluate(() => {
+  const r = document.querySelector(".btn").getBoundingClientRect();
   const alvo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return {
-    atinge: !!alvo?.closest(".btn"),
-    obstaculo: alvo ? `${alvo.tagName}.${alvo.className}` : "-",
-    estado: `vis=${cs.visibility} op=${cs.opacity} pe=${cs.pointerEvents} rect=${Math.round(r.top)},${Math.round(r.height)}`,
-  };
+  return { atinge: !!alvo?.closest(".btn"), obstaculo: alvo ? `${alvo.tagName}.${alvo.className}` : "-" };
 });
-log(`  botão clicável ......... ${btnAlcancavel.obstaculo} · ${btnAlcancavel.estado}  ${ok(btnAlcancavel.atinge)}`);
+log(`  botão clicável ......... ${alcance.obstaculo}  ${ok(alcance.atinge)}`);
 
-// Rodapé: no fim da página aparece e nada da cena o cobre.
+/* Rodapé: no fim da página aparece e nada da cena o cobre. */
 await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 await sleep(1600);
 const rodape = await page.evaluate(() => {
@@ -358,10 +408,9 @@ const rodape = await page.evaluate(() => {
   return {
     visivel: r.top < window.innerHeight && r.bottom > 0,
     porCima: meio ? meio.closest(".footer") !== null : false,
-    tag: meio ? meio.className || meio.tagName : "-",
   };
 });
-log(`  rodapé revelado ........ visível=${rodape.visivel} clicável=${rodape.porCima} (${rodape.tag})  ${ok(rodape.visivel && rodape.porCima)}`);
+log(`  rodapé revelado ........ visível=${rodape.visivel} alcançável=${rodape.porCima}  ${ok(rodape.visivel && rodape.porCima)}`);
 await page.screenshot({ path: `${OUT}/desktop-99-rodape.png` });
 
 /* ── 8. prefers-reduced-motion ──────────────────────────────────────────── */
@@ -378,27 +427,24 @@ const reduzHero = await page.evaluate(() => ({
 await page.screenshot({ path: `${OUT}/reduced-00-hero.png` });
 
 await page.evaluate(() => {
-  const el = document.getElementById("pilares");
+  const el = document.getElementById("prova");
   window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
 });
 await sleep(2000);
 const reduzSec = await page.evaluate(() => {
-  const t = document.querySelector('[data-sec="pilares"] .sec__title div div');
-  const item = document.querySelector('[data-sec="pilares"] [data-sec-item]');
-  const traco = document.querySelector('[data-sec="pilares"] [data-draw]');
+  const t = document.querySelector('[data-sec="prova"] .sec__title div div');
+  const item = document.querySelector('[data-sec="prova"] [data-sec-item]');
   return {
     titulo: t ? +getComputedStyle(t).opacity : null,
     item: +getComputedStyle(item).opacity,
-    tracoVisivel: traco ? getComputedStyle(traco).strokeDasharray : null,
     video: document.querySelector("video") ? +document.querySelector("video").currentTime.toFixed(2) : null,
   };
 });
-await page.screenshot({ path: `${OUT}/reduced-01-pilares.png` });
+await page.screenshot({ path: `${OUT}/reduced-01-prova.png` });
 
 log("\n── prefers-reduced-motion ──");
 log(`  hero legível ........... char=${reduzHero.char} sub=${reduzHero.sub} cue=${reduzHero.cue}  ${ok(reduzHero.char === 1 && reduzHero.cue === 1)}`);
 log(`  seção completa ......... título=${reduzSec.titulo} item=${reduzSec.item}  ${ok(reduzSec.item > 0.9)}`);
-log(`  traços desenhados ...... ${reduzSec.tracoVisivel}`);
 log(`  sequência preservada ... vídeo em ${reduzSec.video}s  ${ok(reduzSec.video > 15)}`);
 
 /* ── resumo ─────────────────────────────────────────────────────────────── */

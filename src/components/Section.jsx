@@ -1,6 +1,9 @@
 import { Fragment } from "react";
-import { Mark, Underline } from "./Marks";
 import { useMagnetic } from "../hooks/useMagnetic";
+import { servicos } from "../content/story";
+import ServiceStage from "./ServiceStage";
+import SystemScene from "./SystemScene";
+import { POSTER, sourceFor, pickTier } from "../lib/media";
 
 const TONE_TAG = { gold: "em", bright: "strong" };
 
@@ -12,10 +15,10 @@ function Rich({ parts }) {
   });
 }
 
-function Title({ lines, id }) {
+function Title({ lines, id, className = "sec__title" }) {
   return (
     <h2
-      className="sec__title"
+      className={className}
       id={`${id}-titulo`}
       data-sec-title
       /* O <br> desaparece quando o SplitText reescreve o nó e as linhas
@@ -53,7 +56,7 @@ function MagneticButton({ href, label }) {
   const ref = useMagnetic({ strength: 0.28, radius: 120 });
 
   return (
-    <a className="btn" href={href} ref={ref} data-cursor="button" data-sec-item>
+    <a className="btn" href={href} ref={ref} data-cursor="button">
       <span className="btn__inner" data-magnetic-inner>
         <span className="btn__text">
           <span className="btn__line">{label}</span>
@@ -70,157 +73,166 @@ function MagneticButton({ href, label }) {
 }
 
 /* ── Layouts ──────────────────────────────────────────────────────────────
-   Cada um tem uma composição e uma interação-assinatura. Repetir o mesmo
-   bloco sete vezes é justamente o que faz uma página parecer template. */
+   Cada um tem composição e interação-assinatura próprias, e nenhuma se
+   repete. Repetir o mesmo bloco seis vezes é o que faz uma página parecer
+   template — inclusive quando o bloco é bonito. */
 
-function LayoutSplit({ section }) {
-  const { id, title, body } = section;
+/**
+ * Diagnóstico: o problema dito em texto e depois em uma palavra só,
+ * atravessando a tela. É o respiro antes da parte densa.
+ */
+function LayoutDiagnostico({ section }) {
+  const { id, title, body, palavra } = section;
   return (
-    <div className="sec__split">
-      {/* Camadas com velocidades diferentes: é o que cria a profundidade. */}
-      <div data-parallax="mid">
-        <Title lines={title} id={id} />
+    <>
+      <div className="diag">
+        <Label>{section.label}</Label>
+
+        {/* O título ocupa a largura inteira: espremido numa coluna, as duas
+            linhas escritas viravam quatro e a frase perdia o soco. */}
+        <div className="diag__titulo" data-parallax="mid">
+          <Title lines={title} id={id} />
+        </div>
+
+        <div className="diag__aside" data-parallax="detail">
+          <span className="sec__hair" data-sec-hair aria-hidden="true" />
+          <p className="sec__body" data-sec-body>
+            <Rich parts={body} />
+          </p>
+        </div>
       </div>
-      <div className="sec__aside" data-parallax="detail">
-        <span className="sec__hair" data-sec-hair aria-hidden="true" />
-        <p className="sec__body" data-sec-body>
-          <Rich parts={body} />
-        </p>
+
+      {/* A palavra do diagnóstico corre em faixa, conduzida pelo scroll.
+          Duas cópias porque a faixa precisa emendar sem buraco. */}
+      <div className="faixa" data-faixa aria-hidden="true">
+        <div className="faixa__fita" data-faixa-fita>
+          {Array.from({ length: 4 }, (_, i) => (
+            <span className="faixa__palavra" key={i}>
+              {palavra}
+              <span className="faixa__ponto" />
+            </span>
+          ))}
+        </div>
+      </div>
+      <p className="sr-only">{palavra}</p>
+    </>
+  );
+}
+
+/**
+ * Serviços: a lista é o conteúdo e o palco é a prova. Apontar uma frente
+ * troca a composição ao lado e abre a lista concreta de entregas — que é a
+ * resposta para "isso inclui o quê?".
+ */
+function LayoutServicos() {
+  return (
+    <div className="frentes" data-frentes>
+      <ul className="frentes__lista">
+        {servicos.map((s, i) => (
+          <li
+            className="frente"
+            data-sec-item
+            data-frente={s.id}
+            data-indice={i}
+            key={s.id}
+          >
+            <span className="frente__rule" data-sec-rule aria-hidden="true" />
+            <button className="frente__linha" type="button" data-cursor="view" data-cursor-text="Ver">
+              <span className="frente__num" aria-hidden="true">
+                {s.numero}
+              </span>
+              <span className="frente__nome">{s.nome}</span>
+              <span className="frente__legenda">{s.linha}</span>
+            </button>
+
+            {/* Fica no DOM sempre: é conteúdo, não enfeite de hover. No
+                mobile ele é a própria lista aberta. */}
+            <ul className="frente__entregas">
+              {s.entregas.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+
+      <div className="frentes__palco" data-frentes-palco>
+        <div className="frentes__moldura">
+          {servicos.map((s) => (
+            <ServiceStage id={s.id} key={s.id} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * Serviços: lista vertical em que o item apontado se abre e a marca em traço
- * correspondente acompanha o cursor com atraso. A lista inteira escurece
- * menos o item ativo — o foco é do leitor, não do layout.
+ * Audiovisual: o vídeo começa como uma peça no meio da página e, conduzido
+ * pelo scroll, toma a tela inteira. A seção prova a capacidade em vez de
+ * afirmá-la — e é o único momento em que a página abre mão do texto.
  */
-function LayoutServices({ section }) {
-  const { items } = section;
-  return (
-    <>
-      <ul className="services" data-services>
-        {items.map((item, i) => (
-          <li className="service" data-sec-item data-service={item.mark} key={item.name}>
-            <span className="service__rule" data-sec-rule aria-hidden="true" />
-            <a className="service__row" href={`#contato`} data-cursor="view" data-cursor-text="Ver">
-              <span className="service__num" aria-hidden="true">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="service__name">{item.name}</span>
-              <span className="service__text">{item.text}</span>
-              <span className="service__go" aria-hidden="true">
-                →
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
+function LayoutFilme({ section }) {
+  const { id, title, body } = section;
+  const fonte = sourceFor(pickTier());
 
-      {/* Uma marca por serviço, empilhadas; só a ativa acende. */}
-      <div className="services__preview" data-services-preview aria-hidden="true">
-        {items.map((item) => (
-          <span className="services__mark" data-preview={item.mark} key={item.mark}>
-            <Mark name={item.mark} />
-          </span>
-        ))}
+  return (
+    <div className="filme" data-filme>
+      <div className="filme__texto" data-filme-texto>
+        <Label>{section.label}</Label>
+        <Title lines={title} id={id} />
+        <p className="sec__body" data-sec-body>
+          <Rich parts={body} />
+        </p>
       </div>
-    </>
+
+      <div className="filme__janela" data-filme-janela>
+        <video
+          className="filme__video"
+          data-filme-video
+          src={fonte.src || undefined}
+          poster={POSTER}
+          muted
+          loop
+          playsInline
+          preload="none"
+          disablePictureInPicture
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+        <span className="filme__grade" aria-hidden="true" />
+      </div>
+    </div>
   );
 }
 
-function LayoutGlyphs({ section }) {
+/** Prova: quatro razões, em fio horizontal. Tema claro, leitura calma. */
+function LayoutProva({ section }) {
   const { items } = section;
   return (
-    <ul className="sec__glyphs">
+    <ul className="prova">
       {items.map((item, i) => (
-        <li
-          className="glyph"
-          data-sec-item
-          /* Colunas alternadas andam em velocidades diferentes: o grid deixa
-             de ser uma fileira e passa a ter espessura. */
-          data-parallax={i % 2 === 0 ? "front" : "detail"}
-          key={item.name}
-        >
-          <Mark name={item.mark} />
-          <h3 className="glyph__name">{item.name}</h3>
-          <p className="glyph__text">{item.text}</p>
+        /* Sem parallax aqui de propósito: deslocar colunas alternadas
+           descasaria os fios do grid, e o desalinhamento lê como defeito,
+           não como profundidade. Esta seção é o respiro da página. */
+        <li className="razao" data-sec-item key={item.name}>
+          <span className="razao__rule" data-sec-rule aria-hidden="true" />
+          <span className="razao__num" aria-hidden="true">
+            {String(i + 1).padStart(2, "0")}
+          </span>
+          <h3 className="razao__nome">{item.name}</h3>
+          <p className="razao__texto">{item.text}</p>
         </li>
       ))}
     </ul>
   );
 }
 
-/**
- * Processo: storytelling preso. O título e o contador ficam à esquerda
- * enquanto as etapas passam à direita — o leitor sente que atravessa o
- * processo em vez de ler uma lista dele.
- */
-function LayoutProcess({ section }) {
-  const { id, title, body, items } = section;
-  return (
-    <div className="process">
-      <div className="process__sticky">
-        <Label>{section.label}</Label>
-        <Title lines={title} id={id} />
-        <p className="sec__body" data-sec-body>
-          <Rich parts={body} />
-        </p>
-        <p className="process__count" aria-hidden="true">
-          <span data-process-current>01</span>
-          <span className="process__count-sep">/</span>
-          <span>{String(items.length).padStart(2, "0")}</span>
-        </p>
-      </div>
-
-      <ol className="process__steps">
-        {items.map((item, i) => (
-          <li className="step" data-sec-item data-step={i} key={item.name}>
-            <span className="step__num" aria-hidden="true">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <div>
-              <h3 className="step__name">{item.name}</h3>
-              <p className="step__text">{item.text}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-/**
- * Entregas: faixa horizontal presa. O scroll vertical vira deslocamento
- * lateral — o segundo grande momento da página, e o único lugar em que o
- * eixo do movimento muda.
- */
-function LayoutDeliverables({ section }) {
-  const { items } = section;
-  return (
-    <div className="rail" data-rail>
-      <div className="rail__track" data-rail-track>
-        {items.map((item, i) => (
-          <article className="deliverable" data-sec-item key={item.name}>
-            <span className="deliverable__num" aria-hidden="true">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <h3 className="deliverable__name">{item.name}</h3>
-            <p className="deliverable__text">{item.text}</p>
-            <span className="deliverable__rule" data-sec-rule aria-hidden="true" />
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function Section({ section }) {
   const { id, layout, theme, label, title, body, cta } = section;
 
-  /* O processo monta o próprio cabeçalho dentro da coluna presa. */
-  const cabecalhoProprio = layout === "process";
+  /* Estas montam o próprio cabeçalho, dentro da composição delas. */
+  const cabecalhoProprio = layout === "sistema" || layout === "filme" || layout === "diagnostico";
 
   return (
     <section
@@ -239,9 +251,11 @@ export default function Section({ section }) {
       <div className="sec__inner">
         {!cabecalhoProprio && <Label>{label}</Label>}
 
-        {layout === "split" && <LayoutSplit section={section} />}
+        {layout === "diagnostico" && <LayoutDiagnostico section={section} />}
+        {layout === "filme" && <LayoutFilme section={section} />}
+        {layout === "sistema" && <SystemScene section={section} />}
 
-        {!cabecalhoProprio && layout !== "split" && (
+        {!cabecalhoProprio && (
           <>
             <Title lines={title} id={id} />
             <p className="sec__body" data-sec-body>
@@ -250,19 +264,11 @@ export default function Section({ section }) {
           </>
         )}
 
-        {layout === "statement" && (
-          <div className="sec__underline" data-sec-item>
-            <Underline />
-          </div>
-        )}
-
-        {layout === "services" && <LayoutServices section={section} />}
-        {layout === "glyphs" && <LayoutGlyphs section={section} />}
-        {layout === "process" && <LayoutProcess section={section} />}
-        {layout === "deliverables" && <LayoutDeliverables section={section} />}
+        {layout === "servicos" && <LayoutServicos />}
+        {layout === "prova" && <LayoutProva section={section} />}
 
         {layout === "cta" && (
-          <div className="sec__cta">
+          <div className="sec__cta" data-sec-item>
             <MagneticButton href={cta.href} label={cta.label} />
           </div>
         )}

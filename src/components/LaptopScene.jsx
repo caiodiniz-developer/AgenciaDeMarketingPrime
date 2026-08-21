@@ -2,8 +2,7 @@ import { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { storyProgress } from "../lib/progress";
-import { sections } from "../content/story";
+import { cena, FORA } from "../lib/progress";
 import { prefersReducedMotion } from "../lib/media";
 
 const MODEL = "/laptop.glb";
@@ -19,38 +18,7 @@ useGLTF.preload(MODEL);
  * meia seção: o modelo nunca chega ao lugar previsto enquanto o texto está
  * em cena, e a última pose só aconteceria depois do fim da página.
  */
-const STOPS = sections.map((s, i) => ({
-  at: (i + 1) / sections.length,
-  ...s.laptop,
-}));
-
-const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, lambda, dt) => a + (b - a) * (1 - Math.pow(1 - lambda, dt * 60));
-
-/** Interpola as paradas; antes da primeira e depois da última, segura o valor. */
-function poseAt(p) {
-  if (p <= STOPS[0].at) return STOPS[0];
-  if (p >= STOPS[STOPS.length - 1].at) return STOPS[STOPS.length - 1];
-
-  for (let i = 0; i < STOPS.length - 1; i++) {
-    const a = STOPS[i];
-    const b = STOPS[i + 1];
-    if (p > b.at) continue;
-
-    // Suavização de borda: sem isto a virada de rumo em cada parada é um bico.
-    const raw = (p - a.at) / (b.at - a.at);
-    const t = raw * raw * (3 - 2 * raw);
-
-    return {
-      x: lerp(a.x, b.x, t),
-      y: lerp(a.y, b.y, t),
-      scale: lerp(a.scale, b.scale, t),
-      rotY: lerp(a.rotY, b.rotY, t),
-      rotX: lerp(a.rotX, b.rotX, t),
-    };
-  }
-  return STOPS[STOPS.length - 1];
-}
 
 function Laptop() {
   const { scene } = useGLTF(MODEL);
@@ -91,14 +59,30 @@ function Laptop() {
     return clone;
   }, [scene]);
 
-  const current = useRef({ x: 0, y: 0, scale: 1, rotY: 0, rotX: 0 });
+  const current = useRef({ ...FORA });
+
+  /** x e y na MESMA régua: -1 = borda esquerda/inferior, +1 = direita/superior. */
+  const aplicar = (c) => {
+    if (!group.current) return;
+    const menorLado = Math.min(viewport.width, viewport.height);
+    group.current.position.set(c.x * viewport.width * 0.5, c.y * viewport.height * 0.5, 0);
+    group.current.rotation.set(c.rotX, c.rotY, 0);
+    group.current.scale.setScalar(c.scale * menorLado * 0.42);
+  };
 
   useFrame((_state, delta) => {
     if (!group.current) return;
 
-    const target = poseAt(storyProgress.value);
+    const target = cena.pose || FORA;
     const dt = Math.min(delta, 0.05);
     const c = current.current;
+
+    // Apagado: assume a pose de uma vez, para reaparecer já no lugar certo.
+    if (cena.oculto) {
+      Object.assign(c, target);
+      aplicar(c);
+      return;
+    }
 
     // Persegue a pose em vez de saltar para ela: o mesmo princípio do scrub
     // do vídeo — o alvo é do scroll, o movimento é do relógio.
@@ -109,12 +93,7 @@ function Laptop() {
     c.rotY = damp(c.rotY, target.rotY, l, dt);
     c.rotX = damp(c.rotX, target.rotX, l, dt);
 
-    const menorLado = Math.min(viewport.width, viewport.height);
-
-    // x e y na MESMA régua: -1 = borda esquerda/inferior, +1 = direita/superior.
-    group.current.position.set(c.x * viewport.width * 0.5, c.y * viewport.height * 0.5, 0);
-    group.current.rotation.set(c.rotX, c.rotY, 0);
-    group.current.scale.setScalar(c.scale * menorLado * 0.42);
+    aplicar(c);
   });
 
   return (
