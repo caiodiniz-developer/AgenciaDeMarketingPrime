@@ -13,7 +13,14 @@ function Rich({ parts }) {
 
 function Title({ lines, id }) {
   return (
-    <h2 className="sec__title" id={`${id}-titulo`} data-sec-title>
+    <h2
+      className="sec__title"
+      id={`${id}-titulo`}
+      data-sec-title
+      /* O <br> desaparece quando o SplitText reescreve o nó e as linhas
+         grudam na leitura em voz alta. O rótulo vem do conteúdo. */
+      aria-label={lines.join(" ")}
+    >
       {/* Quebra explícita: deixar o navegador quebrar orfana a palavra curta
           e desmonta a composição. */}
       {lines.map((line, i) => (

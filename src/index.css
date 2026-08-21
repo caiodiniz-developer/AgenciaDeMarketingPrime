@@ -774,6 +774,9 @@ body {
 /* ── layout "cta" ────────────────────────────────────────────────────── */
 .sec--cta {
   text-align: center;
+  /* Reserva a base para o laptop, que chega de frente aqui: o padding extra
+     empurra o bloco centralizado para cima em vez de sobrepor os dois. */
+  padding-bottom: clamp(13rem, 36vh, 24rem);
 }
 
 .sec--cta .sec__label {
@@ -1107,4 +1110,22 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   .sec__list {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   LINHAS DO TÍTULO — folga para os acentos
+   Com `line-height: 1`, a caixa de linha é MENOR que o desenho
+   da fonte, e o til de "DECISÕES" fica acima dela. Isso custa
+   duas vezes:
+     · a máscara do SplitText tem `overflow: clip` e o decepa;
+     · o título é pintado com `background-clip: text`, e tinta
+       fora da caixa de FUNDO não recebe gradiente nenhum — some
+       mesmo sem clipe.
+   Por isso o padding vai na máscara E na linha. A margem
+   negativa cancela o efeito no layout: a composição não muda.
+   ═════════════════════════════════════════════════════════════ */
+.sec__title > div,
+.sec__title > div > div {
+  padding-top: 0.18em;
+  margin-top: -0.18em;
 }

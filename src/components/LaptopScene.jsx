@@ -9,9 +9,18 @@ import { prefersReducedMotion } from "../lib/media";
 const MODEL = "/laptop.glb";
 useGLTF.preload(MODEL);
 
-/** Paradas do modelo ao longo das seções, no centro de cada uma. */
+/**
+ * Paradas do modelo ao longo das seções.
+ *
+ * O progresso da espinha vai de 0 (topo da narrativa encostando na base da
+ * tela) a 1 (base da narrativa na base da tela). Com seções de uma tela cada,
+ * a seção i tem o TOPO no topo da tela em (i + 1) / n — que é quando ela está
+ * de fato sendo lida. Ancorar no centro, (i + 0.5) / n, adianta a pose em
+ * meia seção: o modelo nunca chega ao lugar previsto enquanto o texto está
+ * em cena, e a última pose só aconteceria depois do fim da página.
+ */
 const STOPS = sections.map((s, i) => ({
-  at: (i + 0.5) / sections.length,
+  at: (i + 1) / sections.length,
   ...s.laptop,
 }));
 
@@ -57,8 +66,13 @@ function Laptop() {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
 
-    clone.position.sub(center);
-    clone.scale.setScalar(1 / Math.max(size.x, size.y, size.z));
+    /* A ordem importa: `position` vive no espaço do PAI e não é afetada pela
+       escala do próprio objeto. Subtrair o centro em unidades originais e só
+       então encolher a geometria joga o modelo para longe do pivô — era isso
+       que empurrava o laptop para baixo, independente da pose pedida. */
+    const unit = 1 / Math.max(size.x, size.y, size.z);
+    clone.scale.setScalar(unit);
+    clone.position.copy(center).multiplyScalar(-unit);
 
     clone.traverse((child) => {
       if (!child.isMesh) return;
@@ -95,11 +109,12 @@ function Laptop() {
     c.rotY = damp(c.rotY, target.rotY, l, dt);
     c.rotX = damp(c.rotX, target.rotX, l, dt);
 
-    const unit = Math.min(viewport.width, viewport.height);
+    const menorLado = Math.min(viewport.width, viewport.height);
 
-    group.current.position.set(c.x * viewport.width * 0.5, c.y * viewport.height, 0);
+    // x e y na MESMA régua: -1 = borda esquerda/inferior, +1 = direita/superior.
+    group.current.position.set(c.x * viewport.width * 0.5, c.y * viewport.height * 0.5, 0);
     group.current.rotation.set(c.rotX, c.rotY, 0);
-    group.current.scale.setScalar(c.scale * unit * 0.42);
+    group.current.scale.setScalar(c.scale * menorLado * 0.42);
   });
 
   return (

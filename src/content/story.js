@@ -36,6 +36,10 @@ export const MARKS = {
  * `rays`   — liga a luz dourada. Só faz sentido no tema escuro, e alternar
  *            é o que mantém o efeito raro o bastante para valer.
  * `laptop` — pose do modelo 3D quando a seção está em cena.
+ *            x e y de -1 a 1: (-1,-1) é o canto inferior esquerdo da tela,
+ *            (1,1) o superior direito. Acima de 1 o modelo espia por fora.
+ *            Regra: o modelo nunca invade a coluna de texto. Nas seções bege,
+ *            onde o conteúdo ocupa a largura inteira, ele espia pela borda.
  */
 export const sections = [
   {
@@ -56,7 +60,7 @@ export const sections = [
       { text: "impacto", tone: "bright" },
       { text: "." },
     ],
-    laptop: { x: 0.6, y: 0.24, scale: 0.78, rotY: -0.9, rotX: 0.18 },
+    laptop: { x: 0.62, y: -0.42, scale: 0.8, rotY: -0.9, rotX: 0.18 },
   },
   {
     id: "oficio",
@@ -84,7 +88,7 @@ export const sections = [
         text: "Interfaces que conduzem em vez de explicar. O usuário entende sem precisar pensar.",
       },
     ],
-    laptop: { x: 0.56, y: 0.3, scale: 0.72, rotY: 0.75, rotX: 0.12 },
+    laptop: { x: 0.7, y: 0.3, scale: 0.58, rotY: 0.75, rotX: 0.12 },
   },
   {
     id: "pilares",
@@ -104,7 +108,7 @@ export const sections = [
       { mark: "experiencia", name: "Experiência", text: "O que a marca faz o outro sentir em cada contato." },
       { mark: "inovacao", name: "Inovação", text: "Encontrar o caminho novo quando o óbvio já saturou." },
     ],
-    laptop: { x: 0.92, y: 0.04, scale: 0.6, rotY: -1.25, rotX: 0.2 },
+    laptop: { x: 1.05, y: -0.12, scale: 0.62, rotY: -1.25, rotX: 0.2 },
   },
   {
     id: "metodo",
@@ -124,7 +128,7 @@ export const sections = [
       { name: "Construção", text: "Executar com precisão, no detalhe que ninguém vê e todos sentem." },
       { name: "Presença", text: "Colocar no mundo e acompanhar o que mudou." },
     ],
-    laptop: { x: 0.6, y: 0.08, scale: 0.85, rotY: -0.45, rotX: -0.06 },
+    laptop: { x: 0.72, y: 0.02, scale: 0.72, rotY: -0.45, rotX: -0.06 },
   },
   {
     id: "manifesto",
@@ -138,7 +142,7 @@ export const sections = [
       { text: "reputação", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: 0.5, y: -0.14, scale: 0.95, rotY: 1.05, rotX: -0.12 },
+    laptop: { x: 0.58, y: -0.46, scale: 0.9, rotY: 1.05, rotX: -0.12 },
   },
   {
     id: "entrega",
@@ -158,7 +162,7 @@ export const sections = [
       { name: "Interface", text: "Telas, componentes e protótipo navegável." },
       { name: "Manual vivo", text: "Documentação que o time consegue usar sem você por perto." },
     ],
-    laptop: { x: -0.92, y: 0.02, scale: 0.58, rotY: 1.3, rotX: 0.18 },
+    laptop: { x: -1.08, y: -0.08, scale: 0.6, rotY: 1.3, rotX: 0.18 },
   },
   {
     id: "contato",
@@ -174,7 +178,7 @@ export const sections = [
     ],
     cta: { label: "Iniciar conversa", href: "mailto:contato@agenciaprime.com.br" },
     /** Fim da jornada: o laptop para de frente, aberto, encarando o leitor. */
-    laptop: { x: 0, y: -0.44, scale: 1.05, rotY: 0, rotX: 0.06 },
+    laptop: { x: 0, y: -0.78, scale: 0.95, rotY: 0, rotX: 0.05 },
   },
 ];
 

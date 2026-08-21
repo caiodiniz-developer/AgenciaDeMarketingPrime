@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5314/";
+const URL = process.argv[2] || "http://localhost:5327/";
 const OUT = process.argv[3] || "./.verify/tour";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
