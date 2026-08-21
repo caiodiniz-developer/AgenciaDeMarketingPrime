@@ -3,6 +3,8 @@ import { useMagnetic } from "../hooks/useMagnetic";
 import { servicos } from "../content/story";
 import ServiceStage from "./ServiceStage";
 import SystemScene from "./SystemScene";
+import Computer from "./Computer";
+import Clientes from "./Clientes";
 import { POSTER, sourceFor, pickTier } from "../lib/media";
 
 const TONE_TAG = { gold: "em", bright: "strong" };
@@ -232,7 +234,8 @@ export default function Section({ section }) {
   const { id, layout, theme, label, title, body, cta } = section;
 
   /* Estas montam o próprio cabeçalho, dentro da composição delas. */
-  const cabecalhoProprio = layout === "sistema" || layout === "filme" || layout === "diagnostico";
+  const cabecalhoProprio =
+    layout === "sistema" || layout === "filme" || layout === "diagnostico" || layout === "digital";
 
   return (
     <section
@@ -254,6 +257,7 @@ export default function Section({ section }) {
         {layout === "diagnostico" && <LayoutDiagnostico section={section} />}
         {layout === "filme" && <LayoutFilme section={section} />}
         {layout === "sistema" && <SystemScene section={section} />}
+        {layout === "digital" && <Computer section={section} />}
 
         {!cabecalhoProprio && (
           <>
@@ -265,6 +269,7 @@ export default function Section({ section }) {
         )}
 
         {layout === "servicos" && <LayoutServicos />}
+        {layout === "clientes" && <Clientes section={section} />}
         {layout === "prova" && <LayoutProva section={section} />}
 
         {layout === "cta" && (

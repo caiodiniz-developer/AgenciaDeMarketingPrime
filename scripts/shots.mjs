@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5361/";
+const URL = process.argv[2] || "http://localhost:5376/";
 const OUT = process.argv[3] || "./.verify/tour";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
@@ -48,17 +48,10 @@ await shot("00-hero");
 // Uma parada por seção, ancorada no elemento — fração do documento erra
 // assim que o número de seções muda.
 const stops = [
-  { p: 0.06, name: "01-hero-saindo" },
-  { id: "diagnostico", name: "02-diagnostico" },
-  { id: "servicos", name: "03-servicos" },
-  { id: "audiovisual", name: "04-filme-fechado" },
-  { id: "audiovisual", avanco: 1.5, name: "05-filme-aberto" },
-  { id: "sistema", name: "06-sistema-solto" },
-  { id: "sistema", avanco: 1.6, name: "07-sistema-grade" },
-  { id: "sistema", avanco: 3.2, name: "08-sistema-anel" },
-  { id: "prova", name: "09-prova" },
-  { id: "contato", name: "10-contato" },
-  { p: 1, name: "11-rodape" },
+  { id: 'diagnostico', avanco: 0.35, name: '01-palavras' },
+  { id: 'audiovisual', avanco: 0.8, name: '02-iris' },
+  { id: 'clientes', name: '03-clientes' },
+  { id: 'sistema', avanco: 3.1, name: '04-sistema-fim' },
 ];
 
 /* Com seções presas, um salto único erra o destino: o espaçador do pin
@@ -72,12 +65,23 @@ async function irPara(id) {
   }
 }
 
+/* Dentro de uma seção PRESA, `getBoundingClientRect().top` fica em 0 do
+   começo ao fim do pin — então `irPara` não consegue distinguir onde
+   estamos. A base de cada pin é gravada na primeira chegada e os avanços
+   passam a ser absolutos a partir dela. */
+const bases = new Map();
+
 for (const stop of stops) {
   if (stop.id) {
-    await irPara(stop.id);
-    if (stop.avanco) {
-      await page.evaluate((n) => window.scrollTo(0, window.scrollY + window.innerHeight * n), stop.avanco);
+    if (!bases.has(stop.id)) {
+      await irPara(stop.id);
+      bases.set(stop.id, await page.evaluate(() => window.scrollY));
     }
+    const base = bases.get(stop.id);
+    await page.evaluate(
+      ([b, n]) => window.scrollTo(0, b + window.innerHeight * (n || 0)),
+      [base, stop.avanco || 0]
+    );
   } else {
     await page.evaluate((prog) => {
       const max = document.documentElement.scrollHeight - window.innerHeight;

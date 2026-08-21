@@ -2064,3 +2064,653 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .faixa {
   max-width: 100%;
 }
+
+/* ═════════════════════════════════════════════════════════════
+   DIGITAL — o computador
+   Construído em CSS 3D, e não com o modelo .glb, porque a tela
+   precisa ser DOM de verdade: é isso que deixa o conteúdo rolar
+   dentro dela, o texto continuar legível e a tela crescer até
+   tomar a viewport. Num modelo, tudo isso viraria textura.
+   ═════════════════════════════════════════════════════════════ */
+.sec--digital {
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.digital {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: clamp(1.5rem, 5vw, 4.5rem);
+  align-items: center;
+  width: 100%;
+}
+
+.digital__texto {
+  max-width: 26rem;
+}
+
+.digital__palco {
+  /* A perspectiva mora AQUI, no palco, e não no objeto: assim o ponto de
+     fuga é o da cena, e o notebook gira dentro dela em vez de girar em
+     torno do próprio umbigo. */
+  perspective: 1500px;
+  perspective-origin: 50% 42%;
+}
+
+.mac,
+.mac__corpo {
+  transform-style: preserve-3d;
+}
+
+.mac {
+  position: relative;
+  width: min(100%, 46rem);
+  margin-inline: auto;
+}
+
+/* Sombra: elipse achatada no chão. A opacidade e o borrão são animados pelo
+   scroll — longe, difusa e fraca; perto, curta e definida. */
+.mac__sombra {
+  position: absolute;
+  left: 50%;
+  bottom: -8%;
+  width: 78%;
+  height: 3.5rem;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.85), transparent 72%);
+  pointer-events: none;
+}
+
+.mac__tela {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: var(--color-ink-100);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 40px 90px -40px rgba(0, 0, 0, 0.9);
+}
+
+.mac__viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.mac__conteudo {
+  width: 100%;
+  will-change: transform;
+}
+
+/* Reflexo: uma faixa de luz atravessando o vidro. Só deve ser percebido sem
+   que ninguém repare nele. */
+.mac__reflexo {
+  position: absolute;
+  inset: -20% -40%;
+  pointer-events: none;
+  background: linear-gradient(
+    104deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.09) 44%,
+    rgba(255, 255, 255, 0.02) 56%,
+    transparent 70%
+  );
+}
+
+.mac__camera {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* A base é a mesma placa da tela deitada para trás, articulada na dobradiça.
+   É o que dá o volume do notebook sem uma única imagem. */
+.mac__base {
+  position: relative;
+  height: 1.15rem;
+  margin-inline: -1.5%;
+  transform: rotateX(-72deg);
+  transform-origin: top center;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(180deg, #2a2a2c 0%, #171718 55%, #0d0d0e 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset;
+}
+
+.mac__teclado {
+  position: absolute;
+  inset: 12% 12% 42%;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.mac__trackpad {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  width: 22%;
+  height: 26%;
+  translate: -50% 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Entalhe da abertura, na borda da frente. */
+.mac__entalhe {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 14%;
+  height: 4px;
+  translate: -50% 0;
+  border-radius: 0 0 4px 4px;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 1023px) {
+  .digital {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2rem, 6vw, 3rem);
+  }
+  .digital__texto {
+    max-width: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   MINI-SITE — o que aparece dentro da tela
+   É o próprio site da Prime, reduzido. A prova mais honesta que
+   existe aqui: nenhum trabalho de cliente foi inventado, e a
+   página que o leitor está usando é o exemplo.
+   ═════════════════════════════════════════════════════════════ */
+.mini {
+  --u: 0.72cqw;
+  container-type: inline-size;
+  display: grid;
+  gap: 4cqw;
+  padding-bottom: 6cqw;
+  background: var(--color-ink);
+  color: var(--color-ash);
+}
+
+.mini__barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  margin: 2.5cqw 4cqw 0;
+  padding: 1.2cqw 1.6cqw;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mini__logo {
+  height: 2.2cqw;
+  width: auto;
+}
+
+.mini__links {
+  display: flex;
+  gap: 1.6cqw;
+}
+
+.mini__links i {
+  width: 6cqw;
+  height: 0.9cqw;
+  border-radius: 99px;
+  background: rgba(217, 217, 217, 0.3);
+}
+
+.mini__cta {
+  width: 9cqw;
+  height: 3cqw;
+  border-radius: 99px;
+  background: var(--color-gold);
+}
+
+.mini__hero {
+  display: grid;
+  justify-items: center;
+  gap: 1.5cqw;
+  padding: 9cqw 0 7cqw;
+}
+
+.mini__kicker {
+  font-size: 1.6cqw;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: var(--color-ash);
+}
+
+.mini__marca {
+  font-size: 13cqw;
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+  background: var(--grad-title);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.mini__linha {
+  width: 18cqw;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+.mini__bloco,
+.mini__lista,
+.mini__fecho {
+  padding-inline: 6cqw;
+}
+
+.mini__titulo {
+  display: block;
+  width: 62%;
+  height: 4cqw;
+  margin-bottom: 1.4cqw;
+  border-radius: 2px;
+  background: rgba(217, 217, 217, 0.24);
+}
+
+.mini__titulo--curto {
+  width: 38%;
+}
+
+.mini__grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.6cqw;
+  margin-top: 3cqw;
+}
+
+.mini__grade i {
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mini__grade i:nth-child(2) {
+  background: rgba(201, 168, 76, 0.5);
+  border-color: transparent;
+}
+
+.mini__lista {
+  display: grid;
+  gap: 0;
+}
+
+.mini__item {
+  display: flex;
+  align-items: baseline;
+  gap: 2.5cqw;
+  padding: 2.4cqw 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.mini__item b {
+  font-size: 1.4cqw;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+}
+
+.mini__item em {
+  font-style: normal;
+  font-size: 4.4cqw;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+
+.mini__filme {
+  display: grid;
+  place-items: center;
+  margin-inline: 6cqw;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background:
+    radial-gradient(60% 60% at 50% 50%, rgba(201, 168, 76, 0.18), transparent 70%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.mini__play {
+  width: 6cqw;
+  height: 6cqw;
+  border-radius: 50%;
+  border: 1px solid var(--color-gold);
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.25), transparent 70%);
+}
+
+.mini__fecho {
+  display: grid;
+  justify-items: center;
+  gap: 3cqw;
+  padding-top: 4cqw;
+}
+
+.mini__fecho .mini__titulo {
+  width: 54%;
+}
+
+.mini__botao {
+  width: 22cqw;
+  height: 4cqw;
+  border-radius: 99px;
+  border: 1px solid var(--color-gold);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .mac,
+  .mac__corpo {
+    transform: none !important;
+  }
+  .mac__conteudo {
+    transform: none !important;
+  }
+}
+
+/* ── Ajustes do computador ───────────────────────────────────────────── */
+
+/* A coluna de texto é estreita: com o corpo padrão, duas linhas escritas
+   viravam seis. */
+.sec--digital .sec__title {
+  font-size: clamp(1.75rem, 3.3vw, 3rem);
+}
+
+/* A tela precisa parecer LIGADA. Sem um piso de luz, o mini-site vira uma
+   mancha preta dentro de uma moldura preta e ninguém lê o que está lá. */
+.mac__tela::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%);
+}
+
+.mini {
+  background: #08080a;
+}
+
+.mini__grade i {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.mini__titulo {
+  background: rgba(217, 217, 217, 0.34);
+}
+
+.mini__links i {
+  background: rgba(217, 217, 217, 0.42);
+}
+
+.mini__item {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+.mini__filme {
+  background:
+    radial-gradient(60% 60% at 50% 50%, rgba(201, 168, 76, 0.24), transparent 70%),
+    rgba(255, 255, 255, 0.07);
+}
+
+/* A carcaça some no preto do fundo: uma borda de luz devolve o contorno. */
+.mac__base {
+  background: linear-gradient(180deg, #3a3a3d 0%, #202022 55%, #121213 100%);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   CLIENTES — disputa por espaço, não carrossel
+   Com dois clientes, esconder metade atrás de um botão seria
+   esconder metade da prova. Aqui os painéis dividem a tela e
+   o apontado toma espaço do outro.
+   ═════════════════════════════════════════════════════════════ */
+.duelo {
+  display: flex;
+  gap: 2px;
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  height: clamp(24rem, 58vh, 34rem);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.painel {
+  position: relative;
+  flex: 1 1 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  /* `flex-grow` é o que anima: mudar `width` faria a linha inteira
+     re-layoutar a cada quadro do hover. */
+  transition: flex-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.painel__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.08);
+  transition:
+    opacity 0.7s ease,
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.painel__veu {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.25) 60%);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.painel__conteudo {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  text-align: center;
+}
+
+.painel__logo {
+  width: clamp(6rem, 12vw, 10rem);
+  height: auto;
+  opacity: 0.72;
+  transition:
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s ease;
+}
+
+.painel__nome {
+  margin: 0;
+  font-size: clamp(1rem, 1.6vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+
+/* As informações só existem quando o painel está em foco: mostradas o tempo
+   todo, os dois painéis viram dois cards e a disputa deixa de existir. */
+.painel__frentes,
+.painel__fala {
+  margin: 0;
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.painel__frentes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.painel__frentes li {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 99px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.painel__fala {
+  max-width: 26rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--color-ash);
+}
+
+.painel__fala cite {
+  display: block;
+  margin-top: 0.75rem;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+/* ── estados ─────────────────────────────────────────────────────────── */
+.duelo[data-quantos="1"] .painel {
+  flex: 1 1 100%;
+}
+
+.painel[data-active="true"] {
+  flex-grow: 1.9;
+}
+
+.painel[data-active="false"] {
+  flex-grow: 1;
+}
+
+.painel[data-active="true"] .painel__video,
+.painel[data-active="true"] .painel__veu {
+  opacity: 1;
+}
+
+.painel[data-active="true"] .painel__video {
+  transform: scale(1);
+}
+
+.painel[data-active="true"] .painel__logo {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.painel[data-active="true"] [data-painel-info] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  .duelo {
+    flex-direction: column;
+    height: auto;
+  }
+  .painel {
+    min-height: 20rem;
+  }
+  /* Sem hover, o painel em leitura é o ativo — quem manda é o scroll. */
+  .painel[data-active="false"] {
+    flex-grow: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel,
+  .painel__video,
+  .painel__logo,
+  .painel__veu,
+  .painel__frentes,
+  .painel__fala {
+    transition: none;
+  }
+  /* Sem movimento não há foco: tudo fica legível de uma vez. */
+  .painel [data-painel-info] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Palavras que acendem com o scroll. A cor de partida é baixa, não zero:
+   texto invisível não é "ainda não lido", é texto que sumiu. */
+.acende {
+  display: inline-block;
+  color: var(--color-bone);
+}
+
+.sec[data-theme="bone"] .acende {
+  color: var(--bone-ink);
+}
+
+/* Placa clara sob a logo do cliente. */
+.painel__placa {
+  display: grid;
+  place-items: center;
+  width: clamp(9rem, 17vw, 13rem);
+  aspect-ratio: 4 / 3;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  border-radius: 12px;
+  background: #f4f1ea;
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+  transition:
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.6s ease;
+}
+
+.painel__logo {
+  width: 100%;
+  height: auto;
+  opacity: 1;
+  transform: none;
+}
+
+.painel[data-active="true"] .painel__placa {
+  transform: scale(1.06);
+  box-shadow: 0 30px 70px -28px rgba(201, 168, 76, 0.55);
+}
+
+.painel[data-active="true"] .painel__logo {
+  transform: none;
+}
+
+/* Um cliente só: o painel não precisa de meia tela de altura para caber uma
+   marca. Encolhe e a seção deixa de parecer vazia. */
+.duelo[data-quantos="1"] {
+  height: clamp(18rem, 40vh, 24rem);
+}

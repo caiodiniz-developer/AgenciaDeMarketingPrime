@@ -212,6 +212,20 @@ export const sections = [
     laptop: null,
   },
   {
+    id: "digital",
+    layout: "digital",
+    theme: "ink",
+    rays: false,
+    label: "Web",
+    title: ["Sua vitrine", "nunca fecha."],
+    body: [
+      { text: "Do endereço ao último pixel. E a " },
+      { text: "prova", tone: "gold" },
+      { text: " é esta página." },
+    ],
+    laptop: null,
+  },
+  {
     id: "audiovisual",
     layout: "filme",
     theme: "ink",
@@ -236,6 +250,20 @@ export const sections = [
       { text: "Não é uma lista de serviços avulsos. É um " },
       { text: "sistema", tone: "gold" },
       { text: ": cada frente alimenta a outra, e todas alimentam a sua marca." },
+    ],
+    laptop: null,
+  },
+  {
+    id: "clientes",
+    layout: "clientes",
+    theme: "ink",
+    rays: false,
+    label: "Quem confia",
+    title: ["Quem já tem", "a Prime por perto."],
+    body: [
+      { text: "Marca de verdade, trabalho de verdade. A parede ainda é " },
+      { text: "curta", tone: "gold" },
+      { text: " — e é assim que ela deve ser mostrada." },
     ],
     laptop: null,
   },
@@ -289,6 +317,39 @@ export const sections = [
   },
 ];
 
+/* ── CLIENTES ──────────────────────────────────────────────────────────── */
+
+/**
+ * Prova social. Preenchido SÓ com o que existe de verdade no projeto.
+ *
+ * Campos em `null` são buracos honestos, não placeholders para exibir: o
+ * componente simplesmente não desenha o que não tem. Inventar nome de cliente,
+ * frente atendida ou depoimento seria fabricar prova — e prova fabricada é
+ * exatamente o oposto do que esta página vende.
+ *
+ * Para completar, largue os arquivos em `public/clientes/` e preencha aqui:
+ *   nome       — como o cliente se chama
+ *   video      — "/clientes/cliente-1.mp4" (mudo, em loop, entra no hover)
+ *   poster     — primeiro quadro do vídeo
+ *   frentes    — só o que a Prime realmente fez para ele
+ *   depoimento — { texto, autor } só se a pessoa tiver dito de fato
+ *
+ * Com um cliente, a seção vira um destaque único. Com dois ou mais, ela vira
+ * a disputa lado a lado: quem é apontado toma a tela.
+ */
+export const clientes = [
+  {
+    id: "cliente-1",
+    // Lido da própria arte da logo, não inventado.
+    nome: "Real Pisos",
+    logo: "/clientes/cliente-1.png",
+    video: null,
+    poster: null,
+    frentes: [],
+    depoimento: null,
+  },
+];
+
 /**
  * CASES — vazio de propósito.
  *
@@ -306,9 +367,9 @@ export const cases = [];
 /** Navegação: derivada das seções, para não existirem duas listas. */
 export const navItems = [
   sections.find((s) => s.id === "servicos"),
-  sections.find((s) => s.id === "audiovisual"),
+  sections.find((s) => s.id === "digital"),
   sections.find((s) => s.id === "sistema"),
-  sections.find((s) => s.id === "prova"),
+  sections.find((s) => s.id === "clientes"),
 ].map(({ id, label }) => ({ id, label }));
 
 export const navCta = sections.find((s) => s.layout === "cta");

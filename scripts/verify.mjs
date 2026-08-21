@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5361/";
+const URL = process.argv[2] || "http://localhost:5376/";
 const OUT = process.argv[3] || "./.verify";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 

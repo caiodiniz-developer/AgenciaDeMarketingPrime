@@ -11,7 +11,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { statSync } from "node:fs";
+import { statSync, existsSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const ffmpeg = require("ffmpeg-static");
@@ -82,3 +82,8 @@ render(OUT_DARK, [crop, "format=rgba", scale]);
 for (const f of [OUT_LIGHT, OUT_DARK]) {
   console.log(`${f} · ${(statSync(f).size / 1024).toFixed(1)} KB`);
 }
+
+/* A logo de CLIENTE não é processada aqui de propósito: recolorir a marca
+   de outra empresa é mexer em propriedade dela. Na seção de clientes ela é
+   apoiada numa placa clara, que é como se exibe marca de terceiro sem
+   adulterar nada. */
