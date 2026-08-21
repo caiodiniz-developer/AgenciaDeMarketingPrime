@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5327/";
+const URL = process.argv[2] || "http://localhost:5345/";
 const OUT = process.argv[3] || "./.verify/tour";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
@@ -27,6 +27,10 @@ const browser = await puppeteer.launch({
 });
 
 const page = await browser.newPage();
+/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão.
+   Sem desligar isso explicitamente, TODA verificação mede o caminho reduzido
+   e conclui que o site funciona — enquanto nada do movimento real é testado. */
+await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
 const errors = [];
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
@@ -53,6 +57,7 @@ const stops = [
   { id: "manifesto", name: "07-manifesto" },
   { id: "entrega", name: "08-entrega" },
   { id: "contato", name: "09-contato" },
+  { p: 1, name: "10-rodape" },
 ];
 
 for (const stop of stops) {

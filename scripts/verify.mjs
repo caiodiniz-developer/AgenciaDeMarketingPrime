@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5327/";
+const URL = process.argv[2] || "http://localhost:5345/";
 const OUT = process.argv[3] || "./.verify";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
@@ -33,6 +33,10 @@ const errors = [];
 const bad = [];
 
 const page = await browser.newPage();
+/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão.
+   Sem desligar isso explicitamente, TODA verificação mede o caminho reduzido
+   e conclui que o site funciona — enquanto nada do movimento real é testado. */
+await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("response", (r) => r.status() >= 400 && bad.push(`${r.status()} ${r.url()}`));
@@ -247,6 +251,118 @@ for (const href of alvos) {
   }, href);
   log(`  ${href.padEnd(12)} → topo da seção a ${onde}px  ${ok(Math.abs(onde) < 90)}`);
 }
+
+/* ── 7b. interações novas ───────────────────────────────────────────────── */
+log("\n── interações ──");
+
+// Abertura: some sozinha e devolve o scroll.
+{
+  const p2 = await browser.newPage();
+  await p2.setViewport({ width: 1440, height: 900 });
+  await p2.goto(URL, { waitUntil: "domcontentloaded" });
+  const inicial = await p2.evaluate(() => !!document.querySelector(".preloader"));
+  await p2.waitForFunction(() => !document.querySelector(".preloader"), { timeout: 9000 }).catch(() => {});
+  const depois = await p2.evaluate(() => ({
+    sumiu: !document.querySelector(".preloader"),
+    rolavel: document.documentElement.scrollHeight > window.innerHeight + 10,
+  }));
+  log(`  abertura aparece/some .. ${inicial} → ${depois.sumiu}  ${ok(inicial && depois.sumiu)}`);
+  log(`  scroll liberado ........ ${ok(depois.rolavel)}`);
+  await p2.close();
+}
+
+// Cursor: existe no desktop com ponteiro fino.
+log(`  cursor customizado ..... ${ok(await page.evaluate(() => !!document.querySelector(".cursor")))}`);
+
+// Serviços: apontar um item acende ele e apaga os outros.
+await page.evaluate(() => {
+  const el = document.getElementById("oficio");
+  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
+});
+await sleep(1800);
+const alvoServico = await page.evaluate(() => {
+  const li = document.querySelectorAll("[data-service]")[1];
+  const r = li.getBoundingClientRect();
+  return { x: Math.round(r.left + 60), y: Math.round(r.top + r.height / 2) };
+});
+await page.mouse.move(alvoServico.x, alvoServico.y);
+await sleep(700);
+const servico = await page.evaluate(() => {
+  const itens = [...document.querySelectorAll("[data-service]")];
+  const preview = document.querySelector("[data-services-preview]");
+  return {
+    ativos: itens.filter((e) => e.dataset.active === "true").map((e) => e.dataset.service),
+    previewVisivel: +getComputedStyle(preview).opacity > 0.5,
+    marcaAcesa: [...preview.querySelectorAll("[data-preview]")]
+      .filter((m) => +getComputedStyle(m).opacity > 0.5)
+      .map((m) => m.dataset.preview),
+  };
+});
+log(`  serviço apontado ....... ${servico.ativos.join(",") || "nenhum"}  ${ok(servico.ativos.length === 1)}`);
+log(`  marca segue o cursor ... ${servico.marcaAcesa.join(",") || "nenhuma"}  ${ok(servico.previewVisivel && servico.marcaAcesa[0] === servico.ativos[0])}`);
+
+// Trilho horizontal: rolar dentro da seção presa desloca a faixa.
+await page.evaluate(() => {
+  const el = document.getElementById("entrega");
+  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
+});
+await sleep(1500);
+const antesTrilho = await page.evaluate(() => document.querySelector("[data-rail-track]").getBoundingClientRect().left);
+await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 1.2));
+await sleep(1800);
+const depoisTrilho = await page.evaluate(() => document.querySelector("[data-rail-track]").getBoundingClientRect().left);
+log(`  trilho anda na horizontal ${Math.round(antesTrilho)}px → ${Math.round(depoisTrilho)}px  ${ok(depoisTrilho < antesTrilho - 80)}`);
+
+// Botão magnético: aproximar o ponteiro desloca o botão.
+await page.evaluate(() => {
+  const el = document.getElementById("contato");
+  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
+});
+await sleep(1800);
+const btn = await page.evaluate(() => {
+  const b = document.querySelector(".btn");
+  const r = b.getBoundingClientRect();
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+});
+const antesBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
+await page.mouse.move(btn.x + 55, btn.y);
+await sleep(700);
+const depoisBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
+await page.mouse.move(60, 60); // longe do botão, mas ainda dentro da janela
+await sleep(1100);
+const voltouBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
+log(`  botão magnético ........ ${Math.round(antesBtn)} → ${Math.round(depoisBtn)} → ${Math.round(voltouBtn)}  ${ok(depoisBtn > antesBtn + 4 && Math.abs(voltouBtn - antesBtn) < 3)}`);
+
+// O botão do CTA precisa estar alcançável: a cena 3D cobre a tela inteira,
+// e basta um `pointer-events` errado nela para o botão virar decoração.
+const btnAlcancavel = await page.evaluate(() => {
+  const b = document.querySelector(".btn");
+  const r = b.getBoundingClientRect();
+  const cs = getComputedStyle(b);
+  const alvo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return {
+    atinge: !!alvo?.closest(".btn"),
+    obstaculo: alvo ? `${alvo.tagName}.${alvo.className}` : "-",
+    estado: `vis=${cs.visibility} op=${cs.opacity} pe=${cs.pointerEvents} rect=${Math.round(r.top)},${Math.round(r.height)}`,
+  };
+});
+log(`  botão clicável ......... ${btnAlcancavel.obstaculo} · ${btnAlcancavel.estado}  ${ok(btnAlcancavel.atinge)}`);
+
+// Rodapé: no fim da página aparece e nada da cena o cobre.
+await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await sleep(1600);
+const rodape = await page.evaluate(() => {
+  const f = document.querySelector(".footer");
+  const r = f.getBoundingClientRect();
+  const meio = document.elementFromPoint(window.innerWidth / 2, r.top + r.height / 2);
+  return {
+    visivel: r.top < window.innerHeight && r.bottom > 0,
+    porCima: meio ? meio.closest(".footer") !== null : false,
+    tag: meio ? meio.className || meio.tagName : "-",
+  };
+});
+log(`  rodapé revelado ........ visível=${rodape.visivel} clicável=${rodape.porCima} (${rodape.tag})  ${ok(rodape.visivel && rodape.porCima)}`);
+await page.screenshot({ path: `${OUT}/desktop-99-rodape.png` });
 
 /* ── 8. prefers-reduced-motion ──────────────────────────────────────────── */
 await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);

@@ -15,6 +15,7 @@ import { navItems, navCta } from "../content/story";
  */
 export default function NavBar() {
   const [visible, setVisible] = useState(false);
+  const [encolhida, setEncolhida] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -24,6 +25,9 @@ export default function NavBar() {
         ? track.offsetHeight - window.innerHeight * 1.15
         : window.innerHeight * 0.9;
       setVisible(window.scrollY > limiar);
+      // Depois de andar um pouco, a barra recolhe: menos peso na tela
+      // enquanto se lê, sem sumir de vez.
+      setEncolhida(window.scrollY > limiar + window.innerHeight * 0.6);
     };
 
     onScroll();
@@ -47,9 +51,9 @@ export default function NavBar() {
   };
 
   return (
-    <header className="nav" data-visible={visible}>
+    <header className="nav" data-visible={visible} data-shrink={encolhida}>
       <nav className="nav__bar" aria-label="Navegação principal">
-        <a className="nav__brand" href="#topo" onClick={(e) => goTo(e, "topo")}>
+        <a className="nav__brand" href="#topo" onClick={(e) => goTo(e, "topo")} data-cursor="link">
           <img className="nav__logo nav__logo--light" src="/logo-nav.png" alt="" />
           <img className="nav__logo nav__logo--dark" src="/logo-mark.png" alt="" />
           <span className="sr-only">Agência Prime — ir para o topo</span>
@@ -58,14 +62,14 @@ export default function NavBar() {
         <ul className="nav__links">
           {navItems.map(({ id, label }) => (
             <li key={id}>
-              <a href={`#${id}`} onClick={(e) => goTo(e, id)}>
+              <a href={`#${id}`} onClick={(e) => goTo(e, id)} data-cursor="link">
                 {label}
               </a>
             </li>
           ))}
         </ul>
 
-        <a className="nav__cta" href={`#${navCta.id}`} onClick={(e) => goTo(e, navCta.id)}>
+        <a className="nav__cta" href={`#${navCta.id}`} onClick={(e) => goTo(e, navCta.id)} data-cursor="button">
           {navCta.label}
         </a>
       </nav>

@@ -64,7 +64,7 @@ export const sections = [
   },
   {
     id: "oficio",
-    layout: "grid",
+    layout: "services",
     theme: "ink",
     rays: true,
     label: "O que fazemos",
@@ -76,14 +76,17 @@ export const sections = [
     ],
     items: [
       {
+        mark: "estrategia",
         name: "Estratégia",
         text: "Antes da estética, a direção. Definimos o território em que a marca compete — e vence.",
       },
       {
+        mark: "identidade",
         name: "Identidade",
         text: "Um sistema visual coerente do primeiro traço ao último pixel, pronto para escalar.",
       },
       {
+        mark: "experiencia",
         name: "Experiência",
         text: "Interfaces que conduzem em vez de explicar. O usuário entende sem precisar pensar.",
       },
@@ -112,7 +115,7 @@ export const sections = [
   },
   {
     id: "metodo",
-    layout: "steps",
+    layout: "process",
     theme: "ink",
     rays: false,
     label: "Como trabalhamos",
@@ -128,7 +131,7 @@ export const sections = [
       { name: "Construção", text: "Executar com precisão, no detalhe que ninguém vê e todos sentem." },
       { name: "Presença", text: "Colocar no mundo e acompanhar o que mudou." },
     ],
-    laptop: { x: 0.72, y: 0.02, scale: 0.72, rotY: -0.45, rotX: -0.06 },
+    laptop: { x: -0.52, y: -0.62, scale: 0.58, rotY: -0.45, rotX: -0.06 },
   },
   {
     id: "manifesto",
@@ -146,7 +149,7 @@ export const sections = [
   },
   {
     id: "entrega",
-    layout: "list",
+    layout: "deliverables",
     theme: "bone",
     rays: false,
     label: "O que você recebe",
