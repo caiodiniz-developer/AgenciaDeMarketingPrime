@@ -71,8 +71,8 @@ export function posicoesDasPecas() {
     // Anel: elipse, porque o palco é mais largo que alto.
     const ang = (i / PECAS.length) * Math.PI * 2 - Math.PI / 2;
     const orbita = {
-      x: CENTRO.x + Math.cos(ang) * 372 - 72,
-      y: CENTRO.y + Math.sin(ang) * 238 - 26,
+      x: CENTRO.x + Math.cos(ang) * 372 - 84,
+      y: CENTRO.y + Math.sin(ang) * 238 - 30,
       r: 0,
       s: 0.74,
     };
@@ -83,8 +83,8 @@ export function posicoesDasPecas() {
 
 /** Caminho da conexão: uma curva suave do centro até a peça. */
 export function caminhoConexao(p) {
-  const alvoX = p.orbita.x + 72;
-  const alvoY = p.orbita.y + 26;
+  const alvoX = p.orbita.x + 84;
+  const alvoY = p.orbita.y + 30;
   const mx = (CENTRO.x + alvoX) / 2;
   const my = (CENTRO.y + alvoY) / 2;
   // Curvatura proporcional à distância: linhas retas fariam uma estrela dura.
@@ -114,6 +114,23 @@ export default function SystemScene({ section }) {
 
         {/* Os quatro estados ocupam o MESMO lugar; só o ativo aparece.
             Empilhados no fluxo, a coluna pularia de altura a cada troca. */}
+        {/* A linha das etapas é desenhada conforme a cena avança: o leitor
+            vê o percurso existir, não só o estado atual. */}
+        <svg className="trilha" viewBox="0 0 12 240" aria-hidden="true" preserveAspectRatio="none">
+          <line className="trilha__calha" x1="6" y1="4" x2="6" y2="236" />
+          <line className="trilha__linha" data-trilha x1="6" y1="4" x2="6" y2="236" />
+          {estadosDoSistema.map((e, i) => (
+            <circle
+              className="trilha__no"
+              data-trilha-no={i}
+              key={e.id}
+              cx="6"
+              cy={4 + (i * 232) / (estadosDoSistema.length - 1)}
+              r="3.5"
+            />
+          ))}
+        </svg>
+
         <div className="sistema__estados">
           {estadosDoSistema.map((estado, i) => (
             <div className="estado" data-estado={i} key={estado.id}>
@@ -122,6 +139,13 @@ export default function SystemScene({ section }) {
             </div>
           ))}
         </div>
+
+        {/* O que o leitor deve levar da seção, dito só no fim: antes disso
+            a cena ainda está montando o argumento. */}
+        <p className="sistema__fecho" data-sistema-fecho>
+          A Prime não entrega uma peça.
+          <strong> Constrói a presença da marca.</strong>
+        </p>
 
         <p className="sistema__contador" aria-hidden="true">
           <span data-sistema-atual>01</span>
@@ -170,10 +194,10 @@ export default function SystemScene({ section }) {
                 data-peca={p.id}
                 data-area={p.frente}
                 key={p.id}
-                transform={`translate(${p.solto.x} ${p.solto.y}) rotate(${p.solto.r} 72 26) scale(${p.solto.s})`}
+                transform={`translate(${p.solto.x} ${p.solto.y}) rotate(${p.solto.r} 84 30) scale(${p.solto.s})`}
               >
-                <rect className="peca__caixa" width="144" height="52" rx="6" />
-                <text className="peca__rotulo" x="72" y="32">
+                <rect className="peca__caixa" width="168" height="60" rx="7" />
+                <text className="peca__rotulo" x="84" y="37">
                   {p.rotulo}
                 </text>
               </g>

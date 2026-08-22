@@ -36,3 +36,22 @@ export const sourceFor = (tier) => SOURCES[tier] || SOURCES.mid;
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Vídeo de uma frente de serviço, na variante que a tela merece.
+ *
+ * Os arquivos vêm de `scripts/encode-videos.mjs`: 1280px para desktop e
+ * 720px (`-sm`) para telas pequenas e conexões magras. Eles entram como
+ * FUNDO, escurecidos e atrás de texto — servir o master de 4K ali seria
+ * jogar dezenas de megabytes numa imagem que ninguém vai examinar.
+ */
+export function videoDaFrente(id) {
+  const pequeno =
+    typeof window !== "undefined" &&
+    (window.innerWidth < 900 || ["static", "low"].includes(pickTier()));
+
+  return {
+    src: `/videos/${id}${pequeno ? "-sm" : ""}.mp4`,
+    poster: `/videos/${id}.jpg`,
+  };
+}

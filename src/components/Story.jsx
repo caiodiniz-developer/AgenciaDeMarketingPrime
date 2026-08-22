@@ -1,5 +1,5 @@
 import { lazy, Suspense, useRef, useState } from "react";
-import { gsap, useGSAP, ScrollTrigger, SplitText } from "../lib/gsap";
+import { gsap, useGSAP, ScrollTrigger, SplitText, Flip } from "../lib/gsap";
 import { paintGradientAcross, gradientToken } from "../lib/gradientText";
 import { cena, FORA } from "../lib/progress";
 import { sections, estadosDoSistema } from "../content/story";
@@ -221,6 +221,7 @@ export default function Story() {
               palavrasAcendendo(q),
               clientesEmDisputa(q, desktop),
               frentesInterativas(q, desktop),
+              pontePraComputador(q, desktop),
               ctaCinematografico(q, desktop)
             );
 
@@ -505,7 +506,7 @@ function frentesInterativas(q, desktop) {
   if (!grupo) return null;
 
   const itens = [...grupo.querySelectorAll("[data-frente]")];
-  const palcos = [...grupo.querySelectorAll("[data-palco]")];
+  const videos = [...grupo.querySelectorAll("[data-frente-video]")];
   if (!itens.length) return null;
 
   let atual = -1;
@@ -514,9 +515,22 @@ function frentesInterativas(q, desktop) {
     if (i === atual || i < 0) return;
     atual = i;
     const chave = itens[i]?.dataset.frente;
+
     itens.forEach((el, k) => (el.dataset.active = String(k === i)));
-    palcos.forEach((p) => (p.dataset.active = String(p.dataset.palco === chave)));
     grupo.dataset.ativa = chave || "";
+
+    videos.forEach((v) => {
+      const ativo = v.dataset.frenteVideo === chave;
+      v.dataset.active = String(ativo);
+      if (!ativo) {
+        v.pause();
+        return;
+      }
+      /* Carrega sob demanda: seis vídeos baixando de uma vez na entrada da
+         seção é dezena de megabytes que ninguém pediu. */
+      if (v.preload !== "auto") v.preload = "auto";
+      v.play().catch(() => {});
+    });
   };
 
   ativar(0);
@@ -552,7 +566,66 @@ function frentesInterativas(q, desktop) {
     });
   }
 
-  return () => limpezas.forEach((fn) => fn());
+  /* Fora de cena, nada decodifica. */
+  const emCena = ScrollTrigger.create({
+    trigger: grupo.closest(".sec"),
+    start: "top bottom",
+    end: "bottom top",
+    onToggle: (self) => {
+      if (self.isActive) videos.find((v) => v.dataset.active === "true")?.play().catch(() => {});
+      else videos.forEach((v) => v.pause());
+    },
+  });
+  limpezas.push(() => emCena.kill());
+
+  return () => {
+    limpezas.forEach((fn) => fn());
+    videos.forEach((v) => v.pause());
+  };
+}
+
+/**
+ * A ponte entre serviços e computador.
+ *
+ * Ao sair da lista, a frente WEB é forçada em cena e a moldura dela viaja na
+ * direção exata de onde o notebook vai chegar, encolhendo. O computador entra
+ * do mesmo canto — e as duas seções passam a ler como um movimento só, em vez
+ * de "acabou uma, começou outra".
+ */
+function pontePraComputador(q, desktop) {
+  if (!desktop) return null;
+  const [grupo] = q("[data-frentes]");
+  const [moldura] = q(".frentes__fundo");
+  if (!grupo || !moldura) return null;
+
+  const sec = grupo.closest(".sec");
+  const itens = [...grupo.querySelectorAll("[data-frente]")];
+  const web = itens.findIndex((el) => el.dataset.frente === "web");
+
+  const tween = gsap.fromTo(
+    moldura,
+    { xPercent: 0, yPercent: 0, scale: 1, autoAlpha: 1 },
+    {
+      // Mesma direção da chegada do notebook: sobe indo para a direita.
+      xPercent: 14,
+      yPercent: -10,
+      scale: 0.88,
+      autoAlpha: 0,
+      ease: "none",
+      scrollTrigger: {
+        trigger: sec,
+        start: "bottom 82%",
+        end: "bottom 18%",
+        scrub: 0.6,
+        /* Ao chegar na saída, a interface é a composição em cena: é ela que
+           se transforma no computador logo a seguir. */
+        onEnter: () => web >= 0 && itens[web].dispatchEvent(new PointerEvent("pointerover", { bubbles: true })),
+        onEnterBack: () => web >= 0 && itens[web].dispatchEvent(new PointerEvent("pointerover", { bubbles: true })),
+      },
+    }
+  );
+
+  return () => tween.scrollTrigger?.kill();
 }
 
 /**
@@ -616,8 +689,25 @@ function filmeQueCresce(q, desktop) {
     0
   );
 
+  /* Sem corte: enquanto a próxima seção sobe, o filme recua e escurece por
+     baixo dela. É o contrário de "vídeo acaba, próxima começa". */
+  const proxima = sec.nextElementSibling;
+  const recuo = proxima
+    ? gsap.fromTo(
+        janela,
+        { scale: 1, filter: "brightness(1)" },
+        {
+          scale: 0.9,
+          filter: "brightness(0.35)",
+          ease: "none",
+          scrollTrigger: { trigger: proxima, start: "top bottom", end: "top top", scrub: 0.5 },
+        }
+      )
+    : null;
+
   return () => {
     tl.scrollTrigger?.kill();
+    recuo?.scrollTrigger?.kill();
     video?.pause();
   };
 }
@@ -644,7 +734,7 @@ function cenaDoSistema(q, desktop) {
   const estados = [...cena.querySelectorAll("[data-estado]")];
   const contador = cena.querySelector("[data-sistema-atual]");
 
-  const origem = "72px 26px"; // meio da peça: gira e escala no próprio lugar
+  const origem = "84px 30px"; // meio da peça: gira e escala no próprio lugar
   const alvos = nos.map((n) => n.el);
 
   nos.forEach((n) =>
@@ -661,10 +751,24 @@ function cenaDoSistema(q, desktop) {
   gsap.set(estados, { autoAlpha: 0, y: 18 });
   gsap.set(estados[0], { autoAlpha: 1, y: 0 });
 
+  const trilha = cena.querySelector("[data-trilha]");
+  const nosTrilha = [...cena.querySelectorAll("[data-trilha-no]")];
+  if (trilha) gsap.set(trilha, { drawSVG: "0% 0%" });
+  gsap.set(nosTrilha, { autoAlpha: 0.25 });
+
   let estadoAtual = 0;
   const trocarEstado = (i) => {
     if (i === estadoAtual) return;
     estadoAtual = i;
+
+    /* A linha cresce até o nó da etapa atual e o nó acende. */
+    const ate = ((i + 1) / estadosDoSistema.length) * 100;
+    if (trilha) {
+      gsap.to(trilha, { drawSVG: `0% ${ate}%`, duration: 0.6, ease: EASE.inOut, overwrite: "auto" });
+    }
+    nosTrilha.forEach((no, k) =>
+      gsap.to(no, { autoAlpha: k <= i ? 1 : 0.25, duration: 0.4, overwrite: "auto" })
+    );
     estados.forEach((el, k) => {
       gsap.to(el, {
         autoAlpha: k === i ? 1 : 0,
@@ -743,6 +847,12 @@ function cenaDoSistema(q, desktop) {
     2.2
   ).to(conexoes, { drawSVG: "0% 100%", duration: 0.9, stagger: 0.04 }, 2.5);
 
+  const fecho = cena.querySelector("[data-sistema-fecho]");
+  if (fecho) {
+    gsap.set(fecho, { autoAlpha: 0, y: 20 });
+    tl.to(fecho, { autoAlpha: 1, y: 0, duration: 0.5, ease: EASE.out }, 2.95);
+  }
+
   return () => tl.scrollTrigger?.kill();
 }
 
@@ -759,17 +869,20 @@ function sistemaEstatico(q) {
       y: p.orbita.y,
       rotation: 0,
       scale: p.orbita.s,
-      transformOrigin: "72px 26px",
+      transformOrigin: "84px 30px",
     });
   });
 
   gsap.set(cena.querySelectorAll("[data-conexao]"), { drawSVG: "0% 100%" });
   gsap.set(cena.querySelector("[data-centro]"), { autoAlpha: 1, scale: 1 });
+  gsap.set(cena.querySelector("[data-trilha]"), { drawSVG: "0% 100%" });
+  gsap.set(cena.querySelectorAll("[data-trilha-no]"), { autoAlpha: 1 });
   gsap.set(cena, { "--marca": 1 });
 
   const estados = [...cena.querySelectorAll("[data-estado]")];
   gsap.set(estados, { autoAlpha: 0 });
   gsap.set(estados[estados.length - 1], { autoAlpha: 1 });
+  gsap.set(cena.querySelector("[data-sistema-fecho]"), { autoAlpha: 1, y: 0 });
 }
 
 /**
@@ -912,6 +1025,37 @@ function computadorCinematografico(q, desktop, reduce) {
      parada para virar momento. */
   tl.to({}, { duration: 0.55 }, 3.6);
 
+  /* ── As razões: uma por etapa da sequência ───────────────────────────
+     O texto some junto com o resto quando a câmera entra na tela; até lá,
+     cada argumento tem o seu momento. */
+  const razoes = [...cena.querySelectorAll("[data-razao]")];
+  if (razoes.length) {
+    gsap.set(razoes, { autoAlpha: 0, y: 18 });
+    gsap.set(razoes[0], { autoAlpha: 1, y: 0 });
+
+    let atual = 0;
+    const trocar = (i) => {
+      if (i === atual) return;
+      atual = i;
+      razoes.forEach((el, k) =>
+        gsap.to(el, {
+          autoAlpha: k === i ? 1 : 0,
+          y: k === i ? 0 : 18,
+          duration: DUR.ui,
+          ease: EASE.out,
+          overwrite: "auto",
+        })
+      );
+    };
+
+    tl.scrollTrigger?.vars &&
+      tl.eventCallback("onUpdate", () => {
+        const p = tl.scrollTrigger?.progress ?? 0;
+        // A última fatia pertence à entrada na tela, onde o texto já saiu.
+        trocar(Math.min(razoes.length - 1, Math.floor((p / 0.72) * razoes.length)));
+      });
+  }
+
   /* ── Parallax de mouse ───────────────────────────────────────────────
      Só no desktop, sempre interpolado e no máximo uns poucos graus. Ligar
      a rotação direto no cursor faz o objeto parecer brinquedo. */
@@ -967,7 +1111,15 @@ function clientesEmDisputa(q, desktop) {
 
   const limpezas = [];
 
+  /* O que muda entre os estados é LAYOUT: a marca sai do centro e sobe para
+     o topo, e as informações abrem embaixo. Animar isso na mão significaria
+     descobrir de onde para onde cada peça foi — que é exatamente a conta que
+     o Flip faz sozinho, medindo antes e depois. */
+  const pecas = () => duelo.querySelectorAll("[data-flip-id]");
+
   const ativar = (i) => {
+    const estado = Flip.getState(pecas(), { props: "textAlign" });
+
     paineis.forEach((el, k) => {
       const ativo = k === i;
       el.dataset.active = String(ativo);
@@ -976,6 +1128,16 @@ function clientesEmDisputa(q, desktop) {
       // Vídeo só decodifica quando está em foco: fora dele é bateria à toa.
       if (ativo) video.play().catch(() => {});
       else video.pause();
+    });
+
+    Flip.from(estado, {
+      duration: 0.75,
+      ease: "power3.inOut",
+      // O painel encolhe ao mesmo tempo: sem `absolute`, as peças brigam com
+      // o próprio reflow enquanto são animadas.
+      absolute: true,
+      nested: true,
+      overwrite: "auto",
     });
   };
 

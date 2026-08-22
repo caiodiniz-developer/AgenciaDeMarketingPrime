@@ -201,7 +201,9 @@ export const sections = [
     id: "servicos",
     layout: "servicos",
     theme: "ink",
-    rays: true,
+    // Sem raios: o vídeo real de cada frente é o visual da seção, e a luz
+    // dourada por trás só disputaria atenção com ele.
+    rays: false,
     label: "O que a Prime faz",
     title: ["A Prime faz."],
     body: [
@@ -223,6 +225,26 @@ export const sections = [
       { text: "prova", tone: "gold" },
       { text: " é esta página." },
     ],
+    /* Entram um a um durante a sequência do computador: a tela vazia à
+       direita já estava ocupada pelo notebook, e o argumento precisava de
+       um lugar próprio. */
+    razoes: [
+      {
+        chave: "24h",
+        titulo: "Não fecha às 18h",
+        texto: "O cliente pesquisa de madrugada, no fim de semana, no meio de uma reunião. O site atende sempre.",
+      },
+      {
+        chave: "seu",
+        titulo: "É o único canal que é seu",
+        texto: "Rede social muda regra, corta alcance e some. O endereço é da empresa e ninguém tira.",
+      },
+      {
+        chave: "compara",
+        titulo: "Decide se te procuram ou te comparam",
+        texto: "Em segundos o visitante conclui o seu tamanho. Um site amador desfaz uma reputação construída em anos.",
+      },
+    ],
     laptop: null,
   },
   {
@@ -232,6 +254,9 @@ export const sections = [
     rays: false,
     label: "Produção",
     title: ["A câmera", "também vende."],
+    // Filmagem real da Prime. O vídeo de pó da hero é textura; aqui, o que
+    // precisa aparecer é o trabalho.
+    video: "audiovisual",
     body: [
       { text: "Captação, direção, edição e motion — do reel de quinze segundos ao institucional que " },
       { text: "abre porta", tone: "gold" },

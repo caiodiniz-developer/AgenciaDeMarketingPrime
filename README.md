@@ -20,9 +20,9 @@ como esse negócio é visto**. A página inteira serve a essa ideia, nesta ordem
 |---|---|---|
 | hero | primeira impressão | vídeo dirigido pelo scroll |
 | diagnóstico | o problema é do leitor | palavras acendendo + faixa tipográfica |
-| serviços | a extensão do que a Prime assume | lista interativa, uma composição por frente |
-| digital | prova de capacidade em web | computador CSS 3D: tela rola por dentro e toma a viewport |
-| audiovisual | prova de capacidade em vídeo | íris de `clip-path` abrindo até a tela cheia |
+| serviços | a extensão do que a Prime assume | lista grande sobre a filmagem real de cada frente |
+| digital | por que um site importa | computador CSS 3D: tela rola por dentro e toma a viewport |
+| audiovisual | prova de capacidade em vídeo | íris de `clip-path` abrindo sobre a filmagem da Prime |
 | sistema | como as frentes se conectam | cena presa que se reorganiza em 4 estados |
 | clientes | prova social | disputa por espaço: o apontado toma a tela |
 | prova | por que funciona | respiro: tema claro, leitura calma |
@@ -100,13 +100,21 @@ já é clara o bastante para o fundo preto.
 
 ## Assets gerados
 
-Os arquivos em `public/media/` e `public/logo-*.png` são **derivados** — não
-edite à mão, rode os scripts:
+Os arquivos em `public/media/`, `public/videos/` e `public/logo-*.png` são
+**derivados** — não edite à mão, rode os scripts:
 
 ```bash
-npm run encode:hero          # media/hero-master.mp4 → variantes all-intra + poster
-node scripts/make-logo.mjs   # public/logo.png → versões clara e escura
+npm run encode:hero            # media/hero-master.mp4 → variantes all-intra + poster
+npm run encode:videos          # media/frentes/*.mp4 → 1280px, 720px e poster
+node scripts/make-logo.mjs     # public/logo.png → versões clara e escura
+node scripts/trim-clientes.mjs # apara a margem das logos de cliente
 ```
+
+Os masters ficam em `media/` (fora de `public/`, para não irem no build). Os
+seis vídeos das frentes chegaram com até 4K e 18 Mbps — 94 MB somados. Eles
+entram como FUNDO, escurecidos e atrás de texto, então vão para 1280px e
+crf 30: **3,9 MB no total**. Servir o master ali seria jogar dezenas de
+megabytes numa imagem que ninguém vai examinar de perto.
 
 O encode é o ponto crítico da hero. Vídeo comum só tem keyframe a cada poucos
 segundos, então exibir um quadro qualquer obriga o decoder a voltar ao keyframe

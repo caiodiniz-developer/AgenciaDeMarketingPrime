@@ -4,7 +4,8 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
+import { Flip } from "gsap/Flip";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText, DrawSVGPlugin);
+gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText, DrawSVGPlugin, Flip);
 
-export { gsap, useGSAP, ScrollTrigger, SplitText, DrawSVGPlugin };
+export { gsap, useGSAP, ScrollTrigger, SplitText, DrawSVGPlugin, Flip };

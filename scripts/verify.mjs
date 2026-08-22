@@ -5,7 +5,7 @@
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
-const URL = process.argv[2] || "http://localhost:5382/";
+const URL = process.argv[2] || "http://localhost:5402/";
 const OUT = process.argv[3] || "./.verify";
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
@@ -309,18 +309,21 @@ await sleep(900);
 const frente = await page.evaluate(() => {
   const itens = [...document.querySelectorAll("[data-frentes] [data-frente]")];
   const ativos = itens.filter((e) => e.dataset.active === "true").map((e) => e.dataset.frente);
-  const palcos = [...document.querySelectorAll("[data-palco]")]
-    .filter((p) => p.dataset.active === "true")
-    .map((p) => p.dataset.palco);
-  const aberta = itens.find((e) => e.dataset.active === "true")?.querySelector(".frente__entregas");
+  /* O palco de SVG deu lugar ao vídeo real da frente: quem tem de acompanhar
+     o item apontado agora é a filmagem. */
+  const videos = [...document.querySelectorAll("[data-frente-video]")]
+    .filter((v) => v.dataset.active === "true")
+    .map((v) => ({ id: v.dataset.frenteVideo, tocando: !v.paused }));
+  const aberta = itens.find((e) => e.dataset.active === "true")?.querySelector(".frente__info");
   return {
     ativos,
-    palcos,
+    videos,
     entregasAbertas: aberta ? aberta.getBoundingClientRect().height > 20 : false,
   };
 });
 log(`  frente apontada ........ ${frente.ativos.join(",") || "nenhuma"}  ${ok(frente.ativos.length === 1)}`);
-log(`  palco acompanha ........ ${frente.palcos.join(",") || "nenhum"}  ${ok(frente.palcos[0] === frente.ativos[0])}`);
+log(`  vídeo acompanha ........ ${frente.videos.map((v) => v.id).join(",") || "nenhum"}  ${ok(frente.videos[0]?.id === frente.ativos[0])}`);
+log(`  vídeo da frente toca ... ${ok(frente.videos[0]?.tocando)}`);
 log(`  entregas abrem ......... ${ok(frente.entregasAbertas)}`);
 
 /* Audiovisual: o recorte do vídeo abre com o scroll. */
@@ -461,6 +464,63 @@ const rodape = await page.evaluate(() => {
 });
 log(`  rodapé revelado ........ visível=${rodape.visivel} alcançável=${rodape.porCima}  ${ok(rodape.visivel && rodape.porCima)}`);
 await page.screenshot({ path: `${OUT}/desktop-99-rodape.png` });
+
+/* ── 7c. menu mobile ────────────────────────────────────────────────────── */
+log("\n── menu mobile (390x844) ──");
+{
+  const m = await browser.newPage();
+  await m.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
+  await m.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await m.goto(URL, { waitUntil: "networkidle2" });
+  await m.evaluate(() => document.fonts.ready);
+  await sleep(4200);
+  await m.evaluate(() => window.scrollTo(0, document.querySelector(".track").offsetHeight));
+  await sleep(1600);
+
+  const barra = await m.evaluate(() => ({
+    botao: getComputedStyle(document.querySelector(".nav__menu")).display !== "none",
+    linksEscondidos: getComputedStyle(document.querySelector(".nav__links")).display === "none",
+  }));
+  log(`  botão de menu existe ... ${ok(barra.botao)}`);
+  log(`  links saem da barra .... ${ok(barra.linksEscondidos)}`);
+
+  const antes = await m.evaluate(() => Math.round(window.scrollY));
+  await m.click(".nav__menu");
+  await sleep(1300);
+
+  const aberto = await m.evaluate(() => {
+    const painel = document.querySelector(".menu");
+    const link = painel.querySelector(".menu__linha a");
+    const r = link.getBoundingClientRect();
+    const alvo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      aberto: painel.dataset.aberto === "true",
+      linkAlcancavel: !!alvo?.closest(".menu__linha"),
+    };
+  });
+  log(`  painel abre ............ ${ok(aberto.aberto)}`);
+  log(`  link alcançável ........ ${ok(aberto.linkAlcancavel)}`);
+
+  /* Gesto REAL de toque: `window.scrollBy` não é ação de usuário, e
+     `overflow: clip` não bloqueia rolagem por script — medir assim daria
+     "destravado" num menu que na mão do usuário está travado. */
+  await m.touchscreen.touchStart(200, 620);
+  await m.touchscreen.touchMove(200, 200);
+  await m.touchscreen.touchEnd();
+  await sleep(800);
+  const depoisToque = await m.evaluate(() => Math.round(window.scrollY));
+  log(`  scroll travado no toque  ${antes} → ${depoisToque}  ${ok(antes === depoisToque)}`);
+
+  await m.evaluate(() => document.querySelectorAll(".menu__linha a")[2].click());
+  await sleep(2600);
+  const navegou = await m.evaluate(() => ({
+    fechado: document.querySelector(".menu").hasAttribute("hidden"),
+    topo: Math.round(document.getElementById("sistema").getBoundingClientRect().top),
+  }));
+  log(`  link fecha e navega .... topo a ${navegou.topo}px  ${ok(navegou.fechado && Math.abs(navegou.topo) < 60)}`);
+  await m.screenshot({ path: `${OUT}/mobile-menu.png` });
+  await m.close();
+}
 
 /* ── 8. prefers-reduced-motion ──────────────────────────────────────────── */
 await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);

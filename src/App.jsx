@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import Cursor from "./components/Cursor";
 import AmbientLight from "./components/AmbientLight";
 import ScrollProgress from "./components/ScrollProgress";
+import Fio from "./components/Fio";
 import Preloader from "./components/Preloader";
 
 /**
@@ -36,6 +37,7 @@ export default function App() {
       <div className="footer-spacer" aria-hidden="true" />
 
       <NavBar />
+      <Fio />
       <ScrollProgress />
       <Cursor />
       <Preloader />

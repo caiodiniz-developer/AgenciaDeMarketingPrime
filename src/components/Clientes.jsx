@@ -24,6 +24,10 @@ export default function Clientes({ section }) {
           data-painel={cliente.id}
           data-indice={i}
           data-sec-item
+          /* "Explorar" e não "Ver case": apontar de fato faz algo — o painel
+             abre. Prometer um case que não existe seria mentir no cursor. */
+          data-cursor="view"
+          data-cursor-text="Explorar"
           key={cliente.id}
         >
           {cliente.video && (
@@ -44,12 +48,16 @@ export default function Clientes({ section }) {
 
           <span className="painel__veu" aria-hidden="true" />
 
-          <div className="painel__conteudo">
+          <div className="painel__conteudo" data-flip-id={`conteudo-${cliente.id}`}>
             {/* Placa clara SÓ quando a marca é escura. Recolorir marca de
                 terceiro é mexer no que não é nosso; a placa resolve o
                 contraste sem tocar no arquivo. Numa marca já clara, ela
                 faria o contrário — apagaria o nome. */}
-            <span className="painel__placa" data-placa={cliente.placa !== false}>
+            <span
+              className="painel__placa"
+              data-placa={cliente.placa !== false}
+              data-flip-id={`placa-${cliente.id}`}
+            >
               <img
                 className="painel__logo"
                 src={cliente.logo}

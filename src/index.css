@@ -1472,287 +1472,6 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   SERVIÇOS — a lista é o conteúdo, o palco é a prova
-   ═════════════════════════════════════════════════════════════ */
-.frentes {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: clamp(2rem, 5vw, 5rem);
-  align-items: start;
-  margin-top: clamp(3rem, 6vw, 5rem);
-}
-
-.frentes__lista {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.frente {
-  position: relative;
-}
-
-.frente__rule {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.12);
-  transform-origin: left center;
-  transition: background-color var(--t-ui) ease;
-}
-
-.frente__linha {
-  display: grid;
-  grid-template-columns: clamp(2.5rem, 4vw, 3.5rem) minmax(0, 1fr);
-  gap: 0.15rem clamp(0.75rem, 2vw, 1.5rem);
-  width: 100%;
-  padding: clamp(1.1rem, 2.4vw, 1.9rem) 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.frente__num {
-  grid-row: 1 / 3;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--color-gold);
-  opacity: 0.5;
-  transition: opacity var(--t-ui) ease;
-}
-
-.frente__nome {
-  font-size: clamp(1.75rem, 4.4vw, 3.5rem);
-  font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--color-bone);
-  transition: transform var(--t-ui) cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.frente__legenda {
-  font-family: var(--font-editorial);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--color-ash);
-  opacity: 0.6;
-  transition: opacity var(--t-ui) ease;
-}
-
-/* As entregas são a resposta ao "isso inclui o quê?". Ficam fechadas até a
-   frente ser apontada — abertas todas de uma vez, a lista viraria um muro. */
-.frente__entregas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem clamp(1rem, 2vw, 2rem);
-  margin: 0;
-  padding: 0 0 0 calc(clamp(2.5rem, 4vw, 3.5rem) + clamp(0.75rem, 2vw, 1.5rem));
-  list-style: none;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition:
-    max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.4s ease,
-    padding-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.frente__entregas li {
-  font-size: 0.8125rem;
-  letter-spacing: 0.06em;
-  color: var(--color-ash);
-}
-
-.frente__entregas li::before {
-  content: "—";
-  margin-right: 0.5rem;
-  color: var(--color-gold);
-  opacity: 0.7;
-}
-
-.frente[data-active="true"] .frente__entregas {
-  max-height: 12rem;
-  opacity: 1;
-  padding-bottom: clamp(1.25rem, 2.5vw, 2rem);
-}
-
-.frente[data-active="true"] .frente__num,
-.frente[data-active="true"] .frente__legenda {
-  opacity: 1;
-}
-
-.frente[data-active="true"] .frente__nome {
-  transform: translateX(clamp(0.4rem, 1vw, 0.9rem));
-}
-
-.frente[data-active="true"] .frente__rule {
-  background: var(--color-gold);
-}
-
-.frentes[data-ativa] .frente[data-active="false"] .frente__linha {
-  opacity: 0.42;
-  transition: opacity var(--t-ui) ease;
-}
-
-/* O palco acompanha a leitura em vez de rolar junto com a lista. */
-.frentes__palco {
-  position: sticky;
-  top: clamp(7rem, 18vh, 10rem);
-}
-
-.frentes__moldura {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(201, 168, 76, 0.07), transparent 62%),
-    rgba(255, 255, 255, 0.018);
-  overflow: hidden;
-}
-
-.palco {
-  position: absolute;
-  inset: clamp(1.5rem, 3vw, 2.5rem);
-  opacity: 0;
-  transform: scale(0.96);
-  transition:
-    opacity 0.5s ease,
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.palco[data-active="true"] {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.palco svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-/* Vocabulário compartilhado dos seis palcos: um traço, um cheio, um dourado.
-   É o que faz seis ilustrações diferentes parecerem a mesma família. */
-.pl-quadro,
-.pl-linha,
-.pl-celula,
-.pl-guia,
-.pl-bloco,
-.pl-no,
-.pl-alvo,
-.pl-rota,
-.pl-simbolo {
-  stroke: rgba(217, 217, 217, 0.5);
-  stroke-width: 1.25;
-  fill: none;
-}
-
-.pl-guia {
-  stroke: rgba(217, 217, 217, 0.18);
-  stroke-dasharray: 3 5;
-}
-
-.pl-celula,
-.pl-bloco {
-  fill: rgba(255, 255, 255, 0.04);
-}
-
-.pl-barra,
-.pl-cheio,
-.pl-ponto {
-  fill: rgba(217, 217, 217, 0.42);
-  stroke: none;
-}
-
-.pl-destaque,
-.pl-alvo-miolo {
-  fill: var(--color-gold);
-  stroke: none;
-}
-
-.pl-alvo {
-  stroke: var(--color-gold);
-  stroke-width: 1.5;
-}
-
-.pl-rota--eleita {
-  stroke: var(--color-gold);
-  stroke-width: 1.75;
-}
-
-.pl-rec {
-  fill: var(--color-gold);
-}
-
-.pl-simbolo {
-  stroke: var(--color-bone);
-}
-
-.pl-texto {
-  fill: rgba(217, 217, 217, 0.55);
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  font-weight: 500;
-}
-
-/* Entrada escalonada por `--i`: seis timelines de GSAP só para trocar
-   ilustração seria trabalho e memória à toa. */
-.palco [style*="--i"] {
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.5s ease,
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  transition-delay: calc(var(--i) * 55ms);
-}
-
-.palco[data-active="true"] [style*="--i"] {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* O playhead corre sozinho: é a única coisa da página que se move sem o
-   scroll, e existe porque uma timeline parada não lê como timeline. */
-.palco[data-active="true"] [data-playhead] {
-  animation: correr 3.4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  stroke: var(--color-gold);
-  stroke-width: 1.75;
-}
-
-@keyframes correr {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(264px); }
-}
-
-@media (max-width: 1023px) {
-  .frentes {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .frentes__palco {
-    position: static;
-    order: -1;
-    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
-  }
-  .frentes__moldura {
-    aspect-ratio: 4 / 3;
-  }
-  .frente__entregas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .frente[data-active="true"] .frente__entregas {
-    max-height: 16rem;
-  }
-}
-
-/* ═════════════════════════════════════════════════════════════
    AUDIOVISUAL — o vídeo toma a tela
    ═════════════════════════════════════════════════════════════ */
 .sec--filme {
@@ -2728,4 +2447,652 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    nomes dos clientes ficavam cortados na dobra. */
 .duelo {
   height: clamp(19rem, 44vh, 27rem);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   MENU MOBILE
+   Abaixo do breakpoint os links não cabem na barra. Sem este
+   painel a navegação simplesmente deixava de existir no celular.
+   ═════════════════════════════════════════════════════════════ */
+.nav__menu {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.nav__traco {
+  display: block;
+  width: 1.15rem;
+  height: 1.5px;
+  margin-inline: auto;
+  border-radius: 2px;
+  background: var(--color-bone);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-nav-theme="bone"] .nav__traco {
+  background: var(--bone-ink);
+}
+
+/* Os dois traços viram um X girando em torno do próprio centro. */
+.nav[data-visible] .nav__menu[aria-expanded="true"] .nav__traco:first-child {
+  transform: translateY(3.25px) rotate(45deg);
+}
+
+.nav[data-visible] .nav__menu[aria-expanded="true"] .nav__traco:last-child {
+  transform: translateY(-3.25px) rotate(-45deg);
+}
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  align-content: center;
+  gap: clamp(2rem, 6vh, 3.5rem);
+  padding: clamp(5rem, 14vh, 8rem) var(--pad-x) clamp(2rem, 6vh, 4rem);
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(201, 168, 76, 0.1), transparent 60%),
+    var(--color-ink-050);
+  /* Estado inicial no CSS, e não só no GSAP: sem isto o painel pisca aberto
+     no quadro entre o React montar e a timeline rodar. */
+  clip-path: inset(0% 0% 100% 0%);
+}
+
+.menu[data-aberto="true"] {
+  clip-path: inset(0% 0% 0% 0%);
+}
+
+.menu__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Máscara por linha: o link sobe de dentro do próprio bloco. */
+.menu__linha {
+  overflow: hidden;
+  padding-block: 0.12em;
+}
+
+.menu__linha a {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(0.75rem, 3vw, 1.5rem);
+  padding-block: clamp(0.35rem, 1.4vh, 0.7rem);
+  font-size: clamp(2rem, 11vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-bone);
+}
+
+.menu__num {
+  font-size: clamp(0.625rem, 2.4vw, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+}
+
+.menu__rodape {
+  display: grid;
+  gap: 1.1rem;
+  justify-items: start;
+  padding-top: clamp(1.5rem, 4vh, 2.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu__cta {
+  padding: 0.95rem 1.9rem;
+  border: 1px solid var(--color-gold);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-bone);
+}
+
+.menu__mail {
+  font-family: var(--font-editorial);
+  font-size: 0.9375rem;
+  color: var(--color-ash);
+}
+
+@media (max-width: 860px) {
+  .nav__menu {
+    display: flex;
+  }
+  /* O CTA vive dentro do painel no mobile: na barra, ele e o botão de menu
+     brigam pelo mesmo canto. */
+  .nav__cta {
+    display: none;
+  }
+}
+
+@media (min-width: 861px) {
+  .menu {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .nav__traco {
+    transition: none;
+  }
+}
+
+/* ── Clientes: o painel em foco muda de LAYOUT ───────────────────────────
+   Não é só opacidade: a marca sai do centro e sobe para o topo, abrindo
+   espaço para as informações embaixo. É essa mudança real de posição que dá
+   trabalho ao Flip — sem ela, não haveria nada para interpolar. */
+.painel__conteudo {
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  transition: none;
+}
+
+.painel[data-active="true"] .painel__conteudo {
+  align-content: end;
+  justify-items: start;
+  text-align: left;
+  width: 100%;
+  padding-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.painel[data-active="true"] .painel__frentes {
+  justify-content: flex-start;
+}
+
+/* ── Fecho do método ─────────────────────────────────────────────────── */
+.sistema__fecho {
+  margin: clamp(1.5rem, 3vw, 2.25rem) 0 0;
+  max-width: 26rem;
+  font-family: var(--font-display);
+  font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: var(--color-ash);
+}
+
+.sistema__fecho strong {
+  display: block;
+  font-weight: 700;
+  color: var(--color-bone);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   ESTADOS INICIAIS EM CSS
+   Deixar tudo para o `gsap.set` significa um quadro com o
+   conteúdo no lugar errado entre o React montar e a timeline
+   rodar. O que é estável nasce correto já na folha de estilo.
+   ═════════════════════════════════════════════════════════════ */
+
+/* A íris do vídeo nasce fechada, e não em tela cheia. */
+.filme__janela {
+  clip-path: circle(9% at 72% 50%);
+}
+
+@media (max-width: 1023px) {
+  .filme__janela {
+    clip-path: circle(16% at 50% 42%);
+  }
+}
+
+/* O notebook nasce fora do quadro, torto e menor. */
+.mac {
+  transform: translate(46%, 18%) scale(0.72);
+}
+
+/* As peças do sistema nascem espalhadas — o atributo `transform` do SVG já
+   cuida disso no markup, mas o centro e as conexões precisam nascer apagados. */
+.sistema__centro {
+  opacity: 0;
+}
+
+.sistema__linha {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+
+/* Sem JS nenhum, nada disso pode prender o conteúdo: a preferência por menos
+   movimento devolve todo mundo ao estado final. */
+@media (prefers-reduced-motion: reduce) {
+  .filme__janela {
+    clip-path: circle(78% at 50% 50%);
+  }
+  .mac {
+    transform: none;
+  }
+  .sistema__centro {
+    opacity: 1;
+  }
+  .sistema__linha {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   FIO CONDUTOR
+   O mesmo dourado da hero atravessando a narrativa. Marcador
+   POSICIONAL: a barra de progresso do topo diz "quanto falta",
+   este diz "onde estou" — numa página de vinte telas, são
+   perguntas diferentes.
+   ═════════════════════════════════════════════════════════════ */
+.fio {
+  position: fixed;
+  top: 22vh;
+  left: clamp(0.9rem, 2.4vw, 2.1rem);
+  z-index: 80;
+  width: 1px;
+  height: 56vh;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fio__calha,
+.fio__traco {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+}
+
+.fio__calha {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.fio__traco {
+  background: linear-gradient(180deg, rgba(201, 168, 76, 0.25), var(--color-gold));
+  transform: scaleY(0);
+  transform-origin: top center;
+}
+
+.fio__nos {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.fio__no {
+  width: 5px;
+  height: 5px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition:
+    background-color 0.5s ease,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease;
+}
+
+.fio__no[data-aceso="true"] {
+  background: var(--color-gold);
+  transform: scale(1.5);
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.14);
+}
+
+html[data-nav-theme="bone"] .fio__calha {
+  background: rgba(20, 18, 14, 0.16);
+}
+
+html[data-nav-theme="bone"] .fio__no {
+  background: rgba(20, 18, 14, 0.22);
+}
+
+/* Na guia estreita do mobile o fio disputa espaço com o texto. */
+@media (max-width: 860px) {
+  .fio {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fio {
+    display: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SERVIÇOS — trabalho real no fundo, a frente em foco no centro
+   O quadrado com desenho abstrato saiu: uma agência que filma
+   não deveria ilustrar o que faz quando tem a filmagem na mão.
+   ═════════════════════════════════════════════════════════════ */
+.sec--servicos {
+  position: relative;
+  overflow: hidden;
+}
+
+.frentes {
+  position: relative;
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* O fundo sangra até as bordas da seção, não da coluna de texto. */
+.frentes__fundo {
+  position: absolute;
+  inset: clamp(-8rem, -14vh, -5rem) calc(var(--pad-x) * -1);
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.frentes__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.07);
+  /* Escurecido e dessaturado: é fundo de leitura, não a atração principal. */
+  filter: brightness(0.44) saturate(0.72) contrast(1.05);
+  transition:
+    opacity 0.85s ease,
+    transform 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.frentes__video[data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.frentes__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.6) 46%, rgba(0, 0, 0, 0.82) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.68) 100%);
+}
+
+.frentes__lista {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frente {
+  position: relative;
+}
+
+.frente__rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  transform-origin: left center;
+  transition: background-color var(--t-ui) ease;
+}
+
+.frente__linha {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(1rem, 2.5vw, 2rem);
+  width: 100%;
+  padding: clamp(0.9rem, 2vw, 1.5rem) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.frente__num {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+  opacity: 0.45;
+  transition: opacity var(--t-ui) ease;
+}
+
+.frente__nome {
+  font-size: clamp(2rem, 6vw, 4.75rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+  transition:
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity var(--t-ui) ease;
+}
+
+/* A informação da frente em foco: maior, e não mais um rodapé miúdo. */
+.frente__info {
+  display: grid;
+  gap: clamp(0.75rem, 1.6vw, 1.25rem);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.45s ease,
+    padding-bottom 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.frente__legenda {
+  margin: 0;
+  max-width: 34rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.0625rem, 1.7vw, 1.5rem);
+  line-height: 1.5;
+  color: var(--color-bone);
+}
+
+.frente__entregas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem clamp(1rem, 2.5vw, 2.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 46rem;
+}
+
+.frente__entregas li {
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  color: var(--color-ash);
+}
+
+.frente__entregas li::before {
+  content: "—";
+  margin-right: 0.5rem;
+  color: var(--color-gold);
+  opacity: 0.75;
+}
+
+.frente[data-active="true"] .frente__info {
+  max-height: 16rem;
+  opacity: 1;
+  padding-bottom: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.frente[data-active="true"] .frente__num {
+  opacity: 1;
+}
+
+.frente[data-active="true"] .frente__nome {
+  transform: translateX(clamp(0.5rem, 1.4vw, 1.25rem));
+}
+
+.frente[data-active="true"] .frente__rule {
+  background: var(--color-gold);
+}
+
+/* As outras recuam: o foco é do leitor, não do layout. */
+.frentes[data-ativa] .frente[data-active="false"] .frente__nome {
+  opacity: 0.4;
+}
+
+@media (max-width: 900px) {
+  .frentes__fundo {
+    inset: -3rem calc(var(--pad-x) * -1);
+  }
+  .frente__entregas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .frente[data-active="true"] .frente__info {
+    max-height: 22rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frentes__video,
+  .frente__info,
+  .frente__nome {
+    transition: none;
+  }
+  /* Sem hover não há frente ativa: tudo fica legível de uma vez. */
+  .frente__info {
+    max-height: none;
+    opacity: 1;
+    padding-bottom: clamp(1.25rem, 2.5vw, 2rem);
+  }
+  .frentes[data-ativa] .frente[data-active="false"] .frente__nome {
+    opacity: 1;
+  }
+}
+
+/* ── Serviços: a filmagem precisa aparecer ───────────────────────────────
+   Com brilho em 0,44 e o escurecedor por cima, o vídeo virava uma mancha
+   preta atrás do texto — e o objetivo da seção é justamente mostrar que a
+   Prime filma. Mais luz no vídeo, e o escurecedor concentrado onde o texto
+   de fato pousa. */
+.frentes__video {
+  filter: brightness(0.66) saturate(0.82) contrast(1.04);
+}
+
+.frentes__scrim {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.62) 42%, rgba(0, 0, 0, 0.22) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+/* O filme da produção é trabalho da Prime: menos grade cinematográfica por
+   cima, mais imagem. */
+.sec--filme .filme__video {
+  filter: brightness(0.9) contrast(1.03) saturate(0.95);
+}
+
+.sec--filme .filme__grade {
+  background:
+    radial-gradient(75% 65% at 50% 50%, transparent 46%, rgba(0, 0, 0, 0.42) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent 42%);
+}
+
+/* ── Razões do site ──────────────────────────────────────────────────────
+   Empilhadas no mesmo lugar: em fluxo, a coluna pularia de altura a cada
+   troca e a leitura saltaria junto. */
+.razoes {
+  position: relative;
+  margin-top: clamp(1.75rem, 3.5vw, 2.75rem);
+  min-height: 9rem;
+}
+
+.razao-web {
+  position: absolute;
+  inset: 0;
+}
+
+.razao-web__titulo {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.razao-web__texto {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--color-ash);
+}
+
+@media (max-width: 1023px) {
+  .razoes {
+    min-height: 11rem;
+  }
+}
+
+/* ── Como funciona: trilha das etapas e peças legíveis ─────────────────── */
+.sistema__coluna {
+  position: relative;
+  padding-left: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+/* A linha vive na guia da coluna, ao lado do texto das etapas. */
+.trilha {
+  position: absolute;
+  left: 0;
+  top: clamp(7rem, 16vh, 11rem);
+  width: 12px;
+  height: clamp(9rem, 22vh, 14rem);
+  overflow: visible;
+}
+
+.trilha__calha,
+.trilha__linha {
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.trilha__calha {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.trilha__linha {
+  stroke: var(--color-gold);
+}
+
+.trilha__no {
+  fill: var(--color-gold);
+}
+
+/* Rótulos das peças: com o corpo anterior ninguém lia o que a Prime entrega,
+   que é justamente o argumento da cena. */
+.peca__rotulo {
+  font-size: 15px;
+  letter-spacing: 0.12em;
+}
+
+.sistema {
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+}
+
+@media (max-width: 1023px) {
+  .sistema {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trilha {
+    display: none;
+  }
+  .sistema__coluna {
+    padding-left: 0;
+  }
 }

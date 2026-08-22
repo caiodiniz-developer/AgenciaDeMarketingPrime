@@ -1,11 +1,10 @@
 import { Fragment } from "react";
 import { useMagnetic } from "../hooks/useMagnetic";
 import { servicos } from "../content/story";
-import ServiceStage from "./ServiceStage";
 import SystemScene from "./SystemScene";
 import Computer from "./Computer";
 import Clientes from "./Clientes";
-import { POSTER, sourceFor, pickTier } from "../lib/media";
+import { POSTER, sourceFor, pickTier, videoDaFrente } from "../lib/media";
 
 const TONE_TAG = { gold: "em", bright: "strong" };
 
@@ -129,42 +128,56 @@ function LayoutDiagnostico({ section }) {
 function LayoutServicos() {
   return (
     <div className="frentes" data-frentes>
+      {/* O fundo é trabalho REAL da Prime, um vídeo por frente. Antes havia
+          aqui um quadrado com um desenho abstrato — e desenho abstrato é
+          justamente o que uma agência de audiovisual não deveria mostrar
+          quando tem a filmagem na mão. */}
+      <div className="frentes__fundo" aria-hidden="true">
+        {servicos.map((s) => {
+          const v = videoDaFrente(s.id);
+          return (
+            <video
+              className="frentes__video"
+              data-frente-video={s.id}
+              key={s.id}
+              src={v.src}
+              poster={v.poster}
+              muted
+              loop
+              playsInline
+              preload="none"
+              disablePictureInPicture
+              tabIndex={-1}
+            />
+          );
+        })}
+        <span className="frentes__scrim" />
+      </div>
+
       <ul className="frentes__lista">
         {servicos.map((s, i) => (
-          <li
-            className="frente"
-            data-sec-item
-            data-frente={s.id}
-            data-indice={i}
-            key={s.id}
-          >
+          <li className="frente" data-sec-item data-frente={s.id} data-indice={i} key={s.id}>
             <span className="frente__rule" data-sec-rule aria-hidden="true" />
+
             <button className="frente__linha" type="button" data-cursor="view" data-cursor-text="Ver">
               <span className="frente__num" aria-hidden="true">
                 {s.numero}
               </span>
               <span className="frente__nome">{s.nome}</span>
-              <span className="frente__legenda">{s.linha}</span>
             </button>
 
-            {/* Fica no DOM sempre: é conteúdo, não enfeite de hover. No
-                mobile ele é a própria lista aberta. */}
-            <ul className="frente__entregas">
-              {s.entregas.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
+            {/* Fica no DOM sempre: é conteúdo, não enfeite de hover. */}
+            <div className="frente__info">
+              <p className="frente__legenda">{s.linha}</p>
+              <ul className="frente__entregas">
+                {s.entregas.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </ul>
+            </div>
           </li>
         ))}
       </ul>
-
-      <div className="frentes__palco" data-frentes-palco>
-        <div className="frentes__moldura">
-          {servicos.map((s) => (
-            <ServiceStage id={s.id} key={s.id} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -176,7 +189,9 @@ function LayoutServicos() {
  */
 function LayoutFilme({ section }) {
   const { id, title, body } = section;
-  const fonte = sourceFor(pickTier());
+  /* Filmagem da Prime quando a seção indica uma; senão, a sequência da hero.
+     A primeira é trabalho, a segunda é textura — e trabalho ganha. */
+  const fonte = section.video ? videoDaFrente(section.video) : sourceFor(pickTier());
 
   return (
     <div className="filme" data-filme>
@@ -193,7 +208,7 @@ function LayoutFilme({ section }) {
           className="filme__video"
           data-filme-video
           src={fonte.src || undefined}
-          poster={POSTER}
+          poster={fonte.poster || POSTER}
           muted
           loop
           playsInline

@@ -37,6 +37,17 @@ export default function Computer({ section }) {
           O site que você está usando é nosso. Cada rolagem daqui em diante é
           uma demonstração — <em>não uma promessa</em>.
         </p>
+
+        {/* Uma razão por vez, trocada pelo scroll: as três empilhadas viram
+            um bloco de texto que ninguém lê no meio de uma animação. */}
+        <div className="razoes" data-razoes>
+          {(section.razoes || []).map((r, i) => (
+            <div className="razao-web" data-razao={i} key={r.chave}>
+              <h3 className="razao-web__titulo">{r.titulo}</h3>
+              <p className="razao-web__texto">{r.texto}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="digital__palco" data-digital-palco>
