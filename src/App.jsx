@@ -7,6 +7,7 @@ import AmbientLight from "./components/AmbientLight";
 import ScrollProgress from "./components/ScrollProgress";
 import Fio from "./components/Fio";
 import Preloader from "./components/Preloader";
+import Whatsapp from "./components/Whatsapp";
 
 /**
  * A sequência dirigida pelo scroll é a experiência principal e vive isolada
@@ -39,6 +40,7 @@ export default function App() {
       <NavBar />
       <Fio />
       <ScrollProgress />
+      <Whatsapp />
       <Cursor />
       <Preloader />
     </>

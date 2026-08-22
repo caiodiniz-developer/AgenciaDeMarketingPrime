@@ -2,23 +2,25 @@ import { lazy, Suspense, useRef, useState } from "react";
 import { gsap, useGSAP, ScrollTrigger, SplitText, Flip } from "../lib/gsap";
 import { paintGradientAcross, gradientToken } from "../lib/gradientText";
 import { cena, FORA } from "../lib/progress";
-import { sections, estadosDoSistema } from "../content/story";
+import { sections } from "../content/story";
 import { pickTier } from "../lib/media";
 import { EASE, DUR, STAGGER, BEAT, DEPTH } from "../lib/motion";
-import { isTouch, pointer, damp } from "../lib/pointer";
-import { posicoesDasPecas } from "./SystemScene";
+import { isTouch } from "../lib/pointer";
 import Section from "./Section";
 import Rays from "./Rays";
 
 // three.js sozinho pesa mais que todo o resto do site: sai do caminho da hero.
 const LaptopScene = lazy(() => import("./LaptopScene"));
 
+/** Seções que PRENDEM a tela. O reveal padrão não se aplica a elas. */
+const PRESAS = new Set(["social", "web", "design", "branding", "estrategia", "maquina"]);
+
 /**
  * A parte da página que vem depois da hero.
  *
- * Camadas, de trás para frente: LUZ (GodRays) → véu → 3D (laptop) → seções.
- * Luz e laptop são sticky e atravessam a narrativa inteira: a cena é contínua
- * e só o conteúdo passa por ela.
+ * Camadas, de trás para frente: LUZ (GodRays) → véu → 3D (notebook) → seções.
+ * Luz e notebook são sticky e atravessam a narrativa inteira: a cena é
+ * contínua e só o conteúdo passa por ela.
  *
  * Cada layout tem UMA interação-assinatura, e nenhuma se repete.
  */
@@ -44,7 +46,10 @@ export default function Story() {
         trigger: root.current,
         start: "top bottom",
         end: "bottom top",
-        onToggle: (self) => setActive(self.isActive),
+        onToggle: (self) => {
+          setActive(self.isActive);
+          cena.ativo = self.isActive;
+        },
         onRefresh: (self) => setActive(self.isActive),
       });
 
@@ -102,10 +107,6 @@ export default function Story() {
             });
           };
 
-          /* Seções PRESAS têm coreografia própria: o reveal padrão brigaria
-             com o pin pelo transform do mesmo elemento. */
-          const presas = new Set(["sistema", "filme", "digital"]);
-
           sections.forEach(({ id, theme, layout }) => {
             const sel = `[data-sec="${id}"]`;
             const [sec] = q(sel);
@@ -114,11 +115,12 @@ export default function Story() {
 
             const tSplit = dividir(titleEl, theme);
 
-            /* O parágrafo do diagnóstico pertence a `palavrasAcendendo`.
+            /* O parágrafo do manifesto pertence a `palavrasAcendendo`.
                Dividi-lo aqui também poria dois SplitText no mesmo nó, e o
                segundo passaria a fatiar o DOM que o primeiro já reescreveu. */
-            const corpoProprio = layout === "diagnostico" && !reduce;
-            const bSplit = bodyEl && !corpoProprio && new SplitText(bodyEl, { type: "lines" });
+            const corpoProprio = layout === "manifesto" && !reduce;
+            const bSplit =
+              bodyEl && !corpoProprio && new SplitText(bodyEl, { type: "words,lines" });
             if (bSplit) splits.push(bSplit);
 
             const label = q(`${sel} [data-sec-label]`);
@@ -151,9 +153,9 @@ export default function Story() {
             /* Conduzidas pelo scroll onde o leitor deve sentir controle; por
                tempo onde ele precisa ler em paz. Texto que treme enquanto se
                lê é desconforto, não sofisticação. */
-            const conduzida = layout === "diagnostico" || layout === "cta";
+            const conduzida = layout === "manifesto" || layout === "cta";
 
-            const gatilho = presas.has(layout)
+            const gatilho = PRESAS.has(layout)
               ? { trigger: sec, start: "top 80%", once: true }
               : conduzida
                 ? { trigger: sec, start: "top 88%", end: "top 34%", scrub: 0.6 }
@@ -200,28 +202,30 @@ export default function Story() {
 
           /* ═══ Assinaturas ══════════════════════════════════════════════ */
           if (reduce) {
-            // Sem movimento: a cena do sistema nasce montada, no estado final.
-            sistemaEstatico(q);
+            estadoFinalSemMovimento(q);
           } else {
             /* Ordem importa: as assinaturas que PRENDEM seções vêm primeiro.
                Cada pin acrescenta telas de altura ao documento e empurra para
                baixo tudo que vem depois. Um trigger criado antes disso guarda
-               a posição de um layout que deixou de existir — e a seção
-               seguinte nasce já com o estado final aplicado, como a de
-               clientes, que chegava escurecida sem nada a escurecê-la. */
+               a posição de um layout que deixou de existir. */
             limpezas.push(
-              computadorCinematografico(q, desktop, reduce),
-              filmeQueCresce(q, desktop),
-              cenaDoSistema(q, desktop)
+              feedSeMontando(q, desktop),
+              entrarNaTela(q, desktop),
+              interfaceViraEditorial(q, desktop),
+              marcaSendoConstruida(q, desktop),
+              sistemaConvergindo(q, desktop),
+              maquinaPrime(q, desktop)
             );
 
             limpezas.push(
+              caminhoDoNotebook(),
               transicaoEntreSecoes(q, desktop),
-              faixaDoDiagnostico(q),
+              faixaDoManifesto(q),
               palavrasAcendendo(q),
-              clientesEmDisputa(q, desktop),
-              frentesInterativas(q, desktop),
-              pontePraComputador(q, desktop),
+              indiceInterativo(q, desktop),
+              forcasDoSistema(q, desktop),
+              clientesNoArco(q, desktop),
+              cartoesComInclinacao(q, desktop),
               ctaCinematografico(q, desktop)
             );
 
@@ -244,50 +248,35 @@ export default function Story() {
             }
           }
 
-          /* Criados DEPOIS das assinaturas, e não antes: os pins mudam a
-             altura do documento, e um trigger nascido antes deles guarda a
-             posição de um layout que deixou de existir. Na prática, a cena
-             ficava adiantada em uma seção inteira a partir do primeiro pin.
+          /* Criados DEPOIS das assinaturas: os pins mudam a altura do
+             documento, e um trigger nascido antes deles guarda a posição de um
+             layout que deixou de existir.
 
-             Um trigger por seção decide TUDO que depende de "qual seção está em
-             cena": pose do 3D, intensidade da luz e tema da barra.
-             Três conjuntos separados refariam a mesma conta três vezes — e, o que
-             é pior, poderiam discordar entre si perto das emendas. */
+             Um trigger por seção decide TUDO que depende de "qual seção está
+             em cena": canal da tela, intensidade da luz e tema da barra. Três
+             conjuntos separados refariam a mesma conta três vezes — e, pior,
+             poderiam discordar entre si perto das emendas.
+
+             A POSE DO NOTEBOOK NÃO ESTÁ AQUI: ela é contínua, conduzida por
+             `caminhoDoNotebook`. Fixá-la por seção era o que obrigava a
+             apagar o objeto para ele saltar de um lado a outro sem ser visto. */
           const avulsos = sections.map((s, i) => {
             const proxima = sections[i + 1];
             return ScrollTrigger.create({
               trigger: `[data-sec="${s.id}"]`,
               start: "top 60%",
               /* A faixa termina onde a PRÓXIMA começa, e não na base desta.
-                 Com `bottom 40%`, uma seção presa por três telas sai da própria
-                 faixa logo no início do pin: dali até a seção seguinte não há
-                 nenhuma ativa, e a cena congela no estado da anterior.
-                 Amarrar no elemento seguinte também imuniza contra o pin, porque
-                 a posição dele já vem calculada com o espaçador. */
+                 Com `bottom 40%`, uma seção presa por três telas sai da
+                 própria faixa logo no início do pin: dali até a seção seguinte
+                 não há nenhuma ativa, e a cena congela no estado da anterior.
+                 Amarrar no elemento seguinte também imuniza contra o pin. */
               endTrigger: proxima ? `[data-sec="${proxima.id}"]` : `[data-sec="${s.id}"]`,
               end: proxima ? "top 60%" : "bottom bottom",
               onToggle: (self) => {
                 if (!self.isActive) return;
 
-                cena.pose = s.laptop || FORA;
-            /* Continua "oculto" mesmo quando vai reaparecer: enquanto a
-               bandeira está de pé o modelo assume a pose de uma vez, e a
-               tween abaixo só o acende depois de ele já estar no lugar.
-               Sem isso ele reaparece a meio caminho, cruzando a tela. */
-            cena.oculto = true;
+                if (s.canal) cena.canal = s.canal;
                 setLevel(s.rays ? 1 : 0.05);
-
-                /* Seção com palco próprio APAGA o modelo em vez de mandá-lo para
-                   fora da tela: deslizar leva tempo, e no meio do caminho ele
-                   atravessa a composição que deveria estar sozinha em cena. */
-                if (laptopBox.current) {
-                  gsap.to(laptopBox.current, {
-                    autoAlpha: s.laptop ? 1 : 0,
-                    duration: s.laptop ? 0.8 : 0.45,
-                    ease: EASE.out,
-                    overwrite: "auto",
-                  });
-                }
 
                 /* Mexer no `level` do shader não basta: com `mix-blend-mode:
                    screen` sobre preto, mesmo intensidade baixa continua
@@ -300,7 +289,6 @@ export default function Story() {
                     overwrite: "auto",
                   });
                 }
-
               },
             });
           });
@@ -309,21 +297,23 @@ export default function Story() {
              chega DEBAIXO dela, não quando a seção entra em cena. */
           sections
             .filter((s) => s.theme === "bone")
-            .forEach((s) =>
+            .forEach((s) => {
+              const i = sections.indexOf(s);
+              const proxima = sections[i + 1];
               avulsos.push(
                 ScrollTrigger.create({
                   trigger: `[data-sec="${s.id}"]`,
                   start: "top 12%",
-                  end: "bottom 12%",
+                  endTrigger: proxima ? `[data-sec="${proxima.id}"]` : `[data-sec="${s.id}"]`,
+                  end: proxima ? "top 12%" : "bottom 12%",
                   onToggle: (self) =>
                     document.documentElement.setAttribute(
                       "data-nav-theme",
                       self.isActive ? "bone" : "ink"
                     ),
                 })
-              )
-            );
-
+              );
+            });
 
           /* Os pins mudam a altura do documento DEPOIS que os triggers de
              reveal calcularam as próprias posições. Sem recalcular no fim da
@@ -386,13 +376,54 @@ export default function Story() {
    ═════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * O CAMINHO DO NOTEBOOK.
+ *
+ * Uma tween com scrub por seção, cada uma partindo exatamente de onde a
+ * anterior parou. O resultado é um trajeto ÚNICO e contínuo: o objeto entra
+ * pela direita, cruza até o centro na seção Web, sai pela esquerda e volta
+ * para o fecho — sempre à vista, nunca apagado no meio do salto.
+ *
+ * Sair de cena aqui é viajar para fora do quadro (|x| > 1.6), não sumir. Era
+ * exatamente o "teletransporte" que o briefing proíbe: antes cada seção fixava
+ * uma pose e o modelo era apagado para saltar sem ser visto.
+ */
+function caminhoDoNotebook() {
+  const tweens = [];
+  let anterior = { ...FORA };
+
+  sections.forEach((s) => {
+    if (!s.laptop) return;
+    const de = { ...anterior };
+
+    tweens.push(
+      gsap.fromTo(cena.pose, de, {
+        ...s.laptop,
+        ease: "none",
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: `[data-sec="${s.id}"]`,
+          /* A viagem acontece ENQUANTO a seção sobe pela tela e termina
+             quando ela assume o quadro. Assim o objeto já está posicionado
+             quando o texto começa a ser lido. */
+          start: "top bottom",
+          end: "top 30%",
+          scrub: 0.9,
+          invalidateOnRefresh: true,
+        },
+      })
+    );
+
+    anterior = s.laptop;
+  });
+
+  return () => tweens.forEach((t) => t.scrollTrigger?.kill());
+}
+
+/**
  * Emenda entre seções: a de fundo bege chega encolhida e com canto
  * arredondado, e assenta ao encostar no topo. Lê-se como a próxima seção
  * deslizando POR CIMA da anterior, e não como um corte.
  */
-/** Seções presas: o ScrollTrigger já é dono do transform delas. */
-const presasNoFluxo = new Set(["sistema", "filme", "digital"]);
-
 function transicaoEntreSecoes(q, desktop) {
   if (!desktop) return null;
   const tweens = [];
@@ -418,7 +449,7 @@ function transicaoEntreSecoes(q, desktop) {
     const anterior = sections[i - 1];
     const [prev] = anterior ? q(`[data-sec="${anterior.id}"]`) : [];
     // Seção presa não entra: o ScrollTrigger já é dono do transform dela.
-    if (!prev || presasNoFluxo.has(anterior.layout)) return;
+    if (!prev || PRESAS.has(anterior.layout)) return;
 
     tweens.push(
       gsap.fromTo(
@@ -441,14 +472,14 @@ function transicaoEntreSecoes(q, desktop) {
 }
 
 /**
- * As palavras do diagnóstico acendem uma a uma, conduzidas pelo scroll.
+ * As palavras do manifesto acendem uma a uma, conduzidas pelo scroll.
  *
  * É a única seção com este tratamento, e de propósito: o texto ali É o
  * argumento, e acender palavra a palavra obriga a lê-lo no ritmo em que ele
  * foi escrito. Repetido em outras seções, viraria maneirismo.
  */
 function palavrasAcendendo(q) {
-  const [corpo] = q('[data-sec="diagnostico"] [data-sec-body]');
+  const [corpo] = q('[data-sec="manifesto"] [data-sec-body]');
   if (!corpo) return null;
 
   const split = new SplitText(corpo, { type: "words", wordsClass: "acende" });
@@ -458,12 +489,7 @@ function palavrasAcendendo(q) {
     opacity: 1,
     ease: "none",
     stagger: 1, // em scrub, o stagger é distância, não tempo
-    scrollTrigger: {
-      trigger: corpo,
-      start: "top 82%",
-      end: "bottom 52%",
-      scrub: 0.6,
-    },
+    scrollTrigger: { trigger: corpo, start: "top 82%", end: "bottom 52%", scrub: 0.6 },
   });
 
   return () => {
@@ -472,8 +498,8 @@ function palavrasAcendendo(q) {
   };
 }
 
-/** A faixa do diagnóstico corre com o scroll: a palavra vira textura. */
-function faixaDoDiagnostico(q) {
+/** A faixa do manifesto corre com o scroll: a palavra vira textura. */
+function faixaDoManifesto(q) {
   const [fita] = q("[data-faixa-fita]");
   if (!fita) return null;
 
@@ -497,36 +523,36 @@ function faixaDoDiagnostico(q) {
 }
 
 /**
- * Serviços: apontar (ou rolar até) uma frente troca a composição do palco e
- * abre as entregas dela. No desktop quem manda é o ponteiro; no toque, o
- * scroll — porque hover não existe lá.
+ * O índice das frentes: apontar uma linha troca o vídeo de fundo pelo trabalho
+ * real daquela frente. No toque, quem escolhe é o scroll.
  */
-function frentesInterativas(q, desktop) {
-  const [grupo] = q("[data-frentes]");
+function indiceInterativo(q, desktop) {
+  const [grupo] = q("[data-indice-frentes]");
   if (!grupo) return null;
 
-  const itens = [...grupo.querySelectorAll("[data-frente]")];
-  const videos = [...grupo.querySelectorAll("[data-frente-video]")];
-  if (!itens.length) return null;
+  const linhas = [...grupo.querySelectorAll("[data-linha]")];
+  const videos = [...grupo.querySelectorAll("[data-indice-video]")];
+  if (!linhas.length) return null;
 
   let atual = -1;
+  const limpezas = [];
 
   const ativar = (i) => {
     if (i === atual || i < 0) return;
     atual = i;
-    const chave = itens[i]?.dataset.frente;
+    const chave = linhas[i]?.dataset.linha;
 
-    itens.forEach((el, k) => (el.dataset.active = String(k === i)));
+    linhas.forEach((el, k) => (el.dataset.active = String(k === i)));
     grupo.dataset.ativa = chave || "";
 
     videos.forEach((v) => {
-      const ativo = v.dataset.frenteVideo === chave;
+      const ativo = v.dataset.indiceVideo === chave;
       v.dataset.active = String(ativo);
       if (!ativo) {
         v.pause();
         return;
       }
-      /* Carrega sob demanda: seis vídeos baixando de uma vez na entrada da
+      /* Carrega sob demanda: cinco vídeos baixando de uma vez na entrada da
          seção é dezena de megabytes que ninguém pediu. */
       if (v.preload !== "auto") v.preload = "auto";
       v.play().catch(() => {});
@@ -535,27 +561,20 @@ function frentesInterativas(q, desktop) {
 
   ativar(0);
 
-  const limpezas = [];
-
   if (desktop && !isTouch()) {
     const onOver = (e) => {
-      const li = e.target.closest("[data-frente]");
+      const li = e.target.closest("[data-linha]");
       if (li) ativar(Number(li.dataset.indice));
     };
     // Teclado é a mesma porta: a lista precisa funcionar sem mouse nenhum.
-    const onFocus = (e) => {
-      const li = e.target.closest("[data-frente]");
-      if (li) ativar(Number(li.dataset.indice));
-    };
     grupo.addEventListener("pointerover", onOver);
-    grupo.addEventListener("focusin", onFocus);
+    grupo.addEventListener("focusin", onOver);
     limpezas.push(() => {
       grupo.removeEventListener("pointerover", onOver);
-      grupo.removeEventListener("focusin", onFocus);
+      grupo.removeEventListener("focusin", onOver);
     });
   } else {
-    // No toque, a frente ativa é a que está sendo lida.
-    itens.forEach((li, i) => {
+    linhas.forEach((li, i) => {
       const st = ScrollTrigger.create({
         trigger: li,
         start: "top 62%",
@@ -585,366 +604,458 @@ function frentesInterativas(q, desktop) {
 }
 
 /**
- * A ponte entre serviços e computador.
- *
- * Ao sair da lista, a frente WEB é forçada em cena e a moldura dela viaja na
- * direção exata de onde o notebook vai chegar, encolhendo. O computador entra
- * do mesmo canto — e as duas seções passam a ler como um movimento só, em vez
- * de "acabou uma, começou outra".
+ * Liga e desliga os vídeos de fundo de uma seção conforme ela entra e sai.
+ * Repetido em quase toda frente, então mora em um lugar só.
  */
-function pontePraComputador(q, desktop) {
-  if (!desktop) return null;
-  const [grupo] = q("[data-frentes]");
-  const [moldura] = q(".frentes__fundo");
-  if (!grupo || !moldura) return null;
+function videoNaCena(sec) {
+  const videos = [...sec.querySelectorAll("[data-frente-video], [data-peca-video]")];
+  videos.forEach((v) => {
+    v.muted = true;
+    v.defaultMuted = true;
+    v.setAttribute("muted", "");
+  });
 
-  const sec = grupo.closest(".sec");
-  const itens = [...grupo.querySelectorAll("[data-frente]")];
-  const web = itens.findIndex((el) => el.dataset.frente === "web");
-
-  const tween = gsap.fromTo(
-    moldura,
-    { xPercent: 0, yPercent: 0, scale: 1, autoAlpha: 1 },
-    {
-      // Mesma direção da chegada do notebook: sobe indo para a direita.
-      xPercent: 14,
-      yPercent: -10,
-      scale: 0.88,
-      autoAlpha: 0,
-      ease: "none",
-      scrollTrigger: {
-        trigger: sec,
-        start: "bottom 82%",
-        end: "bottom 18%",
-        scrub: 0.6,
-        /* Ao chegar na saída, a interface é a composição em cena: é ela que
-           se transforma no computador logo a seguir. */
-        onEnter: () => web >= 0 && itens[web].dispatchEvent(new PointerEvent("pointerover", { bubbles: true })),
-        onEnterBack: () => web >= 0 && itens[web].dispatchEvent(new PointerEvent("pointerover", { bubbles: true })),
-      },
-    }
-  );
-
-  return () => tween.scrollTrigger?.kill();
-}
-
-/**
- * Audiovisual: o vídeo começa como peça no meio da página e toma a tela,
- * conduzido pelo scroll.
- *
- * A abertura é `clip-path`, e não `width`: animar largura re-layouta a página
- * a cada quadro. O texto sai antes de o vídeo chegar à borda, para os dois
- * não disputarem a mesma área.
- */
-function filmeQueCresce(q, desktop) {
-  const [filme] = q("[data-filme]");
-  const [janela] = q("[data-filme-janela]");
-  const [texto] = q("[data-filme-texto]");
-  const [video] = q("[data-filme-video]");
-  if (!filme || !janela) return null;
-
-  const sec = filme.closest(".sec");
-  /* Uma íris abrindo, e não um retângulo crescendo: o círculo é mais
-     cinematográfico e amarra com a linguagem de recorte do resto do site.
-     Nasce deslocado para a direita para não abrir em cima do título. */
-  const fechado = desktop ? "circle(9% at 72% 50%)" : "circle(16% at 50% 42%)";
-  const aberto = desktop ? "circle(78% at 50% 50%)" : "circle(85% at 50% 50%)";
-
-  gsap.set(janela, { clipPath: fechado });
-
-  // React seta a propriedade `muted` mas não o atributo — e o iOS lê os dois.
-  if (video) {
-    video.muted = true;
-    video.defaultMuted = true;
-    video.setAttribute("muted", "");
-  }
-
-  const tocar = (ligar) => {
-    if (!video) return;
-    if (ligar) video.play().catch(() => {});
-    else video.pause();
-  };
-
-  const tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: sec,
-      start: "top top",
-      end: () => `+=${window.innerHeight * 1.6}`,
-      pin: true,
-      scrub: 0.6,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      /* O play/pause vive AQUI, no mesmo trigger do pin. Num trigger próprio
-         com `end: "bottom top"`, a conta usaria a geometria do elemento já
-         pinado — que encosta no topo logo no início do pin — e o vídeo
-         pausava assim que começava a crescer.
-         Bônus: fora de cena ele não decodifica, que é bateria de graça. */
-      onToggle: (self) => tocar(self.isActive),
+  const st = ScrollTrigger.create({
+    trigger: sec,
+    start: "top bottom",
+    end: "bottom top",
+    onToggle: (self) => {
+      videos.forEach((v) => {
+        if (!self.isActive) {
+          v.pause();
+          return;
+        }
+        if (v.preload !== "auto") v.preload = "auto";
+        v.play().catch(() => {});
+      });
     },
   });
 
-  tl.to(texto, { autoAlpha: 0, y: -40, ease: "none", duration: 0.35 }, 0).to(
-    janela,
-    { clipPath: aberto, ease: "none", duration: 1 },
-    0
-  );
-
-  /* Sem corte: enquanto a próxima seção sobe, o filme recua e escurece por
-     baixo dela. É o contrário de "vídeo acaba, próxima começa". */
-  const proxima = sec.nextElementSibling;
-  const recuo = proxima
-    ? gsap.fromTo(
-        janela,
-        { scale: 1, filter: "brightness(1)" },
-        {
-          scale: 0.9,
-          filter: "brightness(0.35)",
-          ease: "none",
-          scrollTrigger: { trigger: proxima, start: "top bottom", end: "top top", scrub: 0.5 },
-        }
-      )
-    : null;
-
   return () => {
-    tl.scrollTrigger?.kill();
-    recuo?.scrollTrigger?.kill();
-    video?.pause();
+    st.kill();
+    videos.forEach((v) => v.pause());
   };
 }
 
 /**
- * O sistema: uma composição presa que atravessa quatro estados — bagunça,
- * alinhamento, identidade e sistema fechado em torno da empresa.
+ * SOCIAL — o feed se montando.
  *
- * É a resposta ao "método em quatro cards": o leitor não lê as etapas, ele vê
- * a comunicação se organizando enquanto rola.
+ * Três estados, conduzidos pelo scroll numa seção presa:
+ *
+ *   solto    → as peças chegam espalhadas e tortas, como conteúdo sem plano
+ *   feed     → o Flip as reorganiza numa grade de perfil
+ *   entrando → a grade encolhe e viaja na direção do notebook
+ *
+ * O terceiro estado é a emenda com a próxima seção: o feed literalmente entra
+ * na tela do objeto que, um instante depois, é o assunto de WEB. É o "cada
+ * serviço planta o próximo" pedido no briefing, dito por movimento.
+ *
+ * O Flip é disparado em travessias de progresso, e não amarrado ao scrub:
+ * `Flip.from` cria a própria tween, e duas fontes escrevendo no mesmo
+ * transform brigam a cada quadro.
  */
-function cenaDoSistema(q, desktop) {
-  const [cena] = q("[data-sistema]");
-  if (!cena) return null;
+function feedSeMontando(q, desktop) {
+  const [palco] = q("[data-social-palco]");
+  if (!palco) return null;
 
-  const sec = cena.closest(".sec");
-  const nos = posicoesDasPecas()
-    .map((p) => ({ p, el: cena.querySelector(`[data-peca="${p.id}"]`) }))
-    .filter((n) => n.el);
-  if (!nos.length) return null;
+  const sec = palco.closest(".sec");
+  const pecas = [...palco.querySelectorAll("[data-flip-id]")];
+  const moldura = palco.querySelector("[data-social-moldura]");
+  if (!pecas.length) return null;
 
-  const conexoes = [...cena.querySelectorAll("[data-conexao]")];
-  const centro = cena.querySelector("[data-centro]");
-  const estados = [...cena.querySelectorAll("[data-estado]")];
-  const contador = cena.querySelector("[data-sistema-atual]");
+  const limpezas = [videoNaCena(sec)];
+  let estado = "solto";
 
-  const origem = "84px 30px"; // meio da peça: gira e escala no próprio lugar
-  const alvos = nos.map((n) => n.el);
+  const trocar = (novo) => {
+    if (novo === estado) return;
+    const antes = Flip.getState(pecas, { props: "borderRadius,filter" });
+    palco.dataset.estado = novo;
+    estado = novo;
 
-  nos.forEach((n) =>
-    gsap.set(n.el, {
-      x: n.p.solto.x,
-      y: n.p.solto.y,
-      rotation: n.p.solto.r,
-      scale: n.p.solto.s,
-      transformOrigin: origem,
-    })
-  );
-  gsap.set(conexoes, { drawSVG: "0% 0%" });
-  gsap.set(centro, { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
-  gsap.set(estados, { autoAlpha: 0, y: 18 });
-  gsap.set(estados[0], { autoAlpha: 1, y: 0 });
+    Flip.from(antes, {
+      duration: 0.9,
+      ease: "power3.inOut",
+      absolute: true,
+      nested: true,
+      overwrite: "auto",
+      stagger: 0.035,
+    });
 
-  const trilha = cena.querySelector("[data-trilha]");
-  const nosTrilha = [...cena.querySelectorAll("[data-trilha-no]")];
-  if (trilha) gsap.set(trilha, { drawSVG: "0% 0%" });
-  gsap.set(nosTrilha, { autoAlpha: 0.25 });
-
-  let estadoAtual = 0;
-  const trocarEstado = (i) => {
-    if (i === estadoAtual) return;
-    estadoAtual = i;
-
-    /* A linha cresce até o nó da etapa atual e o nó acende. */
-    const ate = ((i + 1) / estadosDoSistema.length) * 100;
-    if (trilha) {
-      gsap.to(trilha, { drawSVG: `0% ${ate}%`, duration: 0.6, ease: EASE.inOut, overwrite: "auto" });
-    }
-    nosTrilha.forEach((no, k) =>
-      gsap.to(no, { autoAlpha: k <= i ? 1 : 0.25, duration: 0.4, overwrite: "auto" })
-    );
-    estados.forEach((el, k) => {
-      gsap.to(el, {
-        autoAlpha: k === i ? 1 : 0,
-        y: k === i ? 0 : 18,
-        duration: DUR.ui,
+    if (moldura) {
+      gsap.to(moldura, {
+        autoAlpha: novo === "solto" ? 0 : 1,
+        duration: 0.6,
         ease: EASE.out,
         overwrite: "auto",
       });
-    });
-    if (contador) contador.textContent = String(i + 1).padStart(2, "0");
+    }
   };
+
+  if (moldura) gsap.set(moldura, { autoAlpha: 0 });
+
+  const st = ScrollTrigger.create({
+    trigger: sec,
+    start: "top top",
+    end: () => `+=${window.innerHeight * (desktop ? 2.6 : 2)}`,
+    pin: true,
+    scrub: 0.6,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => {
+      const p = self.progress;
+      trocar(p < 0.3 ? "solto" : p < 0.76 ? "feed" : "entrando");
+    },
+  });
+  limpezas.push(() => st.kill());
+
+  return () => limpezas.forEach((fn) => fn && fn());
+}
+
+/**
+ * WEB — a câmera entra na tela.
+ *
+ * A assinatura do site. Numa seção presa, o scroll conduz:
+ *
+ *   0.00–0.30  os argumentos entram um a um; o notebook já está de frente
+ *   0.30–0.62  `cena.zoom` leva o painel a encher a janela e o texto sai
+ *   0.55–0.72  a página REAL atravessa por cima, revelada por clip-path
+ *   0.72–0.86  o conteúdo rola dentro dela: o scroll da página é o scroll do site
+ *   0.86–1.00  a página sai e a câmera recua — senão o objeto entraria
+ *              gigante na seção seguinte
+ *
+ * A aproximação é escrita em `cena.zoom` e não na pose: pose é o objeto
+ * andando pelo palco, zoom é a câmera. Somados no mesmo número, um resize no
+ * meio da aproximação faria o notebook saltar.
+ */
+function entrarNaTela(q, desktop) {
+  const [web] = q("[data-web]");
+  if (!web) return null;
+
+  const sec = web.closest(".sec");
+  const texto = web.querySelector("[data-web-texto]");
+  const dentro = web.querySelector("[data-web-dentro]");
+  const quadro = dentro?.querySelector(".dentro__quadro");
+  const razoes = [...web.querySelectorAll("[data-razao]")];
+  const entregas = web.querySelector("[data-entregas]");
+
+  const limpezas = [videoNaCena(sec)];
+
+  const fechado = "circle(0% at 50% 50%)";
+  const aberto = "circle(78% at 50% 50%)";
+  if (dentro) gsap.set(dentro, { clipPath: fechado, autoAlpha: 1 });
+
+  if (razoes.length) {
+    gsap.set(razoes, { autoAlpha: 0, y: 22 });
+    gsap.set(razoes[0], { autoAlpha: 1, y: 0 });
+  }
+
+  let razaoAtual = 0;
+  const trocarRazao = (i) => {
+    if (i === razaoAtual || !razoes[i]) return;
+    razaoAtual = i;
+    razoes.forEach((el, k) =>
+      gsap.to(el, {
+        autoAlpha: k === i ? 1 : 0,
+        y: k === i ? 0 : 22,
+        duration: DUR.ui,
+        ease: EASE.out,
+        overwrite: "auto",
+      })
+    );
+  };
+
+  /* O alvo do zoom vive num objeto e é copiado para a cena a cada quadro:
+     `cena.zoom` é lido pelo loop de render, e deixar a timeline escrever
+     direto nele acopla o 3D à existência desta seção. */
+  const estado = { zoom: 0 };
 
   const tl = gsap.timeline({
     defaults: { ease: "none" },
     scrollTrigger: {
       trigger: sec,
       start: "top top",
-      // Quatro estados precisam de curso para respirar.
-      end: () => `+=${window.innerHeight * (desktop ? 3.4 : 2.6)}`,
+      end: () => `+=${window.innerHeight * (desktop ? 4 : 3)}`,
       pin: true,
       scrub: 0.7,
       anticipatePin: 1,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
-        const total = estadosDoSistema.length;
-        trocarEstado(Math.min(total - 1, Math.floor(self.progress * total)));
+        cena.zoom = estado.zoom;
+        // A última fatia pertence à entrada na tela, onde o texto já saiu.
+        const p = Math.min(1, self.progress / 0.3);
+        trocarRazao(Math.min(razoes.length - 1, Math.floor(p * razoes.length)));
       },
+      onLeave: () => (cena.zoom = 0),
+      onLeaveBack: () => (cena.zoom = 0),
     },
   });
 
-  // 1 → 2: a bagunça se alinha. Escalonado, para não virar um estalo só.
-  tl.to(
-    alvos,
-    {
-      x: (i) => nos[i].p.grade.x,
-      y: (i) => nos[i].p.grade.y,
-      rotation: 0,
-      scale: 1,
-      duration: 1,
-      stagger: { each: 0.04, from: "random" },
-    },
-    0
-  );
+  // 1 · a câmera entra
+  tl.to(estado, { zoom: 1, duration: 0.32 }, 0.3)
+    .to(texto, { autoAlpha: 0, y: -40, duration: 0.18 }, 0.3)
+    .to(entregas, { autoAlpha: 0, duration: 0.14 }, 0.3);
 
-  // 2 → 3: a marca entra e o grid se aperta em torno dela.
-  tl.to(
-    alvos,
-    {
-      x: (i) => nos[i].p.identidade.x,
-      y: (i) => nos[i].p.identidade.y,
-      scale: (i) => nos[i].p.identidade.s,
-      duration: 0.8,
-      stagger: 0.02,
-    },
-    1.15
-  )
-    .to(cena, { "--marca": 1, duration: 0.6 }, 1.2);
+  // 2 · a página nasce dentro do painel
+  if (dentro) tl.to(dentro, { clipPath: aberto, duration: 0.17 }, 0.55);
 
-  /* O centro entra junto com a abertura do anel, e não no estado da marca.
-     Antes, ele nascia por cima do grid ainda fechado — e, no mobile, onde o
-     palco é estreito, isso virava colisão. Também é mais fiel à narrativa: o
-     que a identidade acende são as peças; a empresa no meio é o passo
-     seguinte. */
-  tl.to(centro, { autoAlpha: 1, scale: 1, duration: 0.7, ease: EASE.out }, 2.05);
-
-  // 3 → 4: as peças abrem em anel e as conexões são desenhadas.
-  tl.to(
-    alvos,
-    {
-      x: (i) => nos[i].p.orbita.x,
-      y: (i) => nos[i].p.orbita.y,
-      scale: (i) => nos[i].p.orbita.s,
-      duration: 1,
-      stagger: { each: 0.03, from: "start" },
-    },
-    2.2
-  ).to(conexoes, { drawSVG: "0% 100%", duration: 0.9, stagger: 0.04 }, 2.5);
-
-  const fecho = cena.querySelector("[data-sistema-fecho]");
-  if (fecho) {
-    gsap.set(fecho, { autoAlpha: 0, y: 20 });
-    tl.to(fecho, { autoAlpha: 1, y: 0, duration: 0.5, ease: EASE.out }, 2.95);
+  // 3 · o scroll da página é o scroll do site
+  if (quadro) {
+    tl.fromTo(
+      quadro,
+      { y: 0 },
+      { y: () => -Math.max(0, quadro.scrollHeight - window.innerHeight * 0.92), duration: 0.14 },
+      0.72
+    );
   }
+
+  // 4 · sai de cena e a câmera recua junto
+  if (dentro) tl.to(dentro, { autoAlpha: 0, duration: 0.08 }, 0.88);
+  tl.to(estado, { zoom: 0, duration: 0.12 }, 0.88)
+    .to(texto, { autoAlpha: 1, y: 0, duration: 0.08 }, 0.94);
+
+  limpezas.push(() => {
+    tl.scrollTrigger?.kill();
+    cena.zoom = 0;
+  });
+
+  return () => limpezas.forEach((fn) => fn && fn());
+}
+
+/**
+ * DESIGN — a interface vira peça gráfica.
+ *
+ * As peças nascem em fileiras, com a cara da tela que o leitor acabou de
+ * atravessar, e o Flip as recompõe como pôsteres numa grade editorial
+ * assimétrica. O mesmo conjunto de elementos, outra composição: é a definição
+ * de "transformação" em vez de "corte".
+ */
+function interfaceViraEditorial(q, desktop) {
+  const [palco] = q("[data-design-palco]");
+  if (!palco) return null;
+
+  const sec = palco.closest(".sec");
+  const cartazes = [...palco.querySelectorAll("[data-flip-id]")];
+  if (!cartazes.length) return null;
+
+  const limpezas = [videoNaCena(sec)];
+  let estado = "interface";
+
+  const trocar = (novo) => {
+    if (novo === estado) return;
+    const antes = Flip.getState(cartazes, { props: "borderRadius" });
+    palco.dataset.estado = novo;
+    estado = novo;
+    Flip.from(antes, {
+      duration: 1,
+      ease: "power3.inOut",
+      absolute: true,
+      nested: true,
+      overwrite: "auto",
+      stagger: 0.04,
+    });
+  };
+
+  const st = ScrollTrigger.create({
+    trigger: sec,
+    start: "top top",
+    end: () => `+=${window.innerHeight * (desktop ? 2.4 : 1.8)}`,
+    pin: true,
+    scrub: 0.6,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => trocar(self.progress < 0.38 ? "interface" : "editorial"),
+  });
+  limpezas.push(() => st.kill());
+
+  return () => limpezas.forEach((fn) => fn && fn());
+}
+
+/**
+ * BRANDING — a marca sendo construída.
+ *
+ * A ordem é a de um trabalho real de identidade, e cada etapa é desenhada:
+ * grade, guias geométricas, símbolo, cotas, tipografia, cor, aplicação.
+ * `drawSVG` existe exatamente para isto — uma linha que aparece traçada lê
+ * como decisão sendo tomada; a mesma linha com fade-in lê como imagem colada.
+ */
+function marcaSendoConstruida(q, desktop) {
+  const [cena3] = q("[data-branding]");
+  if (!cena3) return null;
+
+  const sec = cena3.closest(".sec");
+  const linhas = [...cena3.querySelectorAll("[data-bd-linha]")];
+  const guias = [...cena3.querySelectorAll("[data-bd-guia]")];
+  const traco = cena3.querySelector("[data-bd-traco]");
+  const massa = cena3.querySelector("[data-bd-massa]");
+  const cotas = [...cena3.querySelectorAll("[data-bd-cota]")];
+  const textos = [...cena3.querySelectorAll("[data-bd-texto]")];
+  const specs = [...cena3.querySelectorAll("[data-bd-spec]")];
+  const cores = [...cena3.querySelectorAll("[data-bd-cor]")];
+  const aplicacoes = [...cena3.querySelectorAll("[data-bd-aplicacao]")];
+
+  gsap.set([...linhas, ...guias, ...cotas], { drawSVG: "0%" });
+  if (traco) gsap.set(traco, { drawSVG: "0%" });
+  if (massa) gsap.set(massa, { autoAlpha: 0 });
+  gsap.set(textos, { autoAlpha: 0 });
+  gsap.set(specs, { autoAlpha: 0, y: 28 });
+  gsap.set(cores, { autoAlpha: 0, x: -14 });
+  gsap.set(aplicacoes, { autoAlpha: 0, y: 12 });
+
+  const tl = gsap.timeline({
+    defaults: { ease: "none" },
+    scrollTrigger: {
+      trigger: sec,
+      start: "top top",
+      end: () => `+=${window.innerHeight * (desktop ? 3.2 : 2.4)}`,
+      pin: true,
+      scrub: 0.7,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    },
+  });
+
+  tl.to(linhas, { drawSVG: "100%", duration: 0.6, stagger: 0.012 }, 0)
+    .to(guias, { drawSVG: "100%", duration: 0.5, stagger: 0.06 }, 0.5)
+    .to(traco, { drawSVG: "100%", duration: 0.8 }, 0.95)
+    .to(massa, { autoAlpha: 1, duration: 0.4, ease: EASE.out }, 1.6)
+    // As guias recuam quando o símbolo existe: andaime não fica na entrega.
+    .to(guias, { drawSVG: "100% 100%", duration: 0.4 }, 1.7)
+    .to(cotas, { drawSVG: "100%", duration: 0.35, stagger: 0.04 }, 1.85)
+    .to(textos, { autoAlpha: 1, duration: 0.3, stagger: 0.05 }, 2.0)
+    .to(specs[0], { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 2.15)
+    .to(specs[1], { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 2.4)
+    .to(cores, { autoAlpha: 1, x: 0, duration: 0.3, stagger: 0.06 }, 2.5)
+    .to(specs[2], { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 2.75)
+    .to(aplicacoes, { autoAlpha: 1, y: 0, duration: 0.25, stagger: 0.05 }, 2.85)
+    // Pausa: sem ela o clímax acontece no último quadro e some antes de ser lido.
+    .to({}, { duration: 0.4 }, 3.2);
 
   return () => tl.scrollTrigger?.kill();
 }
 
-/** Sem movimento: a cena nasce montada, no estado final. */
-function sistemaEstatico(q) {
-  const [cena] = q("[data-sistema]");
-  if (!cena) return;
+/**
+ * ESTRATÉGIA — do emaranhado à direção.
+ *
+ * Primeiro os pontos, depois a malha que liga tudo com tudo (que é verdadeira
+ * e é justamente o problema), e por fim a convergência: as mesmas origens
+ * apontando todas para o mesmo lugar. O feixe substitui a malha à vista.
+ */
+function sistemaConvergindo(q, desktop) {
+  const [palco] = q("[data-estrategia-palco]");
+  if (!palco) return null;
 
-  posicoesDasPecas().forEach((p) => {
-    const el = cena.querySelector(`[data-peca="${p.id}"]`);
-    if (!el) return;
-    gsap.set(el, {
-      x: p.orbita.x,
-      y: p.orbita.y,
-      rotation: 0,
-      scale: p.orbita.s,
-      transformOrigin: "84px 30px",
-    });
+  const sec = palco.closest(".sec");
+  const pontos = [...palco.querySelectorAll("[data-est-ponto]")];
+  const malha = [...palco.querySelectorAll("[data-est-malha]")];
+  const feixe = [...palco.querySelectorAll("[data-est-feixe]")];
+  const rotulos = [...palco.querySelectorAll("[data-est-rotulo]")];
+  const foco = palco.querySelector("[data-est-rotulo='foco']");
+  const halo = palco.querySelector("[data-est-halo]");
+  const nucleo = palco.querySelector("[data-est-nucleo]");
+  const seta = palco.querySelector("[data-est-seta]");
+  const soltos = rotulos.filter((r) => r !== foco);
+
+  gsap.set(pontos, { autoAlpha: 0, scale: 0, transformOrigin: "50% 50%" });
+  gsap.set([...malha, ...feixe], { drawSVG: "0%" });
+  gsap.set(soltos, { autoAlpha: 0, y: 10 });
+  gsap.set([foco, halo, nucleo], { autoAlpha: 0 });
+  if (seta) gsap.set(seta, { drawSVG: "0%" });
+
+  const tl = gsap.timeline({
+    defaults: { ease: "none" },
+    scrollTrigger: {
+      trigger: sec,
+      start: "top top",
+      end: () => `+=${window.innerHeight * (desktop ? 3 : 2.2)}`,
+      pin: true,
+      scrub: 0.7,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    },
   });
 
-  gsap.set(cena.querySelectorAll("[data-conexao]"), { drawSVG: "0% 100%" });
-  gsap.set(cena.querySelector("[data-centro]"), { autoAlpha: 1, scale: 1 });
-  gsap.set(cena.querySelector("[data-trilha]"), { drawSVG: "0% 100%" });
-  gsap.set(cena.querySelectorAll("[data-trilha-no]"), { autoAlpha: 1 });
-  gsap.set(cena, { "--marca": 1 });
+  tl.to(pontos, { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.05, ease: EASE.out }, 0)
+    .to(soltos, { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.05 }, 0.15)
+    .to(malha, { drawSVG: "100%", duration: 0.7, stagger: 0.05 }, 0.6)
+    // A malha some enquanto o feixe nasce: a mesma informação, outra ordem.
+    .to(malha, { drawSVG: "100% 100%", duration: 0.5, stagger: 0.03 }, 1.5)
+    .to(feixe, { drawSVG: "100%", duration: 0.7, stagger: 0.04 }, 1.6)
+    .to([halo, nucleo], { autoAlpha: 1, duration: 0.4, ease: EASE.out }, 2.05)
+    .to(seta, { drawSVG: "100%", duration: 0.35 }, 2.2)
+    .to(foco, { autoAlpha: 1, duration: 0.35, ease: EASE.out }, 2.3)
+    .to({}, { duration: 0.4 }, 2.7);
 
-  const estados = [...cena.querySelectorAll("[data-estado]")];
-  gsap.set(estados, { autoAlpha: 0 });
-  gsap.set(estados[estados.length - 1], { autoAlpha: 1 });
-  gsap.set(cena.querySelector("[data-sistema-fecho]"), { autoAlpha: 1, y: 0 });
+  const limpar = videoNaCena(sec);
+  return () => {
+    tl.scrollTrigger?.kill();
+    limpar();
+  };
 }
 
 /**
- * O computador: uma sequência inteira conduzida pelo scroll, e não um objeto
- * que entra, para e sai.
+ * MÁQUINA PRIME — a linha de produção.
  *
- *   0 %  → chega de fora do quadro, torto e pequeno
- *  35 %  → assenta de frente, em tamanho real
- *  35–70% → o computador fica parado e o CONTEÚDO rola dentro da tela
- *  70–100% → a câmera se aproxima até a tela tomar a viewport
- *
- * A tela é DOM de verdade, então o último passo é geometria pura: mede-se
- * quanto falta para ela preencher a janela e anima-se escala e deslocamento.
- * `invalidateOnRefresh` refaz a conta a cada resize — valores gravados uma
- * vez só ficariam errados no primeiro giro de tela.
+ * As fichas de entrada VIAJAM para dentro do núcleo com Flip em vez de sumirem
+ * em fade: o leitor precisa ver a matéria-prima ser engolida. Depois as quatro
+ * operações se revezam, e as entregas saem do outro lado ao longo da mesma
+ * linha dourada que trouxe os insumos.
  */
-function computadorCinematografico(q, desktop, reduce) {
-  const [cena] = q("[data-digital]");
-  const [mac] = q("[data-mac]");
-  const [tela] = q("[data-mac-tela]");
-  const [conteudo] = q("[data-mac-conteudo]");
-  const [visor] = q("[data-mac-viewport]");
-  const [sombra] = q("[data-mac-sombra]");
-  const [reflexo] = q("[data-mac-reflexo]");
-  const [texto] = q("[data-digital-texto]");
-  if (!cena || !mac || !tela) return null;
+function maquinaPrime(q, desktop) {
+  const [maq] = q("[data-maquina]");
+  if (!maq) return null;
 
-  const sec = cena.closest(".sec");
-  const limpezas = [];
+  const sec = maq.closest(".sec");
+  const cenaEl = maq.querySelector("[data-maquina-cena]");
+  const fio = maq.querySelector("[data-maquina-fio]");
+  const fichas = [...maq.querySelectorAll("[data-maquina-ficha]")];
+  const nucleo = maq.querySelector("[data-maquina-nucleo]");
+  const etapas = [...maq.querySelectorAll("[data-maquina-etapa]")];
+  const saidas = [...maq.querySelectorAll("[data-maquina-saida]")];
+  const fecho = maq.querySelector("[data-maquina-fecho]");
+  const aneis = [...maq.querySelectorAll(".maquina__anel")];
 
-  /* Quanto o conteúdo pode rolar dentro do visor. Medido, não chutado: o
-     mini-site muda de altura com a fonte e com o breakpoint. */
-  const cursoInterno = () =>
-    conteudo && visor ? Math.max(0, conteudo.scrollHeight - visor.clientHeight) : 0;
+  if (fio) gsap.set(fio, { drawSVG: "0%" });
+  gsap.set(fichas, { autoAlpha: 0, x: -60 });
+  gsap.set(etapas, { autoAlpha: 0, y: 24 });
+  gsap.set(saidas, { autoAlpha: 0, x: -30, scale: 0.9 });
+  gsap.set(aneis, { autoAlpha: 0, scale: 0.7, transformOrigin: "50% 50%" });
+  if (fecho) gsap.set(fecho, { autoAlpha: 0, y: 20 });
 
-  /**
-   * Geometria da tela SEM transform, relativa à seção presa.
-   *
-   * `offsetLeft/Top/Width/Height` são medidas de layout: não enxergam os
-   * transforms que a própria timeline já aplicou. `getBoundingClientRect`
-   * enxerga — e por isso devolvia números diferentes conforme o ponto da
-   * animação em que a conta fosse feita, deixando a tela crescer torta.
-   * Como a seção está presa no topo, o layout dela vale como coordenada de
-   * tela.
-   */
-  const geometriaTela = () => {
-    let x = 0;
-    let y = 0;
-    let el = tela;
-    while (el && el !== sec) {
-      x += el.offsetLeft;
-      y += el.offsetTop;
-      el = el.offsetParent;
-    }
-    return { x, y, w: tela.offsetWidth, h: tela.offsetHeight };
+  let etapaAtual = -1;
+  const mostrarEtapa = (i) => {
+    if (i === etapaAtual) return;
+    etapaAtual = i;
+    etapas.forEach((el, k) =>
+      gsap.to(el, {
+        autoAlpha: k === i ? 1 : 0,
+        y: k === i ? 0 : k < i ? -24 : 24,
+        duration: DUR.ui,
+        ease: EASE.out,
+        overwrite: "auto",
+      })
+    );
   };
 
-  const escalaCheia = () => {
-    const g = geometriaTela();
-    if (!g.w || !g.h) return 1;
-    // A folga evita borda aparecendo em telas muito largas.
-    return Math.max(window.innerWidth / g.w, window.innerHeight / g.h) * 1.03;
+  /* As fichas engolidas: um Flip só, disparado na travessia. Animar quatro
+     posições na mão exigiria saber onde o núcleo está — que é exatamente a
+     medida que o Flip tira sozinho, antes e depois. */
+  let engolidas = false;
+  const engolir = (sim) => {
+    if (sim === engolidas || !cenaEl) return;
+    const antes = Flip.getState(fichas);
+    cenaEl.dataset.fase = sim ? "processando" : "entrando";
+    engolidas = sim;
+    Flip.from(antes, {
+      duration: 0.9,
+      ease: "power3.inOut",
+      absolute: true,
+      stagger: 0.05,
+      overwrite: "auto",
+      onComplete: () => {
+        if (sim) gsap.to(fichas, { autoAlpha: 0, scale: 0.7, duration: 0.4, ease: EASE.out });
+      },
+    });
+    if (!sim) gsap.to(fichas, { autoAlpha: 1, scale: 1, duration: 0.4, ease: EASE.out });
   };
 
   const tl = gsap.timeline({
@@ -957,229 +1068,373 @@ function computadorCinematografico(q, desktop, reduce) {
       scrub: 0.7,
       anticipatePin: 1,
       invalidateOnRefresh: true,
+      onUpdate: (self) => {
+        const p = self.progress;
+        engolir(p > 0.36);
+        if (p < 0.3) mostrarEtapa(-1);
+        else mostrarEtapa(Math.min(etapas.length - 1, Math.floor(((p - 0.3) / 0.45) * etapas.length)));
+      },
     },
   });
 
-  /* ── 1. Chegada ──────────────────────────────────────────────────────
-     Entra de fora do quadro, torto e menor: a sensação tem de ser de um
-     objeto físico entrando no espaço, não de um card com fade-in. */
-  tl.fromTo(
-    mac,
-    { xPercent: 46, yPercent: 18, scale: 0.72, rotationX: 12, rotationY: 24, rotationZ: -3 },
-    { xPercent: 0, yPercent: 0, scale: 1, rotationX: 6, rotationY: 0, rotationZ: 0, duration: 1 },
-    0
-  );
+  tl.to(fichas, { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.08, ease: EASE.out }, 0)
+    .to(fio, { drawSVG: "0% 42%", duration: 0.6 }, 0.2)
+    .to(aneis, { autoAlpha: 1, scale: 1, duration: 0.5, stagger: 0.1, ease: EASE.out }, 0.7)
+    // O anel gira devagar só enquanto a máquina "trabalha".
+    .to(aneis[0], { rotate: 90, duration: 2, ease: "none" }, 0.9)
+    .to(aneis[1], { rotate: -60, duration: 2, ease: "none" }, 0.9)
+    .to(fio, { drawSVG: "0% 100%", duration: 0.8 }, 2.1)
+    .to(saidas, { autoAlpha: 1, x: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: EASE.out }, 2.3)
+    .to(fecho, { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 3)
+    .to({}, { duration: 0.4 }, 3.3);
 
-  /* Camadas em velocidades diferentes: é o que dá espessura ao objeto.
-     O conteúdo da tela anda mais que a carcaça, o reflexo mais que os dois. */
-  tl.fromTo(conteudo, { yPercent: 4 }, { yPercent: 0, duration: 1 }, 0)
-    .fromTo(reflexo, { xPercent: -18, opacity: 0.5 }, { xPercent: 6, opacity: 0.22, duration: 1 }, 0)
-    /* A sombra segue o estado do objeto: longe é difusa e fraca, perto é
-       curta e definida. É o que vende o 3D sem acrescentar geometria. */
-    .fromTo(
-      sombra,
-      { opacity: 0.16, scaleX: 0.7, filter: "blur(50px)" },
-      { opacity: 0.46, scaleX: 1, filter: "blur(26px)", duration: 1 },
-      0
-    );
+  return () => tl.scrollTrigger?.kill();
+}
 
-  /* ── 2. O conteúdo rola dentro da tela ───────────────────────────────
-     O computador fica parado e quem se move é o site lá dentro. */
-  tl.to(conteudo, { y: () => -cursoInterno() * 0.8, duration: 1.6 }, 1.05)
-    /* Perspectiva muda de lado enquanto se lê: um objeto sempre frontal
-       denuncia que é uma imagem colada. Poucos graus bastam. */
-    .to(mac, { rotationY: -9, rotationX: 3, duration: 0.8 }, 1.05)
-    .to(mac, { rotationY: 7, duration: 0.8 }, 1.85)
-    .to(reflexo, { xPercent: -10, duration: 1.6 }, 1.05);
+/* ── POR QUE FUNCIONA ───────────────────────────────────────────────────── */
 
-  /* ── 3. A câmera entra na tela ───────────────────────────────────────
-     A tela cresce até tomar a janela e a carcaça se apaga: as duas seções
-     viram uma experiência só. */
-  tl.to(texto, { autoAlpha: 0, y: -30, duration: 0.4 }, 2.55)
-    .to(mac, { rotationX: 0, rotationY: 0, duration: 0.5 }, 2.55)
-    .to(
-      mac,
-      {
-        scale: () => escalaCheia(),
-        /* A tela caminha até o CENTRO da janela enquanto cresce. Sem as duas
-           correções ela cresce a partir de onde está — no terço direito — e
-           sobra tarja de um lado só. */
-        x: () => {
-          const g = geometriaTela();
-          return window.innerWidth / 2 - (g.x + g.w / 2);
-        },
-        y: () => {
-          const g = geometriaTela();
-          return window.innerHeight / 2 - (g.y + g.h / 2);
-        },
-        duration: 0.85,
-      },
-      2.75
-    )
-    .to(".mac__base, .mac__camera, [data-mac-sombra]", { autoAlpha: 0, duration: 0.4 }, 2.75)
-    .to(tela, { borderRadius: 0, borderWidth: 0, duration: 0.5 }, 2.95)
-    .to(reflexo, { autoAlpha: 0, duration: 0.35 }, 2.95);
+/**
+ * Onde cada peça do palco fica em cada demonstração.
+ *
+ * As posições são CALCULADAS, e não escritas à mão em CSS, porque o palco é
+ * fluido: em 1440px e em 1024px o mesmo layout precisa continuar sendo o mesmo
+ * gesto. `i` é o índice da peça, `n` o total.
+ */
+function posicaoDaPeca(demo, i, n, w, h) {
+  const col = i % 4;
+  const lin = Math.floor(i / 4);
+  const cx = w / 2;
+  const cy = h / 2;
 
-  /* Pausa em tela cheia. Sem ela, o clímax acontece no último quadro do pin
-     e some antes de o leitor registrar — a chegada precisa de um tempo
-     parada para virar momento. */
-  tl.to({}, { duration: 0.55 }, 3.6);
+  /* Pseudoaleatório determinístico: o mesmo "bagunçado" em todo carregamento.
+     Math.random() daria uma composição diferente a cada refresh, e composição
+     que muda sozinha lê como bug. */
+  const r1 = Math.sin(i * 12.9898) * 43758.5453;
+  const r2 = Math.sin(i * 78.233) * 12345.6789;
+  const a = r1 - Math.floor(r1);
+  const b = r2 - Math.floor(r2);
 
-  /* ── As razões: uma por etapa da sequência ───────────────────────────
-     O texto some junto com o resto quando a câmera entra na tela; até lá,
-     cada argumento tem o seu momento. */
-  const razoes = [...cena.querySelectorAll("[data-razao]")];
-  if (razoes.length) {
-    gsap.set(razoes, { autoAlpha: 0, y: 18 });
-    gsap.set(razoes[0], { autoAlpha: 1, y: 0 });
+  const grade = () => ({
+    x: 40 + col * (w - 140) / 3,
+    y: 34 + lin * (h - 120) / 2,
+    rot: 0,
+    scale: 1,
+    opacity: 1,
+  });
 
-    let atual = 0;
-    const trocar = (i) => {
-      if (i === atual) return;
-      atual = i;
-      razoes.forEach((el, k) =>
-        gsap.to(el, {
-          autoAlpha: k === i ? 1 : 0,
-          y: k === i ? 0 : 18,
-          duration: DUR.ui,
-          ease: EASE.out,
-          overwrite: "auto",
-        })
-      );
-    };
+  switch (demo) {
+    /* CONSISTÊNCIA: o desalinho se resolve. Tudo no mesmo eixo, no mesmo
+       tamanho, no mesmo tom. */
+    case "alinhar":
+      return grade();
 
-    tl.scrollTrigger?.vars &&
-      tl.eventCallback("onUpdate", () => {
-        const p = tl.scrollTrigger?.progress ?? 0;
-        // A última fatia pertence à entrada na tela, onde o texto já saiu.
-        trocar(Math.min(razoes.length - 1, Math.floor((p / 0.72) * razoes.length)));
+    /* ESTRATÉGIA: as peças se inclinam todas para o mesmo alvo — ainda
+       espalhadas, mas já apontando para o centro. */
+    case "convergir": {
+      const ang = (i / n) * Math.PI * 2;
+      const raio = Math.min(w, h) * 0.34;
+      const x = cx + Math.cos(ang) * raio - 52;
+      const y = cy + Math.sin(ang) * raio * 0.72 - 30;
+      return { x, y, rot: (ang * 180) / Math.PI + 90, scale: 0.86, opacity: 1 };
+    }
+
+    /* QUALIDADE: hierarquia. Uma peça grande manda, três médias apoiam, o
+       resto vira detalhe — que é o que separa composição de amontoado. */
+    case "refinar": {
+      if (i === 0) return { x: 40, y: 34, rot: 0, scale: 2.1, opacity: 1 };
+      if (i < 4)
+        return {
+          x: w * 0.56,
+          y: 34 + (i - 1) * (h * 0.2),
+          rot: 0,
+          scale: 1.12,
+          opacity: 1,
+        };
+      const k = i - 4;
+      return {
+        x: 40 + (k % 4) * ((w - 140) / 3) * 0.62,
+        y: h * 0.68 + Math.floor(k / 4) * 46,
+        rot: 0,
+        scale: 0.6,
+        opacity: 0.7,
+      };
+    }
+
+    /* FREQUÊNCIA: a grade se preenche em cadência. A posição é a mesma da
+       consistência; o que muda é QUANDO cada uma chega — o stagger é o
+       conteúdo desta demonstração. */
+    case "preencher":
+      return grade();
+
+    /* DIREÇÃO: tudo alinhado a um eixo só, em fila, com alguém à frente. */
+    case "apontar": {
+      const passo = (w - 120) / (n - 1);
+      return {
+        x: 30 + i * passo,
+        y: cy - 30 + Math.sin(i * 0.5) * 6,
+        rot: 0,
+        scale: 0.72 + (i / n) * 0.5,
+        opacity: 0.45 + (i / n) * 0.55,
+      };
+    }
+
+    /* REPOUSO: o estado real de quem nunca teve direção. */
+    default:
+      return {
+        x: 20 + a * (w - 130),
+        y: 20 + b * (h - 90),
+        rot: (a - 0.5) * 34,
+        scale: 0.8 + b * 0.45,
+        opacity: 0.55 + a * 0.35,
+      };
+  }
+}
+
+/**
+ * As cinco forças. Escolher uma reorganiza o palco para DEMONSTRAR o conceito.
+ *
+ * No desktop quem escolhe é o ponteiro ou o teclado; no toque, o scroll — cada
+ * força assume o palco conforme entra na viewport, porque hover não existe lá.
+ */
+function forcasDoSistema(q, desktop) {
+  const [palco] = q("[data-palco]");
+  const [lista] = q("[data-forcas]");
+  if (!palco || !lista) return null;
+
+  const pecas = [...palco.querySelectorAll("[data-palco-peca]")];
+  const itens = [...lista.querySelectorAll("[data-forca]")];
+  const marca = palco.querySelector("[data-palco-marca]");
+  const eixo = palco.querySelector("[data-palco-eixo]");
+  const seta = palco.querySelector("[data-palco-seta]");
+  if (!pecas.length) return null;
+
+  const limpezas = [];
+  let atual = "repouso";
+
+  const aplicar = (demo) => {
+    if (demo === atual) return;
+    atual = demo;
+    palco.dataset.demo = demo;
+
+    const w = palco.clientWidth;
+    const h = palco.clientHeight;
+    const n = pecas.length;
+
+    itens.forEach((li) => (li.dataset.active = String(li.dataset.forca === demo)));
+
+    pecas.forEach((el, i) => {
+      const p = posicaoDaPeca(demo, i, n, w, h);
+      gsap.to(el, {
+        x: p.x,
+        y: p.y,
+        rotate: p.rot,
+        scale: p.scale,
+        autoAlpha: p.opacity,
+        duration: demo === "preencher" ? 0.5 : 0.85,
+        ease: demo === "preencher" ? EASE.out : "power3.inOut",
+        overwrite: "auto",
+        /* FREQUÊNCIA é a única em que o stagger É o conteúdo: as peças
+           chegam em cadência, uma após a outra, e é isso que se quer ver. */
+        delay: demo === "preencher" ? i * 0.075 : 0,
       });
-  }
-
-  /* ── Parallax de mouse ───────────────────────────────────────────────
-     Só no desktop, sempre interpolado e no máximo uns poucos graus. Ligar
-     a rotação direto no cursor faz o objeto parecer brinquedo. */
-  const [corpo] = q("[data-mac-corpo]");
-
-  if (corpo && desktop && !reduce && !isTouch()) {
-    /* O mouse gira o CORPO, e o scroll gira a caixa de fora.
-       Dois elementos aninhados porque `transform` é uma propriedade só: se
-       os dois escrevessem no mesmo nó, o último a rodar apagaria o outro. */
-    const atual = { rx: 0, ry: 0 };
-    let dentro = false;
-
-    const stDentro = ScrollTrigger.create({
-      trigger: sec,
-      start: "top bottom",
-      end: "bottom top",
-      onToggle: (self) => (dentro = self.isActive),
     });
 
-    const tick = (_t, dt) => {
-      if (!dentro || !pointer.active) return;
-      const s = dt / 1000;
-      // Poucos graus, sempre interpolados: colar a rotação no cursor faz o
-      // objeto parecer brinquedo em vez de coisa com peso.
-      atual.ry = damp(atual.ry, pointer.nx * 3.2, 0.08, s);
-      atual.rx = damp(atual.rx, pointer.ny * -2.2, 0.08, s);
-      gsap.set(corpo, { rotationY: atual.ry, rotationX: atual.rx });
+    /* A marca cresce quando a demonstração é sobre o que a sustenta. */
+    if (marca) {
+      gsap.to(marca, {
+        scale: demo === "convergir" || demo === "alinhar" ? 1.12 : 1,
+        autoAlpha: demo === "repouso" ? 0.5 : 1,
+        duration: 0.7,
+        ease: EASE.out,
+        overwrite: "auto",
+      });
+    }
+
+    // O eixo só existe na demonstração de DIREÇÃO.
+    const mostrarEixo = demo === "apontar";
+    if (eixo) {
+      gsap.to(eixo, { autoAlpha: mostrarEixo ? 1 : 0, duration: 0.5, overwrite: "auto" });
+    }
+    if (seta) {
+      gsap.to(seta, {
+        drawSVG: mostrarEixo ? "100%" : "0%",
+        duration: 0.6,
+        ease: EASE.out,
+        overwrite: "auto",
+      });
+    }
+  };
+
+  // Estado inicial, sem transição.
+  const w = palco.clientWidth || 1;
+  const h = palco.clientHeight || 1;
+  pecas.forEach((el, i) => {
+    const p = posicaoDaPeca("repouso", i, pecas.length, w, h);
+    gsap.set(el, { x: p.x, y: p.y, rotate: p.rot, scale: p.scale, autoAlpha: p.opacity });
+  });
+  if (eixo) gsap.set(eixo, { autoAlpha: 0 });
+  if (seta) gsap.set(seta, { drawSVG: "0%" });
+  if (marca) gsap.set(marca, { autoAlpha: 0.5 });
+
+  if (desktop && !isTouch()) {
+    const onOver = (e) => {
+      const li = e.target.closest("[data-forca]");
+      if (li) aplicar(li.dataset.forca);
     };
-
-    gsap.ticker.add(tick);
+    lista.addEventListener("pointerover", onOver);
+    lista.addEventListener("focusin", onOver);
     limpezas.push(() => {
-      gsap.ticker.remove(tick);
-      stDentro.kill();
-      gsap.set(corpo, { rotationX: 0, rotationY: 0 });
+      lista.removeEventListener("pointerover", onOver);
+      lista.removeEventListener("focusin", onOver);
+    });
+
+    /* Chegando na seção sem apontar nada, a primeira força assume: um palco
+       parado em "repouso" parece quebrado, não convidativo. */
+    const entrada = ScrollTrigger.create({
+      trigger: palco.closest(".sec"),
+      start: "top 55%",
+      once: true,
+      onEnter: () => aplicar(itens[0]?.dataset.forca || "alinhar"),
+    });
+    limpezas.push(() => entrada.kill());
+  } else {
+    itens.forEach((li) => {
+      const st = ScrollTrigger.create({
+        trigger: li,
+        start: "top 70%",
+        end: "bottom 40%",
+        onToggle: (self) => self.isActive && aplicar(li.dataset.forca),
+      });
+      limpezas.push(() => st.kill());
     });
   }
 
-  limpezas.push(() => tl.scrollTrigger?.kill());
+  /* Redimensionar muda o palco: as posições são calculadas a partir dele. */
+  const refazer = () => {
+    const d = atual;
+    atual = "";
+    aplicar(d);
+  };
+  ScrollTrigger.addEventListener("refreshInit", refazer);
+  limpezas.push(() => ScrollTrigger.removeEventListener("refreshInit", refazer));
+
   return () => limpezas.forEach((fn) => fn());
 }
 
 /**
- * Clientes: apontar um painel faz ele tomar espaço do outro, o vídeo entrar e
- * as informações subirem. No toque, quem decide é o scroll — o painel em
- * leitura é o ativo.
+ * CLIENTES — o arco desenhado e a marca em foco.
+ *
+ * O arco é traçado quando a seção entra. Apontar uma marca faz ela tomar a
+ * cena: a ficha abre, o preview cresce e a outra recua. O Flip cuida da
+ * mudança de layout — é ele que sabe de onde para onde cada peça foi.
  */
-function clientesEmDisputa(q, desktop) {
-  const [duelo] = q("[data-duelo]");
-  if (!duelo) return null;
+function clientesNoArco(q, desktop) {
+  const [palco] = q("[data-quem-palco]");
+  if (!palco) return null;
 
-  const paineis = [...duelo.querySelectorAll("[data-painel]")];
-  if (!paineis.length) return null;
+  const arco = palco.querySelector("[data-quem-arco]");
+  const marcas = [...palco.querySelectorAll("[data-marca]")];
+  if (!marcas.length) return null;
 
   const limpezas = [];
 
-  /* O que muda entre os estados é LAYOUT: a marca sai do centro e sobe para
-     o topo, e as informações abrem embaixo. Animar isso na mão significaria
-     descobrir de onde para onde cada peça foi — que é exatamente a conta que
-     o Flip faz sozinho, medindo antes e depois. */
-  const pecas = () => duelo.querySelectorAll("[data-flip-id]");
+  if (arco) {
+    gsap.set(arco, { drawSVG: "0%" });
+    const traco = gsap.to(arco, {
+      drawSVG: "100%",
+      ease: "none",
+      scrollTrigger: {
+        trigger: palco,
+        start: "top 78%",
+        end: "bottom 62%",
+        scrub: 0.8,
+      },
+    });
+    limpezas.push(() => traco.scrollTrigger?.kill());
+  }
+
+  const pecas = () => palco.querySelectorAll("[data-flip-id], [data-marca-ficha]");
 
   const ativar = (i) => {
-    const estado = Flip.getState(pecas(), { props: "textAlign" });
-
-    paineis.forEach((el, k) => {
-      const ativo = k === i;
-      el.dataset.active = String(ativo);
-      const video = el.querySelector("[data-painel-video]");
-      if (!video) return;
-      // Vídeo só decodifica quando está em foco: fora dele é bateria à toa.
-      if (ativo) video.play().catch(() => {});
-      else video.pause();
-    });
-
-    Flip.from(estado, {
-      duration: 0.75,
+    const antes = Flip.getState(pecas(), { props: "textAlign" });
+    marcas.forEach((el, k) => (el.dataset.active = String(k === i)));
+    Flip.from(antes, {
+      duration: 0.7,
       ease: "power3.inOut",
-      // O painel encolhe ao mesmo tempo: sem `absolute`, as peças brigam com
-      // o próprio reflow enquanto são animadas.
       absolute: true,
       nested: true,
       overwrite: "auto",
     });
   };
 
-  /* Com um cliente só não há disputa: o painel já é o foco. */
-  if (paineis.length === 1) {
-    const st = ScrollTrigger.create({
-      trigger: duelo,
-      start: "top 75%",
-      end: "bottom 35%",
-      onToggle: (self) => ativar(self.isActive ? 0 : -1),
-    });
-    return () => st.kill();
-  }
-
   if (desktop && !isTouch()) {
     const onOver = (e) => {
-      const alvo = e.target.closest("[data-painel]");
+      const alvo = e.target.closest("[data-marca]");
       if (alvo) ativar(Number(alvo.dataset.indice));
     };
     const onLeave = () => ativar(-1);
-    duelo.addEventListener("pointerover", onOver);
-    duelo.addEventListener("pointerleave", onLeave);
+    palco.addEventListener("pointerover", onOver);
+    palco.addEventListener("focusin", onOver);
+    palco.addEventListener("pointerleave", onLeave);
     limpezas.push(() => {
-      duelo.removeEventListener("pointerover", onOver);
-      duelo.removeEventListener("pointerleave", onLeave);
+      palco.removeEventListener("pointerover", onOver);
+      palco.removeEventListener("focusin", onOver);
+      palco.removeEventListener("pointerleave", onLeave);
     });
   } else {
-    paineis.forEach((el, i) => {
+    marcas.forEach((el, i) => {
       const st = ScrollTrigger.create({
         trigger: el,
-        start: "top 65%",
-        end: "bottom 45%",
+        start: "top 68%",
+        end: "bottom 42%",
         onToggle: (self) => self.isActive && ativar(i),
       });
       limpezas.push(() => st.kill());
     });
   }
 
-  return () => {
-    limpezas.forEach((fn) => fn());
-    ativar(-1);
-  };
+  return () => limpezas.forEach((fn) => fn());
+}
+
+/**
+ * Inclinação de cartão: a peça responde ao ponteiro como se tivesse espessura.
+ * Poucos graus, sempre interpolados — e só onde há `data-tilt`, para não virar
+ * tique da página inteira.
+ */
+function cartoesComInclinacao(q, desktop) {
+  if (!desktop || isTouch()) return null;
+  const cartoes = q("[data-tilt]");
+  if (!cartoes.length) return null;
+
+  const limpezas = cartoes.map((el) => {
+    const girarX = gsap.quickTo(el, "rotationX", { duration: 0.6, ease: EASE.out });
+    const girarY = gsap.quickTo(el, "rotationY", { duration: 0.6, ease: EASE.out });
+    const subir = gsap.quickTo(el, "z", { duration: 0.6, ease: EASE.out });
+
+    const onMove = (e) => {
+      const r = el.getBoundingClientRect();
+      const nx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+      const ny = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+      girarY(nx * 7);
+      girarX(ny * -6);
+      subir(28);
+    };
+    const onOut = () => {
+      girarX(0);
+      girarY(0);
+      subir(0);
+    };
+
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onOut);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onOut);
+      gsap.set(el, { rotationX: 0, rotationY: 0, z: 0 });
+    };
+  });
+
+  return () => limpezas.forEach((fn) => fn());
 }
 
 /**
@@ -1221,4 +1476,64 @@ function ctaCinematografico(q, desktop) {
   }
 
   return () => tweens.forEach((t) => t.scrollTrigger?.kill());
+}
+
+/**
+ * Sem movimento: toda cena nasce no estado FINAL.
+ *
+ * `prefers-reduced-motion` reduz animação, não conteúdo — quem pediu menos
+ * movimento continua tendo direito à narrativa inteira. Cada estado inicial
+ * escondido precisa de um correspondente aqui, ou a seção chega vazia.
+ */
+function estadoFinalSemMovimento(q) {
+  const mostrar = (sel, props = {}) =>
+    gsap.set(q(sel), { autoAlpha: 1, x: 0, y: 0, scale: 1, ...props });
+
+  gsap.set(q("[data-bd-linha], [data-bd-guia], [data-bd-cota], [data-bd-traco]"), {
+    drawSVG: "100%",
+  });
+  mostrar("[data-bd-massa]");
+  mostrar("[data-bd-texto]");
+  mostrar("[data-bd-spec]");
+  mostrar("[data-bd-cor]");
+  mostrar("[data-bd-aplicacao]");
+
+  gsap.set(q("[data-est-malha]"), { drawSVG: "100% 100%" });
+  gsap.set(q("[data-est-feixe], [data-est-seta]"), { drawSVG: "100%" });
+  mostrar("[data-est-ponto]");
+  mostrar("[data-est-rotulo]");
+  mostrar("[data-est-halo]");
+  mostrar("[data-est-nucleo]");
+
+  gsap.set(q("[data-maquina-fio]"), { drawSVG: "100%" });
+  mostrar("[data-maquina-ficha]");
+  mostrar("[data-maquina-saida]");
+  mostrar("[data-maquina-fecho]");
+  mostrar(".maquina__anel");
+  const etapas = q("[data-maquina-etapa]");
+  gsap.set(etapas, { autoAlpha: 1, position: "relative", y: 0 });
+
+  gsap.set(q("[data-quem-arco]"), { drawSVG: "100%" });
+
+  // O palco das forças nasce montado, na demonstração de consistência.
+  const [palco] = q("[data-palco]");
+  if (palco) {
+    palco.dataset.demo = "alinhar";
+    const pecas = [...palco.querySelectorAll("[data-palco-peca]")];
+    const w = palco.clientWidth || 1;
+    const h = palco.clientHeight || 1;
+    pecas.forEach((el, i) => {
+      const p = posicaoDaPeca("alinhar", i, pecas.length, w, h);
+      gsap.set(el, { x: p.x, y: p.y, rotate: 0, scale: 1, autoAlpha: 1 });
+    });
+    mostrar("[data-palco-marca]");
+  }
+
+  // Os palcos com estados de Flip param no estado final.
+  const [social] = q("[data-social-palco]");
+  if (social) social.dataset.estado = "feed";
+  const [design] = q("[data-design-palco]");
+  if (design) design.dataset.estado = "editorial";
+  mostrar("[data-social-moldura]");
+  mostrar("[data-razao]");
 }

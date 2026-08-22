@@ -105,8 +105,8 @@ export const servicos = [
     chamada: ["O único canal", "que é seu."],
     linha: "Rede social é aluguel. Site é endereço.",
     corpo: [
-      { text: "Algoritmo muda, alcance cai, plataforma some. O site continua " },
-      { text: "de pé", tone: "gold" },
+      { text: "Algoritmo muda, alcance cai, plataforma some. O site " },
+      { text: "fica", tone: "gold" },
       { text: " — e é ele que decide se te procuram ou te comparam." },
     ],
     entregas: [
@@ -374,7 +374,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: -0.66, y: -0.3, scale: 0.62, rotY: 0.52, rotX: 0.1 },
+    laptop: { x: -0.8, y: -0.66, scale: 0.5, rotY: 0.52, rotX: 0.12 },
     canal: "social",
   },
   {
@@ -411,7 +411,7 @@ export const sections = [
     id: "estrategia",
     layout: "estrategia",
     theme: "ink",
-    rays: true,
+    rays: false,
     servico: "estrategia",
     laptop: { x: -2.4, y: 0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
     canal: "design",

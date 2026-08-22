@@ -1,12 +1,17 @@
 /**
- * Passeio visual: captura a página em vários pontos do scroll.
- *   node scripts/shots.mjs [url] [outDir] [width] [height]
+ * Fotografa a página seção por seção.
+ *   node scripts/shots.mjs [url] [outDir] [largura] [altura]
+ *
+ * Serve para OLHAR, não para medir: quem mede é verify.mjs. A diferença
+ * importa porque muita coisa aqui — orientação do modelo 3D, hierarquia de
+ * uma composição, se um texto caiu por cima de uma imagem — não tem asserção
+ * possível. Só se resolve vendo.
  */
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
 const URL = process.argv[2] || "http://localhost:5402/";
-const OUT = process.argv[3] || "./.verify/tour";
+const OUT = process.argv[3] || "./.shots";
 const W = Number(process.argv[4] || 1440);
 const H = Number(process.argv[5] || 900);
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -17,87 +22,56 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: "new",
-  args: [
-    "--no-sandbox",
-    "--use-gl=angle",
-    "--use-angle=swiftshader",
-    "--enable-unsafe-swiftshader",
-    "--mute-audio",
-  ],
+  args: ["--no-sandbox", "--mute-audio"],
 });
 
 const page = await browser.newPage();
-/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão.
-   Sem desligar isso explicitamente, TODA verificação mede o caminho reduzido
-   e conclui que o site funciona — enquanto nada do movimento real é testado. */
+/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão. Sem
+   desligar isso, todo retrato sai do caminho reduzido — e o que se quer ver
+   é justamente o movimento. */
 await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-const errors = [];
-page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
-page.on("response", (r) => r.status() >= 400 && errors.push(`${r.status()} ${r.url()}`));
+await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
 
-await page.setViewport({ width: W, height: H });
+const erros = [];
+page.on("console", (m) => m.type() === "error" && erros.push(m.text()));
+page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+
 await page.goto(URL, { waitUntil: "networkidle2" });
-await page.evaluate(() => document.fonts.ready);
-await sleep(4500);
+await sleep(2500);
 
-const shot = async (name) => page.screenshot({ path: `${OUT}/${W}-${name}.png` });
-
-await shot("00-hero");
-
-// Uma parada por seção, ancorada no elemento — fração do documento erra
-// assim que o número de seções muda.
-const stops = [
-  { id: 'sistema', avanco: 1.7, name: '01-sistema-meio' },
-  { id: 'sistema', avanco: 3.2, name: '02-sistema-fim' },
-];
-
-/* Com seções presas, um salto único erra o destino: o espaçador do pin
-   muda o layout durante a própria rolagem. Aproxima e corrige. */
-async function irPara(id) {
-  for (let i = 0; i < 4; i++) {
-    const d = await page.evaluate((s) => document.getElementById(s).getBoundingClientRect().top, id);
-    if (Math.abs(d) < 4) break;
-    await page.evaluate((v) => window.scrollTo(0, window.scrollY + v), d);
-    await sleep(1400);
-  }
+/**
+ * Rola até uma fração do documento e espera assentar.
+ * Fração e não elemento: com seções presas, o alvo se desloca enquanto se
+ * rola, e o que interessa aqui é varrer a página inteira em passos regulares.
+ */
+async function ate(frac) {
+  await page.evaluate((f) => {
+    const alt = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, alt * f);
+  }, frac);
+  await sleep(1400);
 }
 
-/* Dentro de uma seção PRESA, `getBoundingClientRect().top` fica em 0 do
-   começo ao fim do pin — então `irPara` não consegue distinguir onde
-   estamos. A base de cada pin é gravada na primeira chegada e os avanços
-   passam a ser absolutos a partir dela. */
-const bases = new Map();
-
-for (const stop of stops) {
-  if (stop.id) {
-    if (!bases.has(stop.id)) {
-      await irPara(stop.id);
-      bases.set(stop.id, await page.evaluate(() => window.scrollY));
-    }
-    const base = bases.get(stop.id);
-    await page.evaluate(
-      ([b, n]) => window.scrollTo(0, b + window.innerHeight * (n || 0)),
-      [base, stop.avanco || 0]
-    );
-  } else {
-    await page.evaluate((prog) => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      window.scrollTo(0, max * prog);
-    }, stop.p);
-  }
-  await sleep(2600);
-  await shot(stop.name);
+const passos = Number(process.env.PASSOS || 26);
+for (let i = 0; i <= passos; i++) {
+  const f = i / passos;
+  await ate(f);
+  const nome = `${String(i).padStart(2, "0")}-${Math.round(f * 100)}pc`;
+  await page.screenshot({ path: `${OUT}/${nome}.png` });
+  const onde = await page.evaluate(() => {
+    const secs = [...document.querySelectorAll("[data-sec]")];
+    const vis = secs.find((s) => {
+      const r = s.getBoundingClientRect();
+      return r.top < window.innerHeight * 0.5 && r.bottom > window.innerHeight * 0.5;
+    });
+    return vis?.dataset.sec || "—";
+  });
+  console.log(`${nome}  ${onde}`);
 }
 
-console.log(errors.length ? errors.slice(0, 12).join("\n") : "sem erros de console/rede");
-console.log(
-  await page.evaluate(() => ({
-    overflowX: document.documentElement.scrollWidth - window.innerWidth,
-    altura: Math.round(document.documentElement.scrollHeight / window.innerHeight) + " telas",
-    canvas: !!document.querySelector(".story__laptop canvas"),
-    rays: document.querySelectorAll(".rays canvas").length,
-  }))
-);
+if (erros.length) {
+  console.log("\nERROS DE CONSOLE:");
+  erros.slice(0, 12).forEach((e) => console.log("  " + e));
+}
 
 await browser.close();

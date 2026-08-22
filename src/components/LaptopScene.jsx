@@ -20,10 +20,33 @@ useGLTF.preload(MODEL);
  * são a única coisa deste arquivo que depende do .glb: trocar o modelo é
  * mexer nestas duas linhas.
  */
-const ROT_BASE = [-Math.PI / 2, Math.PI, 0];
+const ROT_BASE = [-Math.PI / 2, 0, 0];
 
 /** Material do painel da tela no arquivo original. É ele que vira vídeo. */
-const MATERIAL_DA_TELA = "aiStandardSurface1SG";
+const MATERIAL_DA_TELA = "aiStandardSurface7SG";
+
+/**
+ * Sondagem do modelo.
+ *
+ * Nenhuma dessas duas constantes acima é dedutível do arquivo com segurança:
+ * o .glb vem do Sketchfab sem convenção de nomes, com todos os nós chamados
+ * `Object_N` e um atlas de textura compartilhado. Descobrir qual malha é a
+ * tela e para que lado o objeto está virado é trabalho de OLHAR.
+ *
+ * Com `?laptop=debug` na URL, cada malha recebe uma cor sólida e um relatório
+ * vai para `window.__laptop`. Com `?rot=x,y,z` (em graus) dá para experimentar
+ * orientações sem reconstruir. Custa nada em produção — o parâmetro não
+ * existe — e evita a alternativa, que é chutar rotação até acertar.
+ */
+const parametro = (nome) => {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(nome);
+};
+
+const PALETA = [
+  "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
+  "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff",
+];
 
 /* ── A tela ────────────────────────────────────────────────────────────────
    Duas texturas de vídeo e um `mix`: trocar de canal é uma travessia, nunca
@@ -150,9 +173,32 @@ function Laptop() {
       uniforms,
       vertexShader: VERT,
       fragmentShader: FRAG,
+      /* Todos os materiais deste arquivo são `doubleSided`, e o painel da tela
+         é modelado com a normal para DENTRO da tampa. Com o padrão FrontSide o
+         renderizador descartava justamente a face virada para a câmera — via-se
+         através dela o forro escuro do fundo, e a tela parecia apagada. */
+      side: THREE.DoubleSide,
       toneMapped: false,
     });
-    return { vA, vB, uniforms, material, atual: cena.canal, usandoA: true };
+    const estado = { vA, vB, uniforms, material, atual: cena.canal, usandoA: true };
+
+    /* Sonda de diagnóstico. A tela é a peça mais opaca do site: se ela
+       aparecer preta, a causa pode ser o vídeo, a textura, a UV, a face
+       descartada ou o uniforme — e nenhuma delas se distingue olhando. */
+    if (parametro("laptop") === "debug") {
+      window.__tela = () => ({
+        src: vA.currentSrc,
+        prontoA: vA.readyState,
+        prontoB: vB.readyState,
+        tempoA: +vA.currentTime.toFixed(2),
+        pausadoA: vA.paused,
+        erroA: vA.error?.message || null,
+        ligada: +uniforms.uLigada.value.toFixed(2),
+        mix: +uniforms.uMix.value.toFixed(2),
+      });
+    }
+
+    return estado;
   }, []);
 
   /* ── Modelo normalizado ──────────────────────────────────────────────
@@ -165,10 +211,27 @@ function Laptop() {
     /* A orientação é aplicada em um nó INTERMEDIÁRIO, antes de medir: assim
        a caixa medida já é a do objeto de pé, e as poses do conteúdo falam
        da silhueta que o leitor vê, não da que veio do arquivo. */
-    clone.rotation.set(...ROT_BASE);
+    /* O exportador do Sketchfab grava uma rotação de conversão Z-up→Y-up no
+       nó raiz. Ela CANCELAVA a orientação pedida aqui — o objeto aparecia
+       mostrando a base por baixo, e girar o valor não mudava nada, porque as
+       duas rotações se somavam a zero. Zerada, `ROT_BASE` volta a falar do
+       espaço em que as coordenadas do arquivo foram escritas. */
+    clone.traverse((no) => {
+      if (no.name === "Sketchfab_model") no.quaternion.identity();
+    });
+
+    const giro = parametro("rot");
+    const rot = giro
+      ? giro.split(",").map((g) => (Number(g) * Math.PI) / 180)
+      : ROT_BASE;
+    clone.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
     clone.updateMatrixWorld(true);
 
+    const debug = parametro("laptop") === "debug";
+    const alvoTela = parametro("tela") || MATERIAL_DA_TELA;
+    const relatorio = [];
     let painel = null;
+    let n = 0;
 
     clone.traverse((child) => {
       if (!child.isMesh) return;
@@ -176,8 +239,28 @@ function Laptop() {
       child.receiveShadow = false;
       child.frustumCulled = false;
 
+      if (debug) {
+        const cx = new THREE.Box3().setFromObject(child);
+        const t = cx.getSize(new THREE.Vector3());
+        relatorio.push({
+          i: n,
+          malha: child.geometry?.name || child.name,
+          material: child.material?.name,
+          cor: PALETA[n % PALETA.length],
+          tamanho: [+t.x.toFixed(2), +t.y.toFixed(2), +t.z.toFixed(2)],
+          centro: cx.getCenter(new THREE.Vector3()).toArray().map((v) => +v.toFixed(2)),
+        });
+        child.material = new THREE.MeshBasicMaterial({
+          color: PALETA[n % PALETA.length],
+          side: THREE.DoubleSide,
+        });
+        n += 1;
+        return;
+      }
+      n += 1;
+
       const nome = child.material?.name;
-      if (nome === MATERIAL_DA_TELA && !painel) {
+      if (nome === alvoTela && !painel) {
         painel = child;
         return;
       }
@@ -201,6 +284,8 @@ function Laptop() {
       painel.renderOrder = 2;
       caixaTela = new THREE.Box3().setFromObject(painel);
     }
+
+    if (debug && typeof window !== "undefined") window.__laptop = relatorio;
 
     const box = new THREE.Box3().setFromObject(clone);
     const tam = box.getSize(new THREE.Vector3());

@@ -41,18 +41,21 @@ export default function Whatsapp() {
 
   useGSAP(
     () => {
-      if (!caixa.current || !visivel || prefersReducedMotion()) return;
+      const botao = caixa.current?.querySelector(".zap__botao");
+      if (!botao || !visivel || prefersReducedMotion()) return;
 
+      /* A ENTRADA é do CSS — uma transição disparada pelo atributo
+         `data-visivel`. Fazê-la no GSAP quebraria a SAÍDA: quando o leitor
+         volta ao topo, `useGSAP` reverte ao mudar de dependência e arranca os
+         estilos de uma vez, sem transição nenhuma.
+
+         Ao GSAP fica o pulso. Um só, depois de assentar: diz "estou aqui" e
+         cala a boca. Pulso em laço infinito no canto da tela vira mosquito —
+         o olho persegue e não larga. */
       gsap
-        .timeline()
-        .fromTo(
-          caixa.current,
-          { autoAlpha: 0, scale: 0.4 },
-          { autoAlpha: 1, scale: 1, duration: 0.6, ease: EASE.out }
-        )
-        // Um pulso só, depois de assentar: diz "estou aqui" e cala a boca.
-        .to(caixa.current, { scale: 1.08, duration: 0.35, ease: EASE.out }, "+=0.9")
-        .to(caixa.current, { scale: 1, duration: 0.5, ease: EASE.out });
+        .timeline({ delay: 1.1 })
+        .to(botao, { scale: 1.09, duration: 0.34, ease: EASE.out })
+        .to(botao, { scale: 1, duration: 0.5, ease: EASE.out });
     },
     { dependencies: [visivel], scope: caixa }
   );

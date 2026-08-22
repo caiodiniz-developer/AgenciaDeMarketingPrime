@@ -1,101 +1,39 @@
-import { Fragment } from "react";
-import { useMagnetic } from "../hooks/useMagnetic";
-import { servicos } from "../content/story";
-import SystemScene from "./SystemScene";
-import Computer from "./Computer";
+import { Rich, Title, Label, MagneticButton } from "./Peca";
+import { servicos, servicoPorId, CONTATO } from "../content/story";
+import { videoDaFrente } from "../lib/media";
+import ServicoSocial from "./ServicoSocial";
+import ServicoWeb from "./ServicoWeb";
+import ServicoDesign from "./ServicoDesign";
+import ServicoBranding from "./ServicoBranding";
+import ServicoEstrategia from "./ServicoEstrategia";
+import Maquina from "./Maquina";
+import SistemaPrime from "./SistemaPrime";
 import Clientes from "./Clientes";
-import { POSTER, sourceFor, pickTier, videoDaFrente } from "../lib/media";
-
-const TONE_TAG = { gold: "em", bright: "strong" };
-
-/** Texto rico do conteúdo: destaque é decisão editorial, não enfeite. */
-function Rich({ parts }) {
-  return parts.map((part, i) => {
-    const Tag = TONE_TAG[part.tone];
-    return Tag ? <Tag key={i}>{part.text}</Tag> : <Fragment key={i}>{part.text}</Fragment>;
-  });
-}
-
-function Title({ lines, id, className = "sec__title" }) {
-  return (
-    <h2
-      className={className}
-      id={`${id}-titulo`}
-      data-sec-title
-      /* O <br> desaparece quando o SplitText reescreve o nó e as linhas
-         grudam na leitura em voz alta. O rótulo vem do conteúdo. */
-      aria-label={lines.join(" ")}
-    >
-      {/* Quebra explícita: deixar o navegador quebrar orfana a palavra curta
-          e desmonta a composição. */}
-      {lines.map((line, i) => (
-        <Fragment key={i}>
-          {i > 0 && <br />}
-          {line}
-        </Fragment>
-      ))}
-    </h2>
-  );
-}
-
-function Label({ children }) {
-  return (
-    <p className="sec__label" data-sec-label>
-      <span className="sec__label-dot" aria-hidden="true" />
-      {children}
-    </p>
-  );
-}
-
-/**
- * Botão com dupla de texto: uma cópia sai por cima enquanto a outra entra por
- * baixo. Trocar só a cor seria feedback; isto é gesto.
- * O contêiner externo é o que o ímã move — o interno anda menos, e a diferença
- * entre os dois é o que dá peso.
- */
-function MagneticButton({ href, label }) {
-  const ref = useMagnetic({ strength: 0.28, radius: 120 });
-
-  return (
-    <a className="btn" href={href} ref={ref} data-cursor="button">
-      <span className="btn__inner" data-magnetic-inner>
-        <span className="btn__text">
-          <span className="btn__line">{label}</span>
-          <span className="btn__line btn__line--ghost" aria-hidden="true">
-            {label}
-          </span>
-        </span>
-        <span className="btn__arrow" aria-hidden="true">
-          →
-        </span>
-      </span>
-    </a>
-  );
-}
 
 /* ── Layouts ──────────────────────────────────────────────────────────────
    Cada um tem composição e interação-assinatura próprias, e nenhuma se
-   repete. Repetir o mesmo bloco seis vezes é o que faz uma página parecer
+   repete. Repetir o mesmo bloco cinco vezes é o que faz uma página parecer
    template — inclusive quando o bloco é bonito. */
 
 /**
- * Diagnóstico: o problema dito em texto e depois em uma palavra só,
- * atravessando a tela. É o respiro antes da parte densa.
+ * Manifesto: o problema dito em texto e depois em uma palavra só, atravessando
+ * a tela. É o respiro entre a hero e a parte densa — e o momento em que o
+ * leitor deve pensar "talvez isso seja comigo".
  */
-function LayoutDiagnostico({ section }) {
+function LayoutManifesto({ section }) {
   const { id, title, body, palavra } = section;
   return (
     <>
-      <div className="diag">
+      <div className="manif">
         <Label>{section.label}</Label>
 
         {/* O título ocupa a largura inteira: espremido numa coluna, as duas
             linhas escritas viravam quatro e a frase perdia o soco. */}
-        <div className="diag__titulo" data-parallax="mid">
+        <div className="manif__titulo" data-parallax="mid">
           <Title lines={title} id={id} />
         </div>
 
-        <div className="diag__aside" data-parallax="detail">
+        <div className="manif__aside" data-parallax="detail">
           <span className="sec__hair" data-sec-hair aria-hidden="true" />
           <p className="sec__body" data-sec-body>
             <Rich parts={body} />
@@ -103,8 +41,8 @@ function LayoutDiagnostico({ section }) {
         </div>
       </div>
 
-      {/* A palavra do diagnóstico corre em faixa, conduzida pelo scroll.
-          Duas cópias porque a faixa precisa emendar sem buraco. */}
+      {/* A palavra corre em faixa, conduzida pelo scroll: vira textura.
+          Quatro cópias porque a faixa precisa emendar sem buraco. */}
       <div className="faixa" data-faixa aria-hidden="true">
         <div className="faixa__fita" data-faixa-fita>
           {Array.from({ length: 4 }, (_, i) => (
@@ -121,24 +59,22 @@ function LayoutDiagnostico({ section }) {
 }
 
 /**
- * Serviços: a lista é o conteúdo e o palco é a prova. Apontar uma frente
- * troca a composição ao lado e abre a lista concreta de entregas — que é a
- * resposta para "isso inclui o quê?".
+ * Índice: a porta de entrada das cinco frentes.
+ *
+ * Não é um menu — é um aviso do tamanho do que vem. Apontar uma linha traz o
+ * vídeo real daquela frente para o fundo; clicar leva à seção. As cinco
+ * seções seguintes são o desenvolvimento deste índice.
  */
-function LayoutServicos() {
+function LayoutIndice({ section }) {
   return (
-    <div className="frentes" data-frentes>
-      {/* O fundo é trabalho REAL da Prime, um vídeo por frente. Antes havia
-          aqui um quadrado com um desenho abstrato — e desenho abstrato é
-          justamente o que uma agência de audiovisual não deveria mostrar
-          quando tem a filmagem na mão. */}
-      <div className="frentes__fundo" aria-hidden="true">
+    <div className="indice" data-indice-frentes>
+      <div className="indice__fundo" aria-hidden="true">
         {servicos.map((s) => {
-          const v = videoDaFrente(s.id);
+          const v = videoDaFrente(s.video);
           return (
             <video
-              className="frentes__video"
-              data-frente-video={s.id}
+              className="indice__video"
+              data-indice-video={s.id}
               key={s.id}
               src={v.src}
               poster={v.poster}
@@ -151,106 +87,56 @@ function LayoutServicos() {
             />
           );
         })}
-        <span className="frentes__scrim" />
+        <span className="indice__scrim" />
       </div>
 
-      <ul className="frentes__lista">
-        {servicos.map((s, i) => (
-          <li className="frente" data-sec-item data-frente={s.id} data-indice={i} key={s.id}>
-            <span className="frente__rule" data-sec-rule aria-hidden="true" />
-
-            <button className="frente__linha" type="button" data-cursor="view" data-cursor-text="Ver">
-              <span className="frente__num" aria-hidden="true">
-                {s.numero}
-              </span>
-              <span className="frente__nome">{s.nome}</span>
-            </button>
-
-            {/* Fica no DOM sempre: é conteúdo, não enfeite de hover. */}
-            <div className="frente__info">
-              <p className="frente__legenda">{s.linha}</p>
-              <ul className="frente__entregas">
-                {s.entregas.map((e) => (
-                  <li key={e}>{e}</li>
-                ))}
-              </ul>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/**
- * Audiovisual: o vídeo começa como uma peça no meio da página e, conduzido
- * pelo scroll, toma a tela inteira. A seção prova a capacidade em vez de
- * afirmá-la — e é o único momento em que a página abre mão do texto.
- */
-function LayoutFilme({ section }) {
-  const { id, title, body } = section;
-  /* Filmagem da Prime quando a seção indica uma; senão, a sequência da hero.
-     A primeira é trabalho, a segunda é textura — e trabalho ganha. */
-  const fonte = section.video ? videoDaFrente(section.video) : sourceFor(pickTier());
-
-  return (
-    <div className="filme" data-filme>
-      <div className="filme__texto" data-filme-texto>
+      <div className="indice__texto">
         <Label>{section.label}</Label>
-        <Title lines={title} id={id} />
+        <Title lines={section.title} id={section.id} />
         <p className="sec__body" data-sec-body>
-          <Rich parts={body} />
+          <Rich parts={section.body} />
         </p>
       </div>
 
-      <div className="filme__janela" data-filme-janela>
-        <video
-          className="filme__video"
-          data-filme-video
-          src={fonte.src || undefined}
-          poster={fonte.poster || POSTER}
-          muted
-          loop
-          playsInline
-          preload="none"
-          disablePictureInPicture
-          tabIndex={-1}
-          aria-hidden="true"
-        />
-        <span className="filme__grade" aria-hidden="true" />
-      </div>
+      <ol className="indice__lista">
+        {servicos.map((s, i) => (
+          <li className="linha" data-sec-item data-linha={s.id} data-indice={i} key={s.id}>
+            <span className="linha__rule" data-sec-rule aria-hidden="true" />
+            <a className="linha__alvo" href={`#${s.id}`} data-cursor="view" data-cursor-text="Ver">
+              <span className="linha__num" aria-hidden="true">
+                {s.numero}
+              </span>
+              <span className="linha__nome">{s.nome}</span>
+              <span className="linha__legenda">{s.linha}</span>
+              <span className="linha__seta" aria-hidden="true">
+                ↓
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
 
-/** Prova: quatro razões, em fio horizontal. Tema claro, leitura calma. */
-function LayoutProva({ section }) {
-  const { items } = section;
-  return (
-    <ul className="prova">
-      {items.map((item, i) => (
-        /* Sem parallax aqui de propósito: deslocar colunas alternadas
-           descasaria os fios do grid, e o desalinhamento lê como defeito,
-           não como profundidade. Esta seção é o respiro da página. */
-        <li className="razao" data-sec-item key={item.name}>
-          <span className="razao__rule" data-sec-rule aria-hidden="true" />
-          <span className="razao__num" aria-hidden="true">
-            {String(i + 1).padStart(2, "0")}
-          </span>
-          <h3 className="razao__nome">{item.name}</h3>
-          <p className="razao__texto">{item.text}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
+/** Roteador das cinco frentes: cada uma é um componente inteiro. */
+const FRENTES = {
+  social: ServicoSocial,
+  web: ServicoWeb,
+  design: ServicoDesign,
+  branding: ServicoBranding,
+  estrategia: ServicoEstrategia,
+};
 
 export default function Section({ section }) {
-  const { id, layout, theme, label, title, body, cta } = section;
+  const { id, layout, theme, label, title, body, cta, servico } = section;
+  const Frente = servico ? FRENTES[servico] : null;
+  const dados = servico ? servicoPorId(servico) : null;
 
   /* Estas montam o próprio cabeçalho, dentro da composição delas. */
   const cabecalhoProprio =
-    layout === "sistema" || layout === "filme" || layout === "diagnostico" || layout === "digital";
+    Boolean(Frente) ||
+    ["manifesto", "indice", "maquina", "sistema", "clientes"].includes(layout);
 
   return (
     <section
@@ -269,10 +155,12 @@ export default function Section({ section }) {
       <div className="sec__inner">
         {!cabecalhoProprio && <Label>{label}</Label>}
 
-        {layout === "diagnostico" && <LayoutDiagnostico section={section} />}
-        {layout === "filme" && <LayoutFilme section={section} />}
-        {layout === "sistema" && <SystemScene section={section} />}
-        {layout === "digital" && <Computer section={section} />}
+        {layout === "manifesto" && <LayoutManifesto section={section} />}
+        {layout === "indice" && <LayoutIndice section={section} />}
+        {Frente && <Frente section={section} servico={dados} />}
+        {layout === "maquina" && <Maquina section={section} />}
+        {layout === "sistema" && <SistemaPrime section={section} />}
+        {layout === "clientes" && <Clientes section={section} />}
 
         {!cabecalhoProprio && (
           <>
@@ -283,13 +171,15 @@ export default function Section({ section }) {
           </>
         )}
 
-        {layout === "servicos" && <LayoutServicos />}
-        {layout === "clientes" && <Clientes section={section} />}
-        {layout === "prova" && <LayoutProva section={section} />}
-
         {layout === "cta" && (
           <div className="sec__cta" data-sec-item>
-            <MagneticButton href={cta.href} label={cta.label} />
+            <MagneticButton href={cta.href} label={cta.label} externo />
+            <p className="sec__cta-alt">
+              ou escreva para{" "}
+              <a href={`mailto:${CONTATO.email}`} data-cursor="link">
+                {CONTATO.email}
+              </a>
+            </p>
           </div>
         )}
       </div>
