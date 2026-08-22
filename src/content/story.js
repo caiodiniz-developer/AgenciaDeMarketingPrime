@@ -1,23 +1,23 @@
 /**
  * Conteúdo e ritmo da narrativa. Fonte única de verdade: altura do trilho,
- * marcos da timeline, temas e markup das seções derivam daqui.
+ * marcos da timeline, temas, poses do 3D e markup das seções derivam daqui.
  *
  * POSICIONAMENTO
  * A Prime não é "uma agência que faz posts". Ela é o braço de comunicação da
  * empresa cliente: a empresa cuida do negócio, a Prime cuida de como esse
  * negócio é visto, lembrado e procurado.
  *
- * A narrativa segue essa lógica, nesta ordem:
- *   1. diagnóstico  — o problema existe e é do leitor
- *   2. serviços     — a extensão do que a Prime assume
- *   3. audiovisual  — capacidade demonstrada, não prometida
- *   4. sistema      — como as frentes se conectam
- *   5. prova        — por que funciona
- *   6. contato      — o próximo passo
+ * RITMO (o que o leitor deve pensar em cada parada)
+ *   hero       → "essa agência é diferente"
+ *   manifesto  → "talvez minha empresa tenha esse problema"
+ *   serviços   → "eles assumem a comunicação inteira"
+ *     social · web · design · branding · estratégia
+ *   método     → "existe processo por trás"
+ *   por que    → "agora entendi o valor"
+ *   clientes   → "empresas reais confiam"
+ *   contato    → "quero falar com a Prime"
  *
- * RITMO
- * Nem toda seção é um WOW. Alterna impacto e respiro: escuro e claro,
- * conduzido pelo scroll e lido no tempo do leitor, denso e arejado.
+ * Nem toda seção é um WOW. Alterna impacto e respiro.
  */
 
 /* ── HERO ──────────────────────────────────────────────────────────────── */
@@ -41,130 +41,277 @@ export const MARKS = {
   blackout: [0.88, 1.0],
 };
 
+/* ── CONTATO ───────────────────────────────────────────────────────────── */
+
+/**
+ * Um número, escrito uma vez. O link do WhatsApp exige o formato E.164 sem
+ * sinais; a versão com máscara é só para leitura humana.
+ */
+const ZAP = "5511912992403";
+
+export const CONTATO = {
+  whatsapp: {
+    numero: ZAP,
+    exibicao: "+55 11 91299-2403",
+    link: `https://wa.me/${ZAP}?text=${encodeURIComponent(
+      "Olá! Vim pelo site da Prime e quero falar sobre a comunicação da minha empresa."
+    )}`,
+  },
+  email: "contato@agenciaprime.com.br",
+};
+
 /* ── SERVIÇOS ──────────────────────────────────────────────────────────── */
 
 /**
- * Cada frente tem uma LINGUAGEM VISUAL própria, desenhada em
- * components/ServiceStage.jsx: não dizer o que a Prime faz, e sim mostrar —
- * o feed se montando, a timeline cortando, o grid se organizando.
+ * CINCO frentes, e cada uma é uma SEÇÃO inteira — não um card.
  *
- * `entregas` é a lista concreta. É ela que tira a seção do abstrato e responde
- * à pergunta que o empresário realmente tem: "isso inclui o quê?".
+ * A ordem não é alfabética nem por importância: é narrativa. Social é o que o
+ * empresário reconhece de imediato; Estratégia é o que ele só valoriza depois
+ * de ver o resto. Cada frente PLANTA a próxima: o feed do social entra na tela
+ * do notebook e vira Web; a interface Web se desmonta e vira o grid do Design;
+ * o layout perde tudo menos marca e vira Branding; a marca ganha conexões e
+ * vira Estratégia.
+ *
+ * `video` é o arquivo real em /public/videos. `entregas` é a lista concreta:
+ * é ela que responde "isso inclui o quê?" e tira a seção do abstrato.
  */
 export const servicos = [
   {
     id: "social",
     numero: "01",
-    nome: "Social",
-    linha: "O perfil que sustenta a reputação.",
+    nome: "Social Media",
+    video: "social",
+    chamada: ["O perfil é a", "vitrine que ninguém", "pode fechar."],
+    linha: "Presença diária, não postagem esporádica.",
+    corpo: [
+      { text: "Planejamento, produção e publicação. A gente assume o perfil " },
+      { text: "inteiro", tone: "gold" },
+      { text: " — do que vai ser dito ao dia em que vai ao ar." },
+    ],
     entregas: [
       "Gestão de Instagram",
-      "Planejamento e calendário",
+      "Calendário editorial",
       "Posts e carrosséis",
-      "Reels",
+      "Reels e captação",
+      "Stories e bastidores",
       "Legendas e direção de conteúdo",
-      "Acompanhamento diário",
     ],
   },
   {
-    id: "audiovisual",
+    id: "web",
     numero: "02",
-    nome: "Audiovisual",
-    linha: "Câmera na mão, direção na cabeça.",
+    nome: "Web",
+    video: "web",
+    chamada: ["O único canal", "que é seu."],
+    linha: "Rede social é aluguel. Site é endereço.",
+    corpo: [
+      { text: "Algoritmo muda, alcance cai, plataforma some. O site continua " },
+      { text: "de pé", tone: "gold" },
+      { text: " — e é ele que decide se te procuram ou te comparam." },
+    ],
     entregas: [
-      "Captação profissional",
-      "Vídeo institucional",
-      "Reels e campanhas",
-      "Cobertura de evento",
-      "Edição e motion",
-      "Tratamento de cor",
+      "Sites institucionais",
+      "Landing pages",
+      "Páginas de campanha",
+      "Interfaces sob medida",
+      "Experiências digitais",
+      "Manutenção e evolução",
+    ],
+    /* Os argumentos que aparecem enquanto o notebook se aproxima. Ficam aqui
+       porque são conteúdo, não legenda de animação. */
+    razoes: [
+      {
+        chave: "24h",
+        titulo: "Não fecha às 18h",
+        texto:
+          "O cliente pesquisa de madrugada, no fim de semana, no meio de uma reunião. O site atende sempre.",
+      },
+      {
+        chave: "seu",
+        titulo: "Ninguém pode tirar de você",
+        texto:
+          "Perfil bloqueado é negócio parado. O endereço é da empresa, e a lista de quem chegou por ele também.",
+      },
+      {
+        chave: "tamanho",
+        titulo: "Define o seu tamanho em oito segundos",
+        texto:
+          "É o tempo que o visitante leva para decidir se você é grande ou improvisado. Ele decide antes de ler.",
+      },
     ],
   },
   {
     id: "design",
     numero: "03",
     nome: "Design",
-    linha: "Nada aqui sai de template.",
+    video: "design",
+    chamada: ["Nada aqui", "sai de template."],
+    linha: "Cada peça é desenhada para a sua marca.",
+    corpo: [
+      { text: "Layout pronto entrega o que você é: mais um. A peça " },
+      { text: "desenhada", tone: "gold" },
+      { text: " entrega o que você construiu." },
+    ],
     entregas: [
       "Posts sob medida",
       "Carrosséis",
       "Campanhas",
-      "Material publicitário",
+      "Flyers e material impresso",
       "Apresentações",
-      "Aplicação de identidade",
+      "Peças publicitárias",
     ],
   },
   {
     id: "branding",
     numero: "04",
     nome: "Branding",
-    linha: "A marca antes da arte.",
+    video: "branding",
+    chamada: ["A marca vem", "antes da arte."],
+    linha: "Sem identidade, toda peça recomeça do zero.",
+    corpo: [
+      { text: "Cor, tipografia, símbolo e regra de uso. É o que faz vinte peças diferentes parecerem " },
+      { text: "da mesma empresa", tone: "gold" },
+      { text: "." },
+    ],
     entregas: [
       "Criação de marca",
       "Identidade visual",
       "Paleta e tipografia",
-      "Direção visual",
+      "Manual de aplicação",
       "Reposicionamento",
       "Padronização",
     ],
   },
   {
-    id: "web",
-    numero: "05",
-    nome: "Web",
-    linha: "O endereço onde a marca mora.",
-    entregas: [
-      "Sites",
-      "Landing pages",
-      "Páginas de campanha",
-      "Interfaces",
-      "Experiências digitais",
-      "Apresentações digitais",
-    ],
-  },
-  {
     id: "estrategia",
-    numero: "06",
+    numero: "05",
     nome: "Estratégia",
-    linha: "A decisão que vem antes de tudo.",
+    video: "estrategia",
+    chamada: ["Antes de produzir,", "decidir."],
+    linha: "A pergunta certa economiza seis meses de post errado.",
+    corpo: [
+      { text: "Para quem falar, o que defender, em que ordem. Sem isso, produzir muito só acelera o " },
+      { text: "erro", tone: "gold" },
+      { text: "." },
+    ],
     entregas: [
       "Posicionamento",
       "Plano de comunicação",
-      "Campanhas",
       "Direção criativa",
       "Estratégia de conteúdo",
+      "Campanhas",
       "Calendário anual",
     ],
   },
 ];
 
-/* ── SISTEMA ───────────────────────────────────────────────────────────── */
+/* ── MÁQUINA PRIME (o método) ──────────────────────────────────────────── */
 
 /**
- * Os quatro estados da composição presa da seção "sistema". Não são etapas de
- * um processo em cards: são momentos de uma mesma cena se organizando,
- * conduzidos pelo scroll.
+ * O método sem os quatro cards numerados.
+ *
+ * A cena mostra o que ENTRA (informação bruta da empresa), o que ACONTECE
+ * (as três operações) e o que SAI (comunicação pronta). É a mesma promessa —
+ * "existe processo por trás" — dita por uma imagem em vez de uma lista.
  */
-export const estadosDoSistema = [
+export const maquina = {
+  entradas: [
+    { id: "empresa", rotulo: "A EMPRESA", nota: "o que ela faz de verdade" },
+    { id: "produto", rotulo: "O PRODUTO", nota: "o que ela vende" },
+    { id: "publico", rotulo: "O PÚBLICO", nota: "quem precisa disso" },
+    { id: "objetivo", rotulo: "O OBJETIVO", nota: "onde ela quer chegar" },
+  ],
+  etapas: [
+    {
+      id: "escutar",
+      numero: "01",
+      titulo: "Escutar",
+      texto:
+        "Uma conversa longa com quem toca o negócio. Antes de qualquer arte, entender o que a empresa realmente vende e para quem.",
+    },
+    {
+      id: "decidir",
+      numero: "02",
+      titulo: "Decidir",
+      texto:
+        "O que a marca vai defender, o tom, o que fica de fora. É a etapa que ninguém vê e que segura tudo o que vem depois.",
+    },
+    {
+      id: "produzir",
+      numero: "03",
+      titulo: "Produzir",
+      texto:
+        "Marca, peça, vídeo, página. Tudo saindo do mesmo lugar, com a mesma direção — por isso nada sai do tom.",
+    },
+    {
+      id: "publicar",
+      numero: "04",
+      titulo: "Colocar no ar",
+      texto:
+        "No calendário, na frequência combinada. Comunicação é constância: o que não vai ao ar não existe.",
+    },
+  ],
+  saidas: [
+    "CONTEÚDO",
+    "DESIGN",
+    "VÍDEO",
+    "MARCA",
+    "SITE",
+    "CAMPANHA",
+    "PRESENÇA",
+  ],
+  fecho: "A Prime transforma comunicação em sistema.",
+};
+
+/* ── SISTEMA PRIME (por que funciona) ──────────────────────────────────── */
+
+/**
+ * Cinco forças em volta da MARCA. Cada uma, quando escolhida, reorganiza a
+ * composição para DEMONSTRAR o próprio conceito — consistência alinha,
+ * frequência preenche, direção converge, qualidade refina.
+ *
+ * `demo` é lido pelo componente para decidir qual reorganização rodar.
+ */
+export const forcas = [
   {
-    id: "solto",
-    titulo: "Hoje, solto",
-    texto: "Um post aqui, um vídeo ali, um flyer que alguém fez. Cada peça fala uma língua.",
+    id: "consistencia",
+    rotulo: "CONSISTÊNCIA",
+    demo: "alinhar",
+    titulo: "A mesma empresa em toda peça",
+    texto:
+      "Vinte publicações que parecem de vinte fornecedores diferentes não constroem marca nenhuma. Constância visual é o que faz a lembrança grudar.",
   },
   {
-    id: "alinhado",
-    titulo: "Primeiro, alinhar",
-    texto: "Entendemos o negócio e definimos o que a marca defende. As peças param de brigar.",
+    id: "estrategia",
+    rotulo: "ESTRATÉGIA",
+    demo: "convergir",
+    titulo: "Cada peça puxando para o mesmo lado",
+    texto:
+      "Publicar sem direção é gastar. Quando existe um objetivo, o post de terça e a campanha de junho trabalham para a mesma coisa.",
   },
   {
-    id: "identidade",
-    titulo: "Depois, a marca",
-    texto: "Uma identidade atravessa tudo: a mesma cor, a mesma voz, o mesmo padrão.",
+    id: "qualidade",
+    rotulo: "QUALIDADE",
+    demo: "refinar",
+    titulo: "O acabamento é lido como competência",
+    texto:
+      "Ninguém audita seu processo interno. Julgam pelo que veem — e o que veem é o acabamento da sua comunicação.",
   },
   {
-    id: "sistema",
-    titulo: "Enfim, sistema",
-    texto: "Todas as frentes passam a alimentar a mesma empresa — e a rodar sem parar.",
+    id: "frequencia",
+    rotulo: "FREQUÊNCIA",
+    demo: "preencher",
+    titulo: "Aparecer é metade do trabalho",
+    texto:
+      "A marca que some é a marca que é esquecida. Ritmo vale mais do que a peça perfeita que sai a cada seis meses.",
+  },
+  {
+    id: "direcao",
+    rotulo: "DIREÇÃO",
+    demo: "apontar",
+    titulo: "Alguém decidindo, não só executando",
+    texto:
+      "Sem direção criativa, cada peça é uma opinião nova. Com direção, existe um critério — e o critério é o que sustenta o padrão.",
   },
 ];
 
@@ -174,16 +321,22 @@ export const estadosDoSistema = [
  * `theme`  — "ink" (preto, deixa passar a luz e o 3D) ou "bone" (bege opaco,
  *            que corta a cena e devolve respiro à leitura).
  * `rays`   — liga a luz dourada. Alternar é o que mantém o efeito raro.
- * `laptop` — pose do modelo 3D quando a seção está em cena, ou `null` quando
- *            a seção tem palco próprio e o modelo deve sair de cena.
+ * `laptop` — pose do modelo 3D quando a seção está em cena.
+ *
  *            x e y de -1 a 1: (-1,-1) é o canto inferior esquerdo da tela,
- *            (1,1) o superior direito. Acima de 1 o modelo espia por fora.
- *            Regra: nunca invadir a coluna de texto.
+ *            (1,1) o superior direito. Além de ±1.6 o modelo está fora do
+ *            quadro — e é assim que ele SAI de cena, viajando, nunca sumindo.
+ *
+ *            A pose é interpolada com scrub entre uma seção e a seguinte: o
+ *            objeto percorre o caminho à vista, que é o pedido explícito do
+ *            briefing. Nada de "some à direita, reaparece à esquerda".
+ *
+ * `canal`  — o que a tela do notebook mostra nesta seção. Ver lib/laptop.js.
  */
 export const sections = [
   {
-    id: "diagnostico",
-    layout: "diagnostico",
+    id: "manifesto",
+    layout: "manifesto",
     theme: "ink",
     rays: false,
     label: "O problema",
@@ -195,88 +348,105 @@ export const sections = [
     ],
     /** O diagnóstico em uma palavra, atravessando a tela. */
     palavra: "PERCEPÇÃO",
-    laptop: { x: 0.68, y: -0.5, scale: 0.68, rotY: -0.95, rotX: 0.2 },
+    laptop: { x: 1.34, y: -0.42, scale: 0.52, rotY: -1.05, rotX: 0.16 },
+    canal: "social",
   },
   {
     id: "servicos",
-    layout: "servicos",
+    layout: "indice",
     theme: "ink",
-    // Sem raios: o vídeo real de cada frente é o visual da seção, e a luz
-    // dourada por trás só disputaria atenção com ele.
-    rays: false,
-    label: "O que a Prime faz",
-    title: ["A Prime faz."],
+    rays: true,
+    label: "O que fazemos",
+    title: ["A Prime faz", "a comunicação inteira."],
     body: [
-      { text: "Você toca o negócio. A gente toca a comunicação " },
-      { text: "inteira", tone: "gold" },
-      { text: " — da estratégia ao post publicado." },
+      { text: "Não é um serviço avulso contratado por mês. São cinco frentes que se " },
+      { text: "sustentam entre si", tone: "gold" },
+      { text: " — e que, juntas, substituem o departamento de marketing que a sua empresa não tem." },
     ],
-    laptop: null,
+    laptop: { x: 0.86, y: 0.36, scale: 0.4, rotY: -0.78, rotX: 0.22 },
+    canal: "social",
   },
+
+  /* ── As cinco frentes ─────────────────────────────────────────────── */
   {
-    id: "digital",
-    layout: "digital",
-    theme: "ink",
-    rays: false,
-    label: "Web",
-    title: ["Sua vitrine", "nunca fecha."],
-    body: [
-      { text: "Do endereço ao último pixel. E a " },
-      { text: "prova", tone: "gold" },
-      { text: " é esta página." },
-    ],
-    /* Entram um a um durante a sequência do computador: a tela vazia à
-       direita já estava ocupada pelo notebook, e o argumento precisava de
-       um lugar próprio. */
-    razoes: [
-      {
-        chave: "24h",
-        titulo: "Não fecha às 18h",
-        texto: "O cliente pesquisa de madrugada, no fim de semana, no meio de uma reunião. O site atende sempre.",
-      },
-      {
-        chave: "seu",
-        titulo: "É o único canal que é seu",
-        texto: "Rede social muda regra, corta alcance e some. O endereço é da empresa e ninguém tira.",
-      },
-      {
-        chave: "compara",
-        titulo: "Decide se te procuram ou te comparam",
-        texto: "Em segundos o visitante conclui o seu tamanho. Um site amador desfaz uma reputação construída em anos.",
-      },
-    ],
-    laptop: null,
-  },
-  {
-    id: "audiovisual",
-    layout: "filme",
+    id: "social",
+    layout: "social",
     theme: "ink",
     rays: false,
-    label: "Produção",
-    title: ["A câmera", "também vende."],
-    // Filmagem real da Prime. O vídeo de pó da hero é textura; aqui, o que
-    // precisa aparecer é o trabalho.
-    video: "audiovisual",
-    body: [
-      { text: "Captação, direção, edição e motion — do reel de quinze segundos ao institucional que " },
-      { text: "abre porta", tone: "gold" },
-      { text: "." },
-    ],
-    laptop: null,
+    servico: "social",
+    laptop: { x: -0.66, y: -0.3, scale: 0.62, rotY: 0.52, rotX: 0.1 },
+    canal: "social",
   },
   {
-    id: "sistema",
-    layout: "sistema",
+    id: "web",
+    layout: "web",
+    theme: "ink",
+    rays: false,
+    servico: "web",
+    /* O clímax do 3D: centro, de frente, tamanho real. Daqui a câmera entra
+       na tela. */
+    laptop: { x: 0, y: -0.16, scale: 1.12, rotY: 0, rotX: 0.03 },
+    canal: "web",
+  },
+  {
+    id: "design",
+    layout: "design",
+    theme: "ink",
+    rays: false,
+    servico: "design",
+    laptop: { x: -1.22, y: 0.26, scale: 0.72, rotY: 0.95, rotX: 0.14 },
+    canal: "design",
+  },
+  {
+    id: "branding",
+    layout: "branding",
+    theme: "bone",
+    rays: false,
+    servico: "branding",
+    /* Sai de cena viajando para a esquerda, não apagando. */
+    laptop: { x: -2.1, y: 0.5, scale: 0.52, rotY: 1.3, rotX: 0.12 },
+    canal: "design",
+  },
+  {
+    id: "estrategia",
+    layout: "estrategia",
+    theme: "ink",
+    rays: true,
+    servico: "estrategia",
+    laptop: { x: -2.4, y: 0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    canal: "design",
+  },
+
+  /* ── Método, prova e fecho ────────────────────────────────────────── */
+  {
+    id: "metodo",
+    layout: "maquina",
     theme: "ink",
     rays: false,
     label: "Como funciona",
-    title: ["Sua empresa", "no centro."],
+    title: ["Entra informação.", "Sai presença."],
     body: [
-      { text: "Não é uma lista de serviços avulsos. É um " },
-      { text: "sistema", tone: "gold" },
-      { text: ": cada frente alimenta a outra, e todas alimentam a sua marca." },
+      { text: "O que a sua empresa já sabe de cor entra de um lado. Do outro sai comunicação pronta para ir ao ar — " },
+      { text: "toda semana", tone: "gold" },
+      { text: "." },
     ],
-    laptop: null,
+    laptop: { x: -2.5, y: -0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    canal: "design",
+  },
+  {
+    id: "porque",
+    layout: "sistema",
+    theme: "bone",
+    rays: false,
+    label: "Por que funciona",
+    title: ["Cinco forças", "sustentando uma marca."],
+    body: [
+      { text: "Escolha uma e veja o que ela faz com a composição. É literalmente o que acontece com a comunicação de uma empresa quando " },
+      { text: "falta uma delas", tone: "gold" },
+      { text: "." },
+    ],
+    laptop: { x: -2.5, y: 0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    canal: "design",
   },
   {
     id: "clientes",
@@ -284,45 +454,14 @@ export const sections = [
     theme: "ink",
     rays: false,
     label: "Quem confia",
-    title: ["Quem já tem", "a Prime por perto."],
+    title: ["Duas marcas", "com a Prime por perto."],
     body: [
-      { text: "Duas marcas que decidiram não deixar a comunicação " },
-      { text: "para depois", tone: "gold" },
-      { text: ". Passe o cursor para ver cada uma." },
+      { text: "Sem número inflado e sem logo emprestada: é o que existe " },
+      { text: "de verdade", tone: "gold" },
+      { text: "." },
     ],
-    laptop: null,
-  },
-  {
-    id: "prova",
-    layout: "prova",
-    theme: "bone",
-    rays: false,
-    label: "Por que funciona",
-    title: ["Um time só.", "Uma direção só."],
-    body: [
-      { text: "Marca, vídeo, conteúdo e site saindo do mesmo lugar. É o que faz a comunicação " },
-      { text: "parecer inteira", tone: "gold" },
-      { text: " — e não uma colcha de fornecedores." },
-    ],
-    items: [
-      {
-        name: "Uma direção criativa",
-        text: "O mesmo olhar decide a marca, o post e o vídeo. Nada sai do tom.",
-      },
-      {
-        name: "Sem intermediário",
-        text: "Quem planeja é quem grava e quem edita. O briefing não se perde no caminho.",
-      },
-      {
-        name: "Ritmo, não campanha solta",
-        text: "Comunicação é constância. A conta não para entre um projeto e outro.",
-      },
-      {
-        name: "Do tamanho certo",
-        text: "A marca precisa parecer do tamanho que a empresa já é. Nem menor, nem inflada.",
-      },
-    ],
-    laptop: { x: -1.06, y: -0.06, scale: 0.58, rotY: 1.3, rotX: 0.18 },
+    laptop: { x: -2.5, y: -0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    canal: "prime",
   },
   {
     id: "contato",
@@ -330,17 +469,25 @@ export const sections = [
     theme: "ink",
     rays: true,
     label: "Próximo passo",
-    title: ["Sua empresa já tem", "o que vender."],
+    title: ["Sua empresa já tem", "o que mostrar."],
     body: [
-      { text: "Agora precisa ser " },
+      { text: "Falta ser " },
       { text: "vista", tone: "gold" },
-      { text: ". Conte o que você faz — a gente volta com o caminho." },
+      { text: ". Conte o que você faz — a gente volta com o caminho, sem custo e sem apresentação de trinta slides." },
     ],
-    cta: { label: "Começar uma conversa", href: "mailto:contato@agenciaprime.com.br" },
-    /** Fim da jornada: o laptop para de frente, aberto, encarando o leitor. */
-    laptop: { x: 0, y: -0.78, scale: 0.95, rotY: 0, rotX: 0.05 },
+    cta: { label: "Falar com a Prime", href: CONTATO.whatsapp.link },
+    /* Fim da jornada: o notebook volta ao centro, aberto, encarando o leitor.
+       O objeto que apresentou a experiência fecha a narrativa. */
+    laptop: { x: 0, y: -0.58, scale: 0.92, rotY: 0, rotX: 0.05 },
+    canal: "prime",
   },
 ];
+
+/** As seções que são uma frente de serviço, na ordem em que aparecem. */
+export const secoesDeServico = sections.filter((s) => s.servico);
+
+/** Atalho: dado o id da frente, o objeto completo do serviço. */
+export const servicoPorId = (id) => servicos.find((s) => s.id === id);
 
 /* ── CLIENTES ──────────────────────────────────────────────────────────── */
 
@@ -348,43 +495,44 @@ export const sections = [
  * Prova social. Preenchido SÓ com o que existe de verdade no projeto.
  *
  * Campos em `null` são buracos honestos, não placeholders para exibir: o
- * componente simplesmente não desenha o que não tem. Inventar nome de cliente,
- * frente atendida ou depoimento seria fabricar prova — e prova fabricada é
- * exatamente o oposto do que esta página vende.
+ * componente simplesmente não desenha o que não tem. Inventar frente atendida,
+ * número ou depoimento seria fabricar prova — e prova fabricada é exatamente
+ * o oposto do que esta página vende.
  *
- * Para completar, largue os arquivos em `public/clientes/` e preencha aqui:
- *   nome       — como o cliente se chama
+ * `instagram` é o link REAL do perfil. O preview mostrado na página é uma
+ * INTERPRETAÇÃO editorial construída com os assets do projeto, e não um
+ * embed: o iframe do Instagram é bloqueável e quebraria a seção inteira.
+ *
+ * Para completar, largue os arquivos em `public/clientes/` e preencha:
  *   placa      — true se a marca for escura e precisar de fundo claro.
  *                `node scripts/trim-clientes.mjs` mede e diz qual é o caso.
- *   video      — "/clientes/cliente-1.mp4" (mudo, em loop, entra no hover)
- *   poster     — primeiro quadro do vídeo
  *   frentes    — só o que a Prime realmente fez para ele
  *   depoimento — { texto, autor } só se a pessoa tiver dito de fato
- *
- * Com um cliente, a seção vira um destaque único. Com dois ou mais, ela vira
- * a disputa lado a lado: quem é apontado toma a tela.
  */
 export const clientes = [
   {
     id: "real-pisos",
     // Lido da própria arte da logo, não inventado.
     nome: "Real Pisos",
+    arroba: "@realpisos",
+    instagram: "https://www.instagram.com/realpisos/",
     logo: "/clientes/cliente-1-aparada.png",
     // A marca já é clara: sobre placa branca, o nome dela desapareceria.
     placa: false,
-    video: null,
-    poster: null,
+    /* Posição no arco, em graus. -90 é o topo do círculo. */
+    angulo: -132,
     frentes: [],
     depoimento: null,
   },
   {
     id: "wanderson-carvalho",
     nome: "Wanderson Carvalho",
+    arroba: "@fisiowandersoncarvalho",
+    instagram: "https://www.instagram.com/fisiowandersoncarvalho/",
     logo: "/clientes/cliente-2-aparada.png",
     // Tinta escura sobre papel: precisa da placa clara para existir no preto.
     placa: true,
-    video: null,
-    poster: null,
+    angulo: -48,
     frentes: [],
     depoimento: null,
   },
@@ -394,22 +542,16 @@ export const clientes = [
  * CASES — vazio de propósito.
  *
  * A seção de portfólio só existe quando houver trabalho REAL da Prime para
- * mostrar. Inventar cliente, print ou número seria fabricar prova — e prova
- * fabricada é exatamente o oposto do que esta página vende.
- *
- * Para ligar a seção, preencha com peças reais no formato:
- *   { id, cliente, frente: "social" | "audiovisual" | …, capa: "/cases/x.jpg",
- *     video?: "/cases/x.mp4", titulo, resumo }
- * e acrescente a seção correspondente em `sections`.
+ * mostrar. Inventar cliente, print ou número seria fabricar prova.
  */
 export const cases = [];
 
 /** Navegação: derivada das seções, para não existirem duas listas. */
 export const navItems = [
-  sections.find((s) => s.id === "servicos"),
-  sections.find((s) => s.id === "digital"),
-  sections.find((s) => s.id === "sistema"),
-  sections.find((s) => s.id === "clientes"),
-].map(({ id, label }) => ({ id, label }));
+  { id: "servicos", label: "O que fazemos" },
+  { id: "web", label: "Web" },
+  { id: "metodo", label: "Como funciona" },
+  { id: "clientes", label: "Quem confia" },
+];
 
 export const navCta = sections.find((s) => s.layout === "cta");

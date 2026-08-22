@@ -1,36 +1,63 @@
 /**
  * Estado compartilhado da cena 3D.
  *
- * Um objeto mutável em vez de estado do React: quem escreve é o ScrollTrigger
- * e quem lê é o loop de render, sessenta vezes por segundo. Passar isso por
+ * Um objeto mutável em vez de estado do React: quem escreve é o ScrollTrigger,
+ * sessenta vezes por segundo, e quem lê é o loop de render. Passar isso por
  * estado re-renderizaria a árvore inteira a cada quadro.
  *
- * A pose vem da SEÇÃO ATIVA, não de um progresso global da narrativa.
- * O global só funcionaria se todas as seções tivessem a mesma altura de
- * scroll — e não têm: as seções presas consomem três a quatro telas cada,
- * então o mapa "índice ÷ total" erra por seções inteiras e o modelo aparece
- * onde não devia.
- */
-/**
- * Pose de "fora de cena", à direita do quadro.
+ * O NOTEBOOK NÃO TELETRANSPORTA. Antes cada seção fixava uma pose e o objeto
+ * era apagado durante o salto — o truque de teatro. Agora existe UMA timeline
+ * contínua conduzida pelo scroll: a pose é interpolada de seção para seção e o
+ * caminho inteiro fica à vista. Sair de cena é viajar para fora do quadro
+ * (|x| > 1.6), não desaparecer.
  *
- * Mora aqui, e não em LaptopScene, de propósito: importá-la de lá seria um
- * import estático do módulo do 3D, e isso anula o `lazy()` — o empacotador
- * passa a colocar o three.js inteiro no bundle principal, na frente da hero.
+ * Este módulo não importa nada do three.js de propósito: importá-lo de dentro
+ * de LaptopScene seria um import estático do módulo 3D, e isso anula o
+ * `lazy()` — o empacotador passaria a pôr o three.js inteiro no bundle
+ * principal, na frente da hero.
  */
+
+/** Pose de repouso, fora do quadro à direita. */
 export const FORA = { x: 1.9, y: -0.1, scale: 0.6, rotY: -0.8, rotX: 0.1 };
 
 export const cena = {
-  /** Pose alvo do modelo. `null` = fora de cena. */
-  pose: null,
+  /**
+   * Pose corrente do modelo, escrita pela timeline global com scrub.
+   * x, y: -1 = borda esquerda/inferior da janela, +1 = direita/superior.
+   * Além de ±1.6 o objeto está fora do quadro.
+   */
+  pose: { ...FORA },
 
   /**
-   * Verdadeiro quando o modelo está apagado.
+   * Aproximação final da seção Web, de 0 a 1.
    *
-   * Enquanto está invisível, a pose SALTA em vez de perseguir o alvo: entre
-   * duas seções ele pode ter de atravessar a tela inteira, e deslizando
-   * reaparece no meio do caminho, por cima do conteúdo que acabou de entrar.
-   * Teletransportar no escuro é o truque mais velho do teatro.
+   * Vive separada da pose porque é outra coisa: a pose é o objeto andando
+   * pelo palco, isto é a CÂMERA entrando na tela. Somadas no mesmo número,
+   * um resize no meio da aproximação faria o objeto saltar.
    */
-  oculto: false,
+  zoom: 0,
+
+  /**
+   * Canal exibido na tela do notebook. Trocar dispara um crossfade na
+   * textura — a tela nunca corta.
+   */
+  canal: "social",
+
+  /** Ligado enquanto a região da narrativa está na viewport. */
+  ativo: false,
+};
+
+/**
+ * Canais da tela.
+ *
+ * `video` aponta para um arquivo real em /public/videos; a tela mostra
+ * trabalho da Prime, não um mockup desenhado. O canal "prime" é o fecho: a
+ * própria hero rodando dentro do notebook, que é a piada visual que amarra a
+ * narrativa — o site que você está vendo, dentro do objeto que o apresentou.
+ */
+export const CANAIS = {
+  social: "/videos/social-sm.mp4",
+  web: "/videos/web-sm.mp4",
+  design: "/videos/design-sm.mp4",
+  prime: "/media/hero-480.mp4",
 };
