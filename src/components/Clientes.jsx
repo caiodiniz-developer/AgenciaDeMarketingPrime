@@ -39,9 +39,9 @@ export default function Clientes({ section }) {
         <svg className="quem__arco" viewBox="0 0 1000 620" aria-hidden="true">
           <defs>
             <linearGradient id="quem-grad" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.15" />
+              <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.45" />
               <stop offset="45%" stopColor="#c9a84c" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.65" />
             </linearGradient>
           </defs>
           <path
@@ -88,7 +88,7 @@ export default function Clientes({ section }) {
                 </div>
 
                 <div className="perfil__grade" aria-hidden="true">
-                  {Array.from({ length: 6 }, (_, k) => (
+                  {Array.from({ length: 4 }, (_, k) => (
                     <span className="perfil__celula" data-perfil-celula key={k}>
                       <img src={c.logo} alt="" />
                     </span>

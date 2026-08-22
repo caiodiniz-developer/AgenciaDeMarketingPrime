@@ -1,6 +1,12 @@
 /**
- * Verificação da experiência: mede em vez de confiar na leitura do código.
+ * Verificação da experiência: MEDE, em vez de confiar na leitura do código.
+ *
  *   node scripts/verify.mjs [url] [outDir]
+ *
+ * A regra deste arquivo: cada checagem tem de poder FALHAR por um motivo real.
+ * Uma asserção que só confirma que um elemento existe no DOM não prova nada —
+ * o que quebra numa página assim é geometria, ordem de ScrollTrigger e estado
+ * que não volta. É isso que se mede aqui.
  */
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
@@ -12,554 +18,659 @@ const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Lê a sonda da cena 3D. Serializa DENTRO da página: devolver o objeto
+ *  cru pelo canal do Puppeteer vinha como `undefined`. */
+const lerCena = async (page) => {
+  const bruto = await page.evaluate(() =>
+    window.__cena ? JSON.stringify(window.__cena()) : ""
+  );
+  return bruto ? JSON.parse(bruto) : null;
+};
 const log = (...a) => console.log(...a);
-const ok = (cond) => (cond ? "OK" : "FALHOU");
+
+let passou = 0;
+let falhou = 0;
+const falhas = [];
+
+function checar(nome, cond, detalhe = "") {
+  if (cond) {
+    passou += 1;
+    log(`  OK   ${nome}${detalhe ? ` — ${detalhe}` : ""}`);
+  } else {
+    falhou += 1;
+    falhas.push(`${nome}${detalhe ? ` — ${detalhe}` : ""}`);
+    log(`  FALHA ${nome}${detalhe ? ` — ${detalhe}` : ""}`);
+  }
+}
 
 /**
- * Leva a seção ao topo e CONFERE que chegou.
- * Rolar de uma vez por `getBoundingClientRect` erra sempre que há uma seção
- * pinada no caminho: o pin-spacer muda o layout durante a rolagem e o destino
- * se desloca. Uma correção depois de assentar basta.
+ * Leva uma seção ao topo e CONFERE que chegou.
+ * Rolar de uma vez pelo `getBoundingClientRect` erra sempre que há seção presa
+ * no caminho: o espaçador do pin muda o layout durante a rolagem e o destino se
+ * desloca. Uma correção depois de assentar basta.
  */
-async function irPara(page, id, espera = 1600) {
-  for (let i = 0; i < 3; i++) {
+async function irPara(page, id, espera = 1100) {
+  for (let i = 0; i < 5; i++) {
     const delta = await page.evaluate((sid) => {
       const el = document.getElementById(sid);
-      return el.getBoundingClientRect().top;
+      return el ? el.getBoundingClientRect().top : 0;
     }, id);
-    if (Math.abs(delta) < 4) break;
+    if (Math.abs(delta) < 6) break;
     await page.evaluate((d) => window.scrollTo(0, window.scrollY + d), delta);
-    await new Promise((r) => setTimeout(r, espera));
+    await sleep(espera);
   }
+  await sleep(600);
+}
+
+/** Rola para uma fração do documento. */
+async function fracao(page, f, espera = 1200) {
+  await page.evaluate((x) => {
+    const alt = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, alt * x);
+  }, f);
+  await sleep(espera);
 }
 
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: "new",
-  // SOFT_GL=1 força WebGL por software (reprodutível em CI, mas mede o
-  // piso do renderizador, não o do site). Sem a variável, usa a GPU real.
   args: [
     "--no-sandbox",
     "--mute-audio",
+    // Sem isto o vídeo da tela do notebook nunca decodifica em headless, e a
+    // checagem da textura mede o navegador, não o site.
+    "--autoplay-policy=no-user-gesture-required",
     ...(process.env.SOFT_GL
       ? ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
       : []),
   ],
 });
 
-const errors = [];
-const bad = [];
+const erros = [];
+const ruins = [];
 
 const page = await browser.newPage();
-/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão.
-   Sem desligar isso explicitamente, TODA verificação mede o caminho reduzido
-   e conclui que o site funciona — enquanto nada do movimento real é testado. */
+/* O Chrome headless reporta `prefers-reduced-motion: reduce` por padrão. Sem
+   desligar isso explicitamente, TODA verificação mede o caminho reduzido e
+   conclui que o site funciona — enquanto nada do movimento real é testado. */
 await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
-page.on("response", (r) => r.status() >= 400 && bad.push(`${r.status()} ${r.url()}`));
+page.on("console", (m) => m.type() === "error" && erros.push(m.text()));
+page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+page.on("response", (r) => r.status() >= 400 && ruins.push(`${r.status()} ${r.url()}`));
 
-/* ── 1. geometria e tipografia em três larguras ─────────────────────────── */
-for (const [w, h, name] of [
-  [375, 812, "mobile"],
-  [768, 1024, "tablet"],
-  [1440, 900, "desktop"],
-]) {
-  await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
-  await page.goto(URL, { waitUntil: "networkidle2" });
-  await page.evaluate(() => document.fonts.ready);
-  await sleep(4000); // deixa a abertura terminar
-
-  const geo = await page.evaluate(() => {
-    const doc = document.documentElement;
-    const ratio = (sel) => {
-      const el = document.querySelector(sel);
-      if (!el) return null;
-      const s = getComputedStyle(el);
-      const fs = parseFloat(s.fontSize);
-      return +((parseFloat(s.lineHeight) || fs) / fs).toFixed(3);
-    };
-    const chars = [...document.querySelectorAll(".hero__char")];
-    return {
-      overflowX: doc.scrollWidth - window.innerWidth,
-      bodyOverflowY: getComputedStyle(document.body).overflowY,
-      markRatio: ratio(".hero__mark"),
-      secRatio: ratio(".sec__title"),
-      markFont: Math.round(parseFloat(getComputedStyle(document.querySelector(".hero__mark")).fontSize)),
-      charsPintados: chars.filter((el) => el.style.backgroundImage.includes("gradient")).length,
-      charOpacity: +getComputedStyle(chars[0]).opacity,
-      cueOpacity: +getComputedStyle(document.querySelector(".hero__cue")).opacity,
-      navVisivel: document.querySelector(".nav").dataset.visible,
-      tier: document.querySelector(".stage").dataset.tier,
-      telas: Math.round(doc.scrollHeight / window.innerHeight),
-      secoes: document.querySelectorAll(".sec").length,
-    };
-  });
-
-  log(`\n── ${name} ${w}x${h} ──`);
-  log(`  overflow-x extra ....... ${geo.overflowX}px  ${ok(geo.overflowX === 0)}`);
-  log(`  body overflow-y ........ ${geo.bodyOverflowY}  ${ok(geo.bodyOverflowY === "visible")} (Lenis)`);
-  log(`  wordmark linha/fonte ... ${geo.markRatio} (${geo.markFont}px)  ${ok(geo.markRatio >= 0.9)}`);
-  log(`  h2 linha/fonte ......... ${geo.secRatio}  ${ok(geo.secRatio >= 0.9)}`);
-  log(`  chars com gradiente .... ${geo.charsPintados}/5`);
-  log(`  hero na abertura ....... char=${geo.charOpacity} cue=${geo.cueOpacity}`);
-  log(`  nav escondida na hero .. ${geo.navVisivel}  ${ok(geo.navVisivel === "false")}`);
-  log(`  tier / seções / altura . ${geo.tier} · ${geo.secoes} seções · ${geo.telas} telas`);
-
-  await page.screenshot({ path: `${OUT}/${name}-00-hero.png` });
-}
-
-/* ── 2. acentos: nada de til decepado nos títulos ───────────────────────── */
-await page.setViewport({ width: 1440, height: 900 });
+await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
 await page.goto(URL, { waitUntil: "networkidle2" });
-await page.evaluate(() => document.fonts.ready);
 await sleep(3000);
 
-const acentos = await page.evaluate(() => {
-  const out = [];
-  document.querySelectorAll(".sec__title").forEach((h2) => {
-    const rotulo = h2.getAttribute("aria-label") || "";
-    if (!/[ÃÕÂÊÔÁÉÍÓÚÇàáâãéêíóôõúç]/i.test(rotulo)) return;
-    [...h2.children].forEach((mask) => {
-      const linha = mask.firstElementChild;
-      if (!linha) return;
-      const cs = getComputedStyle(linha);
-      out.push({
-        rotulo,
-        // O padding da linha afasta a tinta do topo da caixa de fundo — é ele
-        // que salva o til do clipe da máscara E do recorte do gradiente.
-        folgaAcima: parseFloat(cs.paddingTop),
-        recorte: getComputedStyle(mask).overflow,
-      });
-    });
-  });
-  return out;
-});
+/* ═══ 1 · O caminho do notebook ═══════════════════════════════════════════
+   A exigência do briefing é literal: "o laptop não pode teletransportar".
+   Isso é verificável — amostra-se a pose ao longo da página e confere-se que
+   ela chega em cada parada prevista e que nenhum salto é grande demais para
+   ter sido percorrido à vista. */
+log("\n── Caminho do notebook ──");
 
-log("\n── folga para acentos nos títulos ──");
-const semFolga = acentos.filter((a) => a.folgaAcima < 8);
-acentos.forEach((a) => log(`  ${a.rotulo.slice(0, 28).padEnd(30)} folga ${a.folgaAcima}px`));
-log(`  todas com folga ........ ${ok(semFolga.length === 0)}`);
+const PARADAS = [
+  ["manifesto", 1.34, -0.42],
+  ["social", -0.8, -0.66],
+  ["web", 0, -0.16],
+  ["design", -1.5, -0.42],
+  ["contato", 0, -0.58],
+];
 
-/* ── 3. o scroll comanda o vídeo nos dois sentidos ──────────────────────── */
-await page.waitForFunction(
-  () => {
-    const v = document.querySelector("video");
-    return v && v.readyState >= 2;
-  },
-  { timeout: 45000 }
-);
-await sleep(1200);
-
-const seekAt = async (p) => {
-  await page.evaluate((prog) => {
-    const track = document.querySelector(".track");
-    window.scrollTo(0, (track.offsetHeight - window.innerHeight) * prog);
-  }, p);
-  await sleep(1500);
-  return page.evaluate(() => {
-    const v = document.querySelector("video");
-    return { t: +v.currentTime.toFixed(2), dur: +v.duration.toFixed(2) };
-  });
-};
-
-log("\n── scrub do vídeo (1440x900) ──");
-const down = [];
-for (const p of [0, 0.25, 0.5, 0.75, 1]) down.push({ p, ...(await seekAt(p)) });
-const up = [];
-for (const p of [0.75, 0.5, 0.25, 0]) up.push({ p, ...(await seekAt(p)) });
-
-log(`  duração do clipe ....... ${down[0].dur}s`);
-log("  descendo: " + down.map((d) => `${d.p}→${d.t}s`).join("  "));
-log("  subindo:  " + up.map((d) => `${d.p}→${d.t}s`).join("  "));
-log(`  avança ao descer ....... ${ok(down.every((d, i) => i === 0 || d.t > down[i - 1].t))}`);
-log(`  retrocede ao subir ..... ${ok(up.every((d, i) => i === 0 || d.t < up[i - 1].t))}`);
-log(`  segue o progresso ...... ${ok(down.every((d) => Math.abs(d.t - d.p * d.dur) < 0.7))}`);
-
-/* ── 4. Lenis realmente intercepta a roda ───────────────────────────────── */
-await page.evaluate(() => {
-  window.__wheel = { seen: 0, prevented: 0 };
-  window.__smooth = false;
-  addEventListener(
-    "wheel",
-    (e) => {
-      window.__wheel.seen++;
-      if (e.defaultPrevented) window.__wheel.prevented++;
-    },
-    { passive: true }
-  );
-  // A classe só existe ENQUANTO rola; amostrar depois dá falso negativo.
-  window.__classId = setInterval(() => {
-    if (document.documentElement.classList.contains("lenis-smooth")) window.__smooth = true;
-  }, 16);
-});
-await page.mouse.move(720, 450);
-for (let i = 0; i < 8; i++) {
-  await page.mouse.wheel({ deltaY: 220 });
-  await sleep(60);
-}
-await sleep(400);
-const wheel = await page.evaluate(() => {
-  clearInterval(window.__classId);
-  return { ...window.__wheel, smooth: window.__smooth };
-});
-log("\n── Lenis ──");
-log(`  wheel preventDefault ... ${wheel.prevented}/${wheel.seen}  ${ok(wheel.prevented > 0)}`);
-log(`  classe lenis-smooth .... ${ok(wheel.smooth)}`);
-
-/* ── 5. framerate com vídeo + shader + 3D ao mesmo tempo ────────────────── */
-const medirFps = async (rotulo) => {
-  await page.evaluate(() => {
-    window.__fps = [];
-    let last = performance.now();
-    window.__rafId = requestAnimationFrame(function loop(now) {
-      window.__fps.push(now - last);
-      last = now;
-      window.__rafId = requestAnimationFrame(loop);
-    });
-  });
-  for (let i = 0; i < 60; i++) {
-    await page.mouse.wheel({ deltaY: 120 });
-    await sleep(16);
+const trajeto = [];
+for (const [id, ax, ay] of PARADAS) {
+  await irPara(page, id);
+  const pose = await lerCena(page);
+  if (!pose) {
+    checar(`pose em ${id}`, false, "sonda window.__cena ausente");
+    continue;
   }
-  const r = await page.evaluate(() => {
-    cancelAnimationFrame(window.__rafId);
-    const d = window.__fps.slice(5).sort((a, b) => a - b);
-    const at = (q) => d[Math.min(d.length - 1, Math.floor(d.length * q))];
-    return { n: d.length, mediano: +(1000 / at(0.5)).toFixed(1), pior: +at(0.98).toFixed(1) };
-  });
-  log(`  ${rotulo.padEnd(24)} ${r.n} quadros · mediana ${r.mediano} fps · pior ${r.pior}ms`);
-};
-
-log(`\n── framerate (${process.env.SOFT_GL ? "software: piso, não teto" : "GPU real"}) ──`);
-await page.evaluate(() => window.scrollTo(0, window.innerHeight * 0.6));
-await sleep(900);
-await medirFps("hero (vídeo+luz)");
-await irPara(page, "servicos");
-await sleep(900);
-await medirFps("seções (luz+3D)");
-
-/* ── 6. will-change órfão ───────────────────────────────────────────────── */
-const wc = await page.evaluate(() =>
-  [...document.querySelectorAll("*")]
-    .filter((el) => {
-      const v = getComputedStyle(el).willChange;
-      return v && v !== "auto";
-    })
-    .map((el) => `${el.tagName.toLowerCase()}.${el.className || "-"} → ${getComputedStyle(el).willChange}`)
-);
-log("\n── will-change em repouso ──");
-log(wc.length ? wc.map((s) => "  " + s).join("\n") : "  nenhum  OK");
-
-/* ── 7. navegação: cada link chega onde promete ─────────────────────────── */
-log("\n── navegação ──");
-const alvos = await page.evaluate(() => [...document.querySelectorAll(".nav__links a, .nav__cta")].map((a) => a.getAttribute("href")));
-for (const href of alvos) {
-  await page.evaluate((h) => {
-    const link = [...document.querySelectorAll(".nav__links a, .nav__cta")].find((a) => a.getAttribute("href") === h);
-    link.click();
-  }, href);
-  await sleep(1800);
-  const onde = await page.evaluate((h) => {
-    const el = document.querySelector(h);
-    return el ? Math.round(el.getBoundingClientRect().top) : null;
-  }, href);
-  log(`  ${href.padEnd(12)} → topo da seção a ${onde}px  ${ok(Math.abs(onde) < 90)}`);
+  trajeto.push({ id, ...pose });
+  const perto = Math.abs(pose.x - ax) < 0.12 && Math.abs(pose.y - ay) < 0.12;
+  checar(`pose alvo em ${id}`, perto, `x=${pose.x.toFixed(2)} y=${pose.y.toFixed(2)}`);
 }
 
-/* ── 7b. interações ─────────────────────────────────────────────────────── */
-log("\n── interações ──");
+/* Continuidade: amostragem densa e nenhum salto brusco entre amostras
+   vizinhas. Um "teletransporte" apareceria aqui como um degrau. */
+const amostras = [];
+for (let i = 0; i <= 30; i++) {
+  await fracao(page, 0.1 + (i / 30) * 0.88, 260);
+  const p = await lerCena(page);
+  if (p) amostras.push(p.x);
+}
+let maiorSalto = 0;
+for (let i = 1; i < amostras.length; i++) {
+  maiorSalto = Math.max(maiorSalto, Math.abs(amostras[i] - amostras[i - 1]));
+}
+checar(
+  "trajeto sem degrau",
+  amostras.length > 20 && maiorSalto < 2.2,
+  `maior salto entre amostras: ${maiorSalto.toFixed(2)} (em ${amostras.length} pontos)`
+);
 
-// Abertura: some sozinha e devolve o scroll.
-{
-  const p2 = await browser.newPage();
-  await p2.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-  await p2.setViewport({ width: 1440, height: 900 });
-  await p2.goto(URL, { waitUntil: "domcontentloaded" });
-  const inicial = await p2.evaluate(() => !!document.querySelector(".preloader"));
-  await p2.waitForFunction(() => !document.querySelector(".preloader"), { timeout: 9000 }).catch(() => {});
-  const depois = await p2.evaluate(() => ({
-    sumiu: !document.querySelector(".preloader"),
-    rolavel: document.documentElement.scrollHeight > window.innerHeight + 10,
-  }));
-  log(`  abertura aparece/some .. ${inicial} → ${depois.sumiu}  ${ok(inicial && depois.sumiu)}`);
-  log(`  scroll liberado ........ ${ok(depois.rolavel)}`);
-  await p2.close();
+/* ═══ 2 · A tela do notebook está viva ════════════════════════════════════ */
+log("\n── Tela do notebook ──");
+await irPara(page, "web");
+const canais = [];
+for (const id of ["social", "web", "design", "clientes"]) {
+  await irPara(page, id);
+  const c = await lerCena(page);
+  canais.push(c?.canal ?? null);
+}
+checar(
+  "canal da tela troca por seção",
+  new Set(canais.filter(Boolean)).size >= 3,
+  canais.join(" → ")
+);
+
+/* ═══ 3 · Seções presas ═══════════════════════════════════════════════════
+   Um pin que não engata é um scroll que passa reto pela experiência inteira.
+   Mede-se pelo espaçador que o ScrollTrigger insere. */
+log("\n── Pins ──");
+const pins = await page.evaluate(() =>
+  [...document.querySelectorAll(".pin-spacer")].map((s) => {
+    const alvo = s.querySelector("[data-sec]");
+    return { sec: alvo?.dataset.sec || "?", altura: Math.round(s.offsetHeight) };
+  })
+);
+checar("seis seções presas", pins.length >= 6, pins.map((p) => `${p.sec}:${p.altura}px`).join(" "));
+for (const p of pins) {
+  checar(`  pin de ${p.sec} com curso`, p.altura > 1800, `${p.altura}px`);
 }
 
-log(`  cursor customizado ..... ${ok(await page.evaluate(() => !!document.querySelector(".cursor")))}`);
+/* ═══ 4 · Social: o feed se monta ═════════════════════════════════════════ */
+log("\n── Social: o feed ──");
+await irPara(page, "social");
+const estadosSociais = [];
+const secSocial = await page.evaluate(() => {
+  const s = document.getElementById("social");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+for (const f of [0.08, 0.5, 0.92]) {
+  await page.evaluate((y) => window.scrollTo(0, y), secSocial.topo + secSocial.alt * f);
+  await sleep(1400);
+  estadosSociais.push(
+    await page.evaluate(() => document.querySelector("[data-social-palco]")?.dataset.estado)
+  );
+}
+checar(
+  "três estados do feed",
+  new Set(estadosSociais).size === 3,
+  estadosSociais.join(" → ")
+);
 
-/* Serviços: apontar uma frente acende ela, apaga as outras e troca o palco. */
-await irPara(page, "servicos");
-await sleep(700);
-const mira = await page.evaluate(() => {
-  /* Mira na primeira frente VISÍVEL que não seja a já ativa: a lista tem
-     seis itens e os últimos ficam fora da tela quando a seção encosta no
-     topo — mirar às cegas no terceiro acerta o vazio. */
-  const linhas = [...document.querySelectorAll("[data-frentes] .frente__linha")];
-  const alvo = linhas.find((l, i) => {
-    const r = l.getBoundingClientRect();
-    return i > 0 && r.top > 80 && r.bottom < window.innerHeight - 40;
+const gradeFeed = await page.evaluate(() => {
+  const p = document.querySelector("[data-social-palco]");
+  const pecas = [...p.querySelectorAll(".peca")].map((e) => e.getBoundingClientRect());
+  // Numa grade, as peças de uma mesma linha compartilham o topo.
+  const topos = new Set(pecas.map((r) => Math.round(r.top / 8)));
+  return { n: pecas.length, linhas: topos.size };
+});
+checar(
+  "as peças formam grade",
+  gradeFeed.n === 6 && gradeFeed.linhas <= 3,
+  `${gradeFeed.n} peças em ${gradeFeed.linhas} linhas`
+);
+
+/* ═══ 5 · Web: a câmera entra na tela ═════════════════════════════════════ */
+log("\n── Web: entrar na tela ──");
+const secWeb = await page.evaluate(() => {
+  const s = document.getElementById("web");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+let zoomMax = 0;
+let clipMax = 0;
+for (const f of [0.1, 0.35, 0.5, 0.62, 0.72, 0.8, 0.97]) {
+  await page.evaluate((y) => window.scrollTo(0, y), secWeb.topo + secWeb.alt * f);
+  await sleep(1100);
+  const m = await page.evaluate(() => {
+    const z = window.__cena ? window.__cena().zoom : 0;
+    const d = document.querySelector("[data-web-dentro]");
+    const cp = d ? getComputedStyle(d).clipPath : "";
+    const pc = /circle\(([\d.]+)/.exec(cp);
+    return { z, clip: pc ? Number(pc[1]) : 0 };
   });
-  const r = (alvo || linhas[1]).getBoundingClientRect();
-  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-});
-await page.mouse.move(mira.x, mira.y);
-await sleep(900);
-const frente = await page.evaluate(() => {
-  const itens = [...document.querySelectorAll("[data-frentes] [data-frente]")];
-  const ativos = itens.filter((e) => e.dataset.active === "true").map((e) => e.dataset.frente);
-  /* O palco de SVG deu lugar ao vídeo real da frente: quem tem de acompanhar
-     o item apontado agora é a filmagem. */
-  const videos = [...document.querySelectorAll("[data-frente-video]")]
-    .filter((v) => v.dataset.active === "true")
-    .map((v) => ({ id: v.dataset.frenteVideo, tocando: !v.paused }));
-  const aberta = itens.find((e) => e.dataset.active === "true")?.querySelector(".frente__info");
-  return {
-    ativos,
-    videos,
-    entregasAbertas: aberta ? aberta.getBoundingClientRect().height > 20 : false,
-  };
-});
-log(`  frente apontada ........ ${frente.ativos.join(",") || "nenhuma"}  ${ok(frente.ativos.length === 1)}`);
-log(`  vídeo acompanha ........ ${frente.videos.map((v) => v.id).join(",") || "nenhum"}  ${ok(frente.videos[0]?.id === frente.ativos[0])}`);
-log(`  vídeo da frente toca ... ${ok(frente.videos[0]?.tocando)}`);
-log(`  entregas abrem ......... ${ok(frente.entregasAbertas)}`);
+  zoomMax = Math.max(zoomMax, m.z);
+  clipMax = Math.max(clipMax, m.clip);
+}
+checar("a câmera chega à tela cheia", zoomMax > 0.9, `zoom máximo ${zoomMax.toFixed(2)}`);
+checar("a página nasce dentro do painel", clipMax > 40, `clip-path até ${clipMax}%`);
 
-/* Audiovisual: o recorte do vídeo abre com o scroll. */
-await irPara(page, "audiovisual");
-await sleep(700);
-const clipAntes = await page.evaluate(
-  () => getComputedStyle(document.querySelector("[data-filme-janela]")).clipPath
-);
-await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 1.4));
-await sleep(1800);
-// O vídeo carrega sob demanda (`preload="none"`): esperar é mais honesto
-// que cronometrar e concluir que não toca.
-await page
-  .waitForFunction(() => !document.querySelector("[data-filme-video]").paused, { timeout: 8000 })
-  .catch(() => {});
-const clipDepois = await page.evaluate(() => ({
-  clip: getComputedStyle(document.querySelector("[data-filme-janela]")).clipPath,
-  tocando: !document.querySelector("[data-filme-video]").paused,
-}));
-const abriu = clipAntes !== clipDepois.clip;
-log(`  vídeo toma a tela ...... ${abriu ? "abriu" : "parado"}  ${ok(abriu)}`);
-log(`  vídeo tocando em cena .. ${ok(clipDepois.tocando)}`);
-
-/* Sistema: as peças saem da bagunça e fecham em anel em torno da empresa. */
-await irPara(page, "sistema");
-await sleep(1000);
-const pecaAntes = await page.evaluate(() => {
-  const r = document.querySelector('[data-peca="post"]').getBoundingClientRect();
-  return {
-    x: Math.round(r.left),
-    y: Math.round(r.top),
-    estado: document.querySelector("[data-sistema-atual]").textContent,
-  };
-});
-await page.evaluate(() => window.scrollTo(0, window.scrollY + window.innerHeight * 3));
-await sleep(2400);
-const pecaDepois = await page.evaluate(() => {
-  const r = document.querySelector('[data-peca="post"]').getBoundingClientRect();
-  return {
-    x: Math.round(r.left),
-    y: Math.round(r.top),
-    estado: document.querySelector("[data-sistema-atual]").textContent,
-    centro: +getComputedStyle(document.querySelector("[data-centro]")).opacity,
-  };
-});
-const andou = Math.hypot(pecaDepois.x - pecaAntes.x, pecaDepois.y - pecaAntes.y) > 60;
-log(`  peças se reorganizam ... ${pecaAntes.x},${pecaAntes.y} → ${pecaDepois.x},${pecaDepois.y}  ${ok(andou)}`);
-log(`  estado avança .......... ${pecaAntes.estado} → ${pecaDepois.estado}  ${ok(pecaDepois.estado !== pecaAntes.estado)}`);
-log(`  empresa no centro ...... opacidade ${pecaDepois.centro}  ${ok(pecaDepois.centro > 0.9)}`);
-
-/* Computador: chega, o conteúdo rola dentro da tela e ela toma a viewport. */
-await irPara(page, "digital");
-await sleep(900);
-const macBase = await page.evaluate(() => window.scrollY);
-const macAntes = await page.evaluate(() => {
-  const r = document.querySelector("[data-mac-tela]").getBoundingClientRect();
-  const c = document.querySelector("[data-mac-conteudo]");
-  return { w: Math.round(r.width), y: Math.round(c.getBoundingClientRect().top) };
-});
-await page.evaluate((b) => window.scrollTo(0, b + window.innerHeight * 2), macBase);
-await sleep(2000);
-const macMeio = await page.evaluate(() => ({
-  y: Math.round(document.querySelector("[data-mac-conteudo]").getBoundingClientRect().top),
-}));
-await page.evaluate((b) => window.scrollTo(0, b + window.innerHeight * 3.45), macBase);
-await sleep(2400);
-const macFim = await page.evaluate(() => {
-  const r = document.querySelector("[data-mac-tela]").getBoundingClientRect();
-  return { w: Math.round(r.width), cobre: r.width >= window.innerWidth && r.height >= window.innerHeight };
-});
-log(`  tela rola por dentro .... ${macAntes.y} → ${macMeio.y}px  ${ok(macMeio.y < macAntes.y - 120)}`);
-log(`  tela toma a viewport .... ${macAntes.w} → ${macFim.w}px  ${ok(macFim.cobre)}`);
-
-/* Clientes: apontar um painel faz ele tomar espaço do outro. */
-await irPara(page, "clientes");
-await sleep(900);
-const painelAlvo = await page.evaluate(() => {
-  const r = document.querySelectorAll("[data-painel]")[0].getBoundingClientRect();
-  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-});
-/* O cursor do teste anterior pode ter ficado parado sobre um painel, e a
-   rolagem o traz para baixo dele — medir sem neutralizar compara o estado
-   ativo com ele mesmo. */
-await page.mouse.move(20, 20);
-await sleep(1300);
-const larguraAntes = await page.evaluate(() =>
-  [...document.querySelectorAll("[data-painel]")].map((e) => Math.round(e.getBoundingClientRect().width))
-);
-await page.mouse.move(painelAlvo.x, painelAlvo.y);
-await sleep(1300);
-const duelo = await page.evaluate(() => ({
-  larguras: [...document.querySelectorAll("[data-painel]")].map((e) => Math.round(e.getBoundingClientRect().width)),
-  ativos: [...document.querySelectorAll("[data-painel]")].filter((e) => e.dataset.active === "true").length,
-  placaClara: getComputedStyle(document.querySelector('[data-placa="true"]')).backgroundColor,
-}));
-log(`  cliente apontado cresce . ${larguraAntes.join("/")} → ${duelo.larguras.join("/")}  ${ok(duelo.larguras[0] > larguraAntes[0] + 60)}`);
-log(`  só um em foco ........... ${duelo.ativos}  ${ok(duelo.ativos === 1)}`);
-log(`  placa do logo escuro .... ${duelo.placaClara}  ${ok(!/0, 0, 0/.test(duelo.placaClara))}`);
-
-/* Botão magnético e alcance do CTA. */
-await irPara(page, "contato");
-await sleep(900);
-const btn = await page.evaluate(() => {
-  const r = document.querySelector(".btn").getBoundingClientRect();
-  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-});
-const antesBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
-await page.mouse.move(btn.x + 55, btn.y);
-await sleep(700);
-const depoisBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
-await page.mouse.move(60, 60);
-await sleep(1100);
-const voltouBtn = await page.evaluate(() => document.querySelector(".btn").getBoundingClientRect().left);
-log(
-  `  botão magnético ........ ${Math.round(antesBtn)} → ${Math.round(depoisBtn)} → ${Math.round(voltouBtn)}  ${ok(
-    depoisBtn > antesBtn + 4 && Math.abs(voltouBtn - antesBtn) < 3
-  )}`
-);
-
-const alcance = await page.evaluate(() => {
-  const r = document.querySelector(".btn").getBoundingClientRect();
-  const alvo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return { atinge: !!alvo?.closest(".btn"), obstaculo: alvo ? `${alvo.tagName}.${alvo.className}` : "-" };
-});
-log(`  botão clicável ......... ${alcance.obstaculo}  ${ok(alcance.atinge)}`);
-
-/* Rodapé: no fim da página aparece e nada da cena o cobre. */
-await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await page.evaluate((y) => window.scrollTo(0, y), secWeb.topo + secWeb.alt + 400);
 await sleep(1600);
-const rodape = await page.evaluate(() => {
-  const f = document.querySelector(".footer");
-  const r = f.getBoundingClientRect();
-  const meio = document.elementFromPoint(window.innerWidth / 2, r.top + r.height / 2);
+const zoomDepois = (await lerCena(page))?.zoom ?? 1;
+checar(
+  "a câmera recua ao sair",
+  zoomDepois < 0.15,
+  `zoom ${zoomDepois.toFixed(2)} depois do pin`
+);
+
+/* ═══ 6 · Design: a interface vira grade editorial ════════════════════════ */
+log("\n── Design: a transformação ──");
+const secDesign = await page.evaluate(() => {
+  const s = document.getElementById("design");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+await page.evaluate((y) => window.scrollTo(0, y), secDesign.topo + secDesign.alt * 0.75);
+await sleep(1600);
+const cartazes = await page.evaluate(() =>
+  [...document.querySelectorAll(".cartaz")].map((c) => {
+    const r = c.getBoundingClientRect();
+    return { a: c.dataset.area, w: Math.round(r.width), h: Math.round(r.height) };
+  })
+);
+const cartazesReais = cartazes.filter((c) => c.w > 40 && c.h > 40).length;
+checar(
+  "os cartazes ocupam as áreas do grid",
+  cartazesReais === 6,
+  `${cartazesReais}/6 com tamanho real`
+);
+const tamanhosDiferentes = new Set(cartazes.map((c) => `${c.w}x${c.h}`)).size;
+checar(
+  "a grade é assimétrica",
+  tamanhosDiferentes >= 4,
+  `${tamanhosDiferentes} tamanhos distintos`
+);
+
+/* ═══ 7 · Branding: a marca é desenhada ═══════════════════════════════════ */
+log("\n── Branding: a construção ──");
+const secBrand = await page.evaluate(() => {
+  const s = document.getElementById("branding");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+const desenho = [];
+for (const f of [0.05, 0.45, 0.9]) {
+  await page.evaluate((y) => window.scrollTo(0, y), secBrand.topo + secBrand.alt * f);
+  await sleep(1300);
+  desenho.push(
+    await page.evaluate(() => {
+      const t = document.querySelector("[data-bd-traco]");
+      /* O DrawSVG desenha encolhendo o PRIMEIRO valor do dash-array: ele vai
+         de 0 ao comprimento do traço. O dash-offset fica praticamente parado
+         em zero — medi-lo não diz nada sobre o progresso. */
+      const arr = t ? parseFloat(getComputedStyle(t).strokeDasharray) || 0 : -1;
+      const massa = document.querySelector("[data-bd-massa]");
+      return { arr: Math.round(arr), massa: massa ? +getComputedStyle(massa).opacity : -1 };
+    })
+  );
+}
+checar(
+  "o símbolo é traçado pelo scroll",
+  desenho[2].arr > desenho[0].arr + 100,
+  `comprimento desenhado ${desenho.map((d) => d.arr).join(" → ")}px`
+);
+checar("o símbolo ganha massa", desenho[2].massa > 0.8, `opacidade ${desenho[2].massa}`);
+
+/* ═══ 8 · Estratégia: rótulo e ponto na MESMA geometria ═══════════════════
+   O SVG é encaixado com "meet" e os rótulos são DOM em porcentagem. Se as
+   duas geometrias divergirem, cada nome pousa longe do próprio ponto — e é
+   um erro que nenhuma asserção de existência pegaria. */
+log("\n── Estratégia: alinhamento ──");
+await irPara(page, "estrategia");
+const secEst = await page.evaluate(() => {
+  const s = document.getElementById("estrategia");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+await page.evaluate((y) => window.scrollTo(0, y), secEst.topo + secEst.alt * 0.6);
+await sleep(1600);
+const desvio = await page.evaluate(() => {
+  const rot = document.querySelector('[data-est-rotulo="publico"]');
+  const pt = document.querySelector('[data-est-ponto][data-id="publico"]');
+  if (!rot || !pt) return null;
+  const a = rot.getBoundingClientRect();
+  const b = pt.getBoundingClientRect();
+  return Math.round(Math.abs(a.left + a.width / 2 - (b.left + b.width / 2)));
+});
+checar("rótulo alinhado ao ponto", desvio !== null && desvio < 18, `${desvio}px de desvio`);
+
+const convergencia = await page.evaluate(() => {
+  const feixe = [...document.querySelectorAll("[data-est-feixe]")];
+  const desenhado = feixe.filter(
+    (l) => (parseFloat(getComputedStyle(l).strokeDashoffset) || 0) < 6
+  ).length;
+  return { total: feixe.length, desenhado };
+});
+checar(
+  "o feixe converge",
+  convergencia.desenhado >= convergencia.total - 1,
+  `${convergencia.desenhado}/${convergencia.total} linhas traçadas`
+);
+
+/* ═══ 9 · Máquina Prime ═══════════════════════════════════════════════════ */
+log("\n── Máquina Prime ──");
+const secMaq = await page.evaluate(() => {
+  const s = document.getElementById("metodo");
+  const sp = s.closest(".pin-spacer") || s;
+  return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+});
+const etapasVistas = new Set();
+for (const f of [0.34, 0.42, 0.5, 0.58, 0.66, 0.73]) {
+  await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * f);
+  await sleep(1500);
+  const idx = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-maquina-etapa]")].findIndex(
+      (el) => +getComputedStyle(el).opacity > 0.7
+    )
+  );
+  if (idx >= 0) etapasVistas.add(idx);
+}
+checar("as etapas se revezam", etapasVistas.size >= 3, `etapas vistas: ${[...etapasVistas].join(",")}`);
+
+await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.95);
+await sleep(1500);
+const saidas = await page.evaluate(
+  () =>
+    [...document.querySelectorAll("[data-maquina-saida]")].filter(
+      (e) => +getComputedStyle(e).opacity > 0.6
+    ).length
+);
+checar("as sete entregas saem", saidas === 7, `${saidas}/7 visíveis`);
+
+/* ═══ 10 · Por que funciona: a demonstração muda o layout ════════════════ */
+log("\n── Por que funciona ──");
+await irPara(page, "porque");
+const posicoes = {};
+for (const demo of ["alinhar", "refinar", "apontar"]) {
+  const alvo = await page.evaluate((d) => {
+    const li = [...document.querySelectorAll("[data-forca]")].find((e) => e.dataset.forca === d);
+    if (!li) return null;
+    const r = li.getBoundingClientRect();
+    return { x: r.left + 60, y: r.top + 14 };
+  }, demo);
+  if (!alvo) continue;
+  await page.mouse.move(alvo.x, alvo.y);
+  await sleep(1500);
+  posicoes[demo] = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-palco-peca]")].map((e) => {
+      const r = e.getBoundingClientRect();
+      return `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)}`;
+    }).join("|")
+  );
+}
+const arranjos = new Set(Object.values(posicoes));
+checar(
+  "cada força reorganiza o palco",
+  arranjos.size === Object.keys(posicoes).length && arranjos.size >= 3,
+  `${arranjos.size} arranjos distintos`
+);
+const eixo = await page.evaluate(
+  () => +getComputedStyle(document.querySelector("[data-palco-eixo]").parentElement).opacity
+);
+checar("o eixo aparece só em DIREÇÃO", eixo > 0.8, `opacidade ${eixo}`);
+
+/* ═══ 11 · Clientes ═══════════════════════════════════════════════════════ */
+log("\n── Clientes ──");
+await irPara(page, "clientes");
+const links = await page.evaluate(() =>
+  [...document.querySelectorAll(".perfil__link")].map((a) => a.href)
+);
+checar(
+  "links reais para os perfis",
+  links.includes("https://www.instagram.com/realpisos/") &&
+    links.includes("https://www.instagram.com/fisiowandersoncarvalho/"),
+  links.join(" ")
+);
+checar(
+  "sem iframe do Instagram",
+  await page.evaluate(() => !document.querySelector('iframe[src*="instagram"]')),
+  "preview construído com assets do projeto"
+);
+
+const alvoMarca = await page.evaluate(() => {
+  const m = document.querySelector('[data-marca="real-pisos"] .marca__selo');
+  const r = m.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+});
+const antesHover = await page.evaluate(
+  () => document.querySelector('[data-marca="real-pisos"] .perfil').getBoundingClientRect().height
+);
+await page.mouse.move(alvoMarca.x, alvoMarca.y);
+await sleep(1400);
+const depoisHover = await page.evaluate(
+  () => document.querySelector('[data-marca="real-pisos"] .perfil').getBoundingClientRect().height
+);
+checar(
+  "o preview abre no hover",
+  depoisHover > antesHover + 80,
+  `${Math.round(antesHover)}px → ${Math.round(depoisHover)}px`
+);
+const recuo = await page.evaluate(
+  () => +getComputedStyle(document.querySelector('[data-marca="wanderson-carvalho"]')).opacity
+);
+checar("a outra marca recua", recuo < 0.6, `opacidade ${recuo}`);
+
+const arco = await page.evaluate(() => {
+  const p = document.querySelector("[data-quem-arco]");
+  return Math.round(parseFloat(getComputedStyle(p).strokeDashoffset) || 0);
+});
+checar("o arco é desenhado", arco < 60, `dashoffset ${arco}`);
+
+/* ═══ 12 · WhatsApp ═══════════════════════════════════════════════════════ */
+log("\n── WhatsApp ──");
+await page.evaluate(() => window.scrollTo(0, 0));
+await sleep(1200);
+const zapTopo = await page.evaluate(() => {
+  const z = document.querySelector(".zap");
+  return { vis: getComputedStyle(z).visibility, dado: z.dataset.visivel };
+});
+checar("escondido na hero", zapTopo.vis === "hidden", `visibility ${zapTopo.vis}`);
+
+await irPara(page, "porque");
+const zapDepois = await page.evaluate(() => {
+  const z = document.querySelector(".zap");
+  const a = z.querySelector("a");
+  const cs = getComputedStyle(z.querySelector(".zap__botao"));
   return {
-    visivel: r.top < window.innerHeight && r.bottom > 0,
-    porCima: meio ? meio.closest(".footer") !== null : false,
+    vis: getComputedStyle(z).visibility,
+    href: a.href,
+    fundo: cs.backgroundColor,
   };
 });
-log(`  rodapé revelado ........ visível=${rodape.visivel} alcançável=${rodape.porCima}  ${ok(rodape.visivel && rodape.porCima)}`);
-await page.screenshot({ path: `${OUT}/desktop-99-rodape.png` });
+checar("aparece depois da hero", zapDepois.vis === "visible");
+checar(
+  "número correto",
+  zapDepois.href.includes("5511912992403"),
+  zapDepois.href.slice(0, 60)
+);
+checar(
+  "dourado, não verde",
+  /201,\s*168,\s*76/.test(zapDepois.fundo),
+  zapDepois.fundo
+);
 
-/* ── 7c. menu mobile ────────────────────────────────────────────────────── */
-log("\n── menu mobile (390x844) ──");
-{
-  const m = await browser.newPage();
-  await m.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-  await m.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-  await m.goto(URL, { waitUntil: "networkidle2" });
-  await m.evaluate(() => document.fonts.ready);
-  await sleep(4200);
-  await m.evaluate(() => window.scrollTo(0, document.querySelector(".track").offsetHeight));
-  await sleep(1600);
+/* ═══ 13 · Rodapé ═════════════════════════════════════════════════════════ */
+log("\n── Rodapé ──");
+await page.evaluate(() =>
+  window.scrollTo(0, document.documentElement.scrollHeight)
+);
+await sleep(2000);
+const rodape = await page.evaluate(() => {
+  const img = document.querySelector("[data-rodape-marca]");
+  const r = img.getBoundingClientRect();
+  return {
+    src: img.getAttribute("src"),
+    largura: Math.round(r.width),
+    op: +getComputedStyle(img).opacity,
+    natural: img.naturalWidth,
+  };
+});
+checar("usa o asset logo-footer", rodape.src.includes("logo-footer"), rodape.src);
+checar("carregou de fato", rodape.natural > 0, `${rodape.natural}px de largura natural`);
+checar("é o grande elemento", rodape.largura > 380, `${rodape.largura}px na tela`);
+checar("chegou aceso", rodape.op > 0.85, `opacidade ${rodape.op.toFixed(2)}`);
 
-  const barra = await m.evaluate(() => ({
-    botao: getComputedStyle(document.querySelector(".nav__menu")).display !== "none",
-    linksEscondidos: getComputedStyle(document.querySelector(".nav__links")).display === "none",
-  }));
-  log(`  botão de menu existe ... ${ok(barra.botao)}`);
-  log(`  links saem da barra .... ${ok(barra.linksEscondidos)}`);
+/* ═══ 14 · Overflow horizontal ════════════════════════════════════════════ */
+log("\n── Overflow ──");
+for (const [w, h] of [
+  [1920, 1080],
+  [1440, 900],
+  [1024, 768],
+  [768, 1024],
+  [390, 844],
+]) {
+  await page.setViewport({ width: w, height: h });
+  await sleep(1200);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await sleep(800);
+  const extra = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  );
+  checar(`sem rolagem lateral em ${w}px`, extra <= 1, `${extra}px de excesso`);
+}
 
-  const antes = await m.evaluate(() => Math.round(window.scrollY));
-  await m.click(".nav__menu");
-  await sleep(1300);
-
-  const aberto = await m.evaluate(() => {
-    const painel = document.querySelector(".menu");
-    const link = painel.querySelector(".menu__linha a");
-    const r = link.getBoundingClientRect();
-    const alvo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+/* ═══ 15 · Menu mobile ════════════════════════════════════════════════════ */
+log("\n── Menu mobile ──");
+await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+await sleep(1200);
+await page.evaluate(() => window.scrollTo(0, window.innerHeight * 3));
+await sleep(1200);
+const botaoMenu = await page.$(".nav__menu, [data-menu-toggle], .nav__burger");
+checar("existe botão de menu", Boolean(botaoMenu));
+if (botaoMenu) {
+  await botaoMenu.click();
+  await sleep(900);
+  const aberto = await page.evaluate(() => {
+    const m = document.querySelector(".menu");
+    if (!m) return null;
+    const cs = getComputedStyle(m);
     return {
-      aberto: painel.dataset.aberto === "true",
-      linkAlcancavel: !!alvo?.closest(".menu__linha"),
+      vis: cs.visibility,
+      op: +cs.opacity,
+      links: m.querySelectorAll("a").length,
     };
   });
-  log(`  painel abre ............ ${ok(aberto.aberto)}`);
-  log(`  link alcançável ........ ${ok(aberto.linkAlcancavel)}`);
-
-  /* Gesto REAL de toque: `window.scrollBy` não é ação de usuário, e
-     `overflow: clip` não bloqueia rolagem por script — medir assim daria
-     "destravado" num menu que na mão do usuário está travado. */
-  await m.touchscreen.touchStart(200, 620);
-  await m.touchscreen.touchMove(200, 200);
-  await m.touchscreen.touchEnd();
-  await sleep(800);
-  const depoisToque = await m.evaluate(() => Math.round(window.scrollY));
-  log(`  scroll travado no toque  ${antes} → ${depoisToque}  ${ok(antes === depoisToque)}`);
-
-  await m.evaluate(() => document.querySelectorAll(".menu__linha a")[2].click());
-  await sleep(2600);
-  const navegou = await m.evaluate(() => ({
-    fechado: document.querySelector(".menu").hasAttribute("hidden"),
-    topo: Math.round(document.getElementById("sistema").getBoundingClientRect().top),
-  }));
-  log(`  link fecha e navega .... topo a ${navegou.topo}px  ${ok(navegou.fechado && Math.abs(navegou.topo) < 60)}`);
-  await m.screenshot({ path: `${OUT}/mobile-menu.png` });
-  await m.close();
+  checar("o painel abre", aberto && aberto.vis === "visible" && aberto.op > 0.8, JSON.stringify(aberto));
+  checar("com os links da navegação", aberto && aberto.links >= 4, `${aberto?.links} links`);
+  await page.keyboard.press("Escape");
+  await sleep(1600);
+  const fechado = await page.evaluate(
+    () => getComputedStyle(document.querySelector(".menu")).visibility
+  );
+  checar("fecha no Escape", fechado === "hidden", fechado);
 }
 
-/* ── 8. prefers-reduced-motion ──────────────────────────────────────────── */
-await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
-await page.goto(URL, { waitUntil: "networkidle2" });
-await page.evaluate(() => document.fonts.ready);
-await sleep(2800);
-
-const reduzHero = await page.evaluate(() => ({
-  char: +getComputedStyle(document.querySelector(".hero__char")).opacity,
-  sub: +getComputedStyle(document.querySelector(".hero__sub")).opacity,
-  cue: +getComputedStyle(document.querySelector(".hero__cue")).opacity,
-}));
-await page.screenshot({ path: `${OUT}/reduced-00-hero.png` });
-
-await page.evaluate(() => {
-  const el = document.getElementById("prova");
-  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top);
+/* ═══ 16 · Higiene ════════════════════════════════════════════════════════ */
+log("\n── Higiene ──");
+await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
+await sleep(1000);
+const orfaos = await page.evaluate(() => {
+  const alvos = [...document.querySelectorAll("*")].filter((e) => {
+    const wc = getComputedStyle(e).willChange;
+    return wc && wc !== "auto";
+  });
+  return alvos.length;
 });
-await sleep(2000);
-const reduzSec = await page.evaluate(() => {
-  const t = document.querySelector('[data-sec="prova"] .sec__title div div');
-  const item = document.querySelector('[data-sec="prova"] [data-sec-item]');
-  return {
-    titulo: t ? +getComputedStyle(t).opacity : null,
-    item: +getComputedStyle(item).opacity,
-    video: document.querySelector("video") ? +document.querySelector("video").currentTime.toFixed(2) : null,
+checar(
+  "poucos `will-change` permanentes",
+  orfaos <= 40,
+  `${orfaos} elementos (GSAP promove sozinho durante a tween)`
+);
+
+const relPeso = await page.evaluate(() =>
+  performance
+    .getEntriesByType("resource")
+    .filter((r) => r.name.includes("/videos/") || r.name.includes("/media/"))
+    .reduce((s, r) => s + (r.transferSize || 0), 0)
+);
+log(`  info  mídia transferida até aqui: ${(relPeso / 1048576).toFixed(1)} MB`);
+
+/* FPS durante uma rolagem contínua — é o único jeito de medir o custo real
+   das seções presas, do shader e do WebGL rodando juntos. */
+await page.evaluate(() => window.scrollTo(0, 0));
+await sleep(800);
+const fps = await page.evaluate(async () => {
+  const quadros = [];
+  let anterior = performance.now();
+  let parar = false;
+  const laco = (t) => {
+    quadros.push(t - anterior);
+    anterior = t;
+    if (!parar) requestAnimationFrame(laco);
   };
+  requestAnimationFrame(laco);
+
+  const alt = document.documentElement.scrollHeight - window.innerHeight;
+  const inicio = performance.now();
+  while (performance.now() - inicio < 6000) {
+    const p = (performance.now() - inicio) / 6000;
+    window.scrollTo(0, alt * p);
+    await new Promise((r) => setTimeout(r, 16));
+  }
+  parar = true;
+
+  quadros.sort((a, b) => a - b);
+  const mediana = quadros[Math.floor(quadros.length / 2)] || 16;
+  const p95 = quadros[Math.floor(quadros.length * 0.95)] || 16;
+  return { mediana: 1000 / mediana, p95ms: p95, n: quadros.length };
 });
-await page.screenshot({ path: `${OUT}/reduced-01-prova.png` });
+checar(
+  "fluidez na rolagem",
+  fps.mediana > 45,
+  `${fps.mediana.toFixed(0)} fps mediano, pior quadro típico ${fps.p95ms.toFixed(0)} ms`
+);
 
-log("\n── prefers-reduced-motion ──");
-log(`  hero legível ........... char=${reduzHero.char} sub=${reduzHero.sub} cue=${reduzHero.cue}  ${ok(reduzHero.char === 1 && reduzHero.cue === 1)}`);
-log(`  seção completa ......... título=${reduzSec.titulo} item=${reduzSec.item}  ${ok(reduzSec.item > 0.9)}`);
-log(`  sequência preservada ... vídeo em ${reduzSec.video}s  ${ok(reduzSec.video > 15)}`);
+await page.screenshot({ path: `${OUT}/final.png` });
 
-/* ── resumo ─────────────────────────────────────────────────────────────── */
-log("\n── console e rede ──");
-log(errors.length ? errors.slice(0, 10).map((e) => "  ERRO " + e).join("\n") : "  sem erros de console  OK");
-log(bad.length ? bad.slice(0, 10).map((e) => "  " + e).join("\n") : "  nenhuma resposta 4xx/5xx  OK");
-log(`\nscreenshots em ${OUT}`);
+/* ═══ 17 · Reduced motion preserva o conteúdo ═════════════════════════════ */
+log("\n── Reduced motion ──");
+const pagina2 = await browser.newPage();
+await pagina2.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+await pagina2.setViewport({ width: 1440, height: 900 });
+const erros2 = [];
+pagina2.on("pageerror", (e) => erros2.push(e.message));
+await pagina2.goto(URL, { waitUntil: "networkidle2" });
+await sleep(2500);
+
+let escondidos = 0;
+for (const id of [
+  "manifesto",
+  "servicos",
+  "social",
+  "web",
+  "design",
+  "branding",
+  "estrategia",
+  "metodo",
+  "porque",
+  "clientes",
+  "contato",
+]) {
+  await pagina2.evaluate((s) => {
+    const el = document.getElementById(s);
+    if (el) el.scrollIntoView();
+  }, id);
+  await sleep(500);
+  escondidos += await pagina2.evaluate((s) => {
+    const sec = document.getElementById(s);
+    if (!sec) return 0;
+    return [...sec.querySelectorAll("h2,h3,p,li,figure,.cartaz,.peca,[data-maquina-etapa]")].filter(
+      (e) => {
+        const cs = getComputedStyle(e);
+        return cs.visibility === "hidden" || parseFloat(cs.opacity) < 0.08;
+      }
+    ).length;
+  }, id);
+}
+checar("nada some no caminho reduzido", escondidos === 0, `${escondidos} elementos escondidos`);
+checar("sem erros no caminho reduzido", erros2.length === 0, erros2.join(" | "));
+await pagina2.close();
+
+/* ═══ Console e rede ══════════════════════════════════════════════════════ */
+log("\n── Console e rede ──");
+checar("console limpo", erros.length === 0, erros.slice(0, 3).join(" | "));
+checar("sem respostas 4xx/5xx", ruins.length === 0, ruins.slice(0, 3).join(" | "));
+
+log(`\n═══ ${passou} OK · ${falhou} FALHAS ═══`);
+if (falhas.length) {
+  log("\nFalhas:");
+  falhas.forEach((f) => log(`  · ${f}`));
+}
 
 await browser.close();
+process.exit(falhou ? 1 : 0);

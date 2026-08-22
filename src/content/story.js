@@ -326,6 +326,9 @@ export const forcas = [
  *            x e y de -1 a 1: (-1,-1) é o canto inferior esquerdo da tela,
  *            (1,1) o superior direito. Além de ±1.6 o modelo está fora do
  *            quadro — e é assim que ele SAI de cena, viajando, nunca sumindo.
+ *            As poses de bastidor vão a ±3 com folga de propósito: a pose é
+ *            perseguida com amortecimento, e um alvo logo depois da borda
+ *            deixa o objeto espiando no canto enquanto ainda está chegando.
  *
  *            A pose é interpolada com scrub entre uma seção e a seguinte: o
  *            objeto percorre o caminho à vista, que é o pedido explícito do
@@ -357,7 +360,7 @@ export const sections = [
     theme: "ink",
     rays: true,
     label: "O que fazemos",
-    title: ["A Prime faz", "a comunicação inteira."],
+    title: ["A comunicação", "inteira."],
     body: [
       { text: "Não é um serviço avulso contratado por mês. São cinco frentes que se " },
       { text: "sustentam entre si", tone: "gold" },
@@ -394,7 +397,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -1.22, y: 0.26, scale: 0.72, rotY: 0.95, rotX: 0.14 },
+    laptop: { x: -1.5, y: -0.42, scale: 0.62, rotY: 1.05, rotX: 0.14 },
     canal: "design",
   },
   {
@@ -404,7 +407,7 @@ export const sections = [
     rays: false,
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
-    laptop: { x: -2.1, y: 0.5, scale: 0.52, rotY: 1.3, rotX: 0.12 },
+    laptop: { x: -2.6, y: 0.3, scale: 0.52, rotY: 1.3, rotX: 0.12 },
     canal: "design",
   },
   {
@@ -413,7 +416,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -2.4, y: 0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -3.1, y: 0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
     canal: "design",
   },
 
@@ -430,7 +433,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -2.5, y: -0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -3.3, y: -0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
     canal: "design",
   },
   {
@@ -439,13 +442,13 @@ export const sections = [
     theme: "bone",
     rays: false,
     label: "Por que funciona",
-    title: ["Cinco forças", "sustentando uma marca."],
+    title: ["O que sustenta", "uma marca."],
     body: [
       { text: "Escolha uma e veja o que ela faz com a composição. É literalmente o que acontece com a comunicação de uma empresa quando " },
       { text: "falta uma delas", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -2.5, y: 0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -3.3, y: 0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
     canal: "design",
   },
   {
@@ -460,7 +463,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -2.5, y: -0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -3.3, y: -0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
     canal: "prime",
   },
   {

@@ -372,7 +372,7 @@ function Laptop() {
     /* Persegue a pose em vez de saltar: o alvo é do scroll, o movimento é do
        relógio. É o mesmo princípio do scrub do vídeo da hero — e é o que dá
        peso ao objeto. */
-    const l = parado ? 0.5 : 0.11;
+    const l = parado ? 0.5 : 0.13;
     c.x = damp(c.x, alvo.x, l, dt);
     c.y = damp(c.y, alvo.y, l, dt);
     c.scale = damp(c.scale, alvo.scale, l, dt);

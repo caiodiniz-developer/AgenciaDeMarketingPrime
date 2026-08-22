@@ -1613,6 +1613,12 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   overflow: hidden;
 }
 
+/* Coluna estreita pede título menor: a palavra longa não cabe na medida do
+   monumento e sai decepada pela borda. */
+.sec--indice .sec__title {
+  font-size: clamp(2rem, 4.2vw, 3.6rem);
+}
+
 .indice {
   position: relative;
   display: grid;
@@ -2576,18 +2582,23 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   max-width: 40rem;
 }
 
-.estrategia__palco {
+/* A área que sobra na tela. O palco de verdade é a caixa lá dentro. */
+.estrategia__vao {
   position: relative;
   min-height: 0;
-  /* Mesma proporção do viewBox: é o que faz os rótulos em DOM caírem sobre
-     os pontos em SVG. Sem isto, o "meet" deixa tarja e as duas geometrias
-     deixam de coincidir. */
+}
+
+/* Proporção travada e centrada dentro do vão.
+   `inset: 0` dá um bloco de contenção definido, `margin: auto` centra e a
+   proporção decide o tamanho: a caixa encolhe até caber, mantendo o desenho
+   do SVG e a régua dos rótulos na MESMA geometria. */
+.estrategia__palco {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   aspect-ratio: 900 / 560;
-  width: 100%;
+  max-width: 100%;
   max-height: 100%;
-  margin-inline: auto;
-  justify-self: center;
-  align-self: center;
 }
 
 .estrategia__svg {
@@ -3076,12 +3087,12 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .quem__cabeca {
   max-width: 42rem;
-  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+  margin-bottom: clamp(1.2rem, 3vh, 2rem);
 }
 
 .quem__palco {
   position: relative;
-  min-height: clamp(24rem, 56vh, 34rem);
+  min-height: clamp(23rem, 50vh, 30rem);
 }
 
 .quem__arco {
@@ -3107,7 +3118,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    os buracos que ela deixa. */
 .marca {
   position: absolute;
-  width: min(38%, 26rem);
+  width: min(34%, 21rem);
   transition: opacity 0.6s ease, filter 0.6s ease;
 }
 
@@ -3122,14 +3133,27 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* A ficha aberta cresce para BAIXO na marca de cima e para CIMA na de baixo:
-   sem isso, o preview da marca inferior sai pela base da seção. */
-.marca[data-indice="0"] {
+   sem isso, o preview da marca inferior sai pela base da seção.
+   A inversão vale para os DOIS níveis — a ficha dentro da marca e o nome
+   dentro da ficha. Invertendo só o de fora, o preview cresce para cima mas
+   por dentro continua empurrando o nome para baixo, e os dois colidem. */
+.marca[data-indice="0"],
+.marca[data-indice="0"] .marca__ficha {
   display: flex;
   flex-direction: column-reverse;
 }
 
 .marca[data-indice="0"] .marca__ficha {
   margin: 0 0 1rem;
+  gap: 0.6rem;
+}
+
+.marca[data-indice="0"] .perfil {
+  margin: 0;
+}
+
+.marca[data-indice="0"][data-active="true"] .perfil {
+  margin: 0 0 0.9rem;
 }
 
 .marca__selo {
@@ -3234,9 +3258,10 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .perfil__grade {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  margin: 0.8rem 0;
+  margin: 0.6rem 0;
+  max-width: 13rem;
 }
 
 .perfil__celula {
@@ -3257,9 +3282,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .perfil__nota {
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.7rem;
   font-family: var(--font-editorial);
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-style: italic;
   color: rgba(217, 217, 217, 0.45);
 }
@@ -3340,9 +3365,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .marca[data-active="true"] .perfil {
-  max-height: 34rem;
+  max-height: 15rem;
   opacity: 1;
-  margin-top: 1rem;
+  margin-top: 0.9rem;
 }
 
 /* A outra recua: é o que faz "em foco" significar alguma coisa. */
@@ -3566,6 +3591,18 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     max-height: 34rem;
     opacity: 1;
     margin-top: 1rem;
+  }
+
+  /* A inversão existe para o preview crescer para CIMA quando a marca está
+     ancorada na base do arco. Empilhadas, não há arco nem base — e invertida
+     a leitura fica "preview, nome, logo", que é a ordem errada. */
+  .marca[data-indice="0"],
+  .marca[data-indice="0"] .marca__ficha {
+    flex-direction: column;
+  }
+
+  .marca[data-indice="0"] .marca__ficha {
+    margin: 1rem 0 0;
   }
 
   .palco {

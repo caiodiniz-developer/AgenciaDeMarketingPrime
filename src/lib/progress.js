@@ -55,6 +55,29 @@ export const cena = {
  * própria hero rodando dentro do notebook, que é a piada visual que amarra a
  * narrativa — o site que você está vendo, dentro do objeto que o apresentou.
  */
+/**
+ * Sonda: o caminho do notebook é a única animação do site que não se
+ * inspeciona pelo DOM. Sem isto, "o objeto está no lugar errado" vira
+ * adivinhação — e foi assim que a orientação do modelo se resolveu.
+ *
+ * Os campos são copiados UM A UM, e não com espalhamento: o GSAP pendura um
+ * `_gsap` no alvo que aponta de volta para ele, e `{ ...cena.pose }` arrasta
+ * essa referência circular junto. Serializar o resultado explodia, e o canal
+ * do Puppeteer engolia o erro devolvendo `undefined` — a sonda parecia
+ * simplesmente não existir.
+ */
+if (typeof window !== "undefined") {
+  window.__cena = () => ({
+    x: cena.pose.x,
+    y: cena.pose.y,
+    scale: cena.pose.scale,
+    rotY: cena.pose.rotY,
+    rotX: cena.pose.rotX,
+    zoom: cena.zoom,
+    canal: cena.canal,
+  });
+}
+
 export const CANAIS = {
   social: "/videos/social-sm.mp4",
   web: "/videos/web-sm.mp4",

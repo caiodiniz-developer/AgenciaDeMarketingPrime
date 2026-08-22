@@ -1168,13 +1168,17 @@ function posicaoDaPeca(demo, i, n, w, h) {
 
     /* DIREÇÃO: tudo alinhado a um eixo só, em fila, com alguém à frente. */
     case "apontar": {
-      const passo = (w - 120) / (n - 1);
+      /* Uma fila em perspectiva: as peças de trás são menores e mais
+         apagadas. A escala pequena no começo é o que impede a fila de virar
+         um empilhamento — com todas do mesmo tamanho, o passo disponível é
+         menor que a largura da peça e elas se cobrem. */
+      const passo = (w - 150) / (n - 1);
       return {
-        x: 30 + i * passo,
-        y: cy - 30 + Math.sin(i * 0.5) * 6,
+        x: 26 + i * passo,
+        y: cy - 26 - (i / n) * 18,
         rot: 0,
-        scale: 0.72 + (i / n) * 0.5,
-        opacity: 0.45 + (i / n) * 0.55,
+        scale: 0.5 + (i / n) * 0.55,
+        opacity: 0.35 + (i / n) * 0.65,
       };
     }
 
@@ -1353,7 +1357,10 @@ function clientesNoArco(q, desktop) {
     limpezas.push(() => traco.scrollTrigger?.kill());
   }
 
-  const pecas = () => palco.querySelectorAll("[data-flip-id], [data-marca-ficha]");
+  /* Só os elementos que de fato MUDAM de lugar. Incluir a ficha inteira punha
+     um contêiner em `position: absolute` durante a tween, e as peças dentro
+     dele passavam a se medir contra um pai que não era mais o do layout. */
+  const pecas = () => palco.querySelectorAll("[data-flip-id]");
 
   const ativar = (i) => {
     const antes = Flip.getState(pecas(), { props: "textAlign" });
