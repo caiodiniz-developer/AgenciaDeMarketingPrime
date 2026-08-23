@@ -5,11 +5,10 @@
  * sessenta vezes por segundo, e quem lê é o loop de render. Passar isso por
  * estado re-renderizaria a árvore inteira a cada quadro.
  *
- * O NOTEBOOK NÃO TELETRANSPORTA. Antes cada seção fixava uma pose e o objeto
- * era apagado durante o salto — o truque de teatro. Agora existe UMA timeline
- * contínua conduzida pelo scroll: a pose é interpolada de seção para seção e o
- * caminho inteiro fica à vista. Sair de cena é viajar para fora do quadro
- * (|x| > 1.6), não desaparecer.
+ * O NOTEBOOK NÃO TELETRANSPORTA. Existe UMA timeline contínua conduzida pelo
+ * scroll: a pose é interpolada de seção para seção e o caminho inteiro fica à
+ * vista. Sair de cena é viajar para fora do quadro ou APAGAR devagar — nunca
+ * pular de um lado ao outro entre dois quadros.
  *
  * Este módulo não importa nada do three.js de propósito: importá-lo de dentro
  * de LaptopScene seria um import estático do módulo 3D, e isso anula o
@@ -17,8 +16,18 @@
  * principal, na frente da hero.
  */
 
-/** Pose de repouso, fora do quadro à direita. */
-export const FORA = { x: 1.9, y: -0.1, scale: 0.6, rotY: -0.8, rotX: 0.1 };
+/**
+ * O NASCIMENTO.
+ *
+ * O objeto não existe durante a hero. Ele nasce no escuro entre a hero e o
+ * manifesto: minúsculo, no centro, longe, tombado para trás — e cresce até a
+ * primeira pose. Entrar deslizando pela borda seria "mais um elemento
+ * chegando"; nascer do fundo é um começo.
+ */
+export const NASCIMENTO = { x: 0, y: -0.08, scale: 0.13, rotY: -0.4, rotX: 0.42 };
+
+/** Compatibilidade: a pose de repouso é a de nascimento. */
+export const FORA = NASCIMENTO;
 
 export const cena = {
   /**
@@ -26,7 +35,7 @@ export const cena = {
    * x, y: -1 = borda esquerda/inferior da janela, +1 = direita/superior.
    * Além de ±1.6 o objeto está fora do quadro.
    */
-  pose: { ...FORA },
+  pose: { ...NASCIMENTO },
 
   /**
    * Aproximação final da seção Web, de 0 a 1.
@@ -38,6 +47,54 @@ export const cena = {
   zoom: 0,
 
   /**
+   * Presença, de 0 a 1.
+   *
+   * O fio condutor precisa de PAUSA. Um objeto que nunca sai de cena deixa de
+   * ser presença e vira moldura: o olho para de registrá-lo. Nas seções que
+   * têm palco próprio — a construção da marca, o campo das forças — ele se
+   * apaga, o site respira, e a volta no fecho volta a valer alguma coisa.
+   *
+   * Apagar não é teletransportar: a pose continua correndo por baixo, então
+   * quando ele reacende já está no lugar certo do trajeto.
+   */
+  presenca: 1,
+
+  /**
+   * A seção em cena quer o objeto? 0 ou 1, em degrau.
+   *
+   * Separado de `nascido` porque os dois mudam em ritmos diferentes, e
+   * separado de `presenca` porque esta é o PRODUTO dos dois — calculado no
+   * loop de render, onde os dois valores estão sempre atuais.
+   */
+  presente: 1,
+
+  /**
+   * Quanto do NASCIMENTO já aconteceu, de 0 a 1.
+   *
+   * Fica separado de `presenca` porque são duas autoridades diferentes: a
+   * presença é decidida pela seção em cena, o nascimento por um único trecho
+   * de scroll no começo da narrativa. Guardados no mesmo número, o gatilho da
+   * primeira seção — que diz "presente" a cada quadro — apagava a rampa de
+   * nascimento e o objeto surgia pronto. Multiplicados, cada um manda no que
+   * é seu.
+   */
+  nascido: 0,
+
+  /**
+   * Fechamento da tampa, de 0 (aberta) a 1 (quase encostada).
+   *
+   * Só o último movimento da narrativa usa isto. Nunca chega a 1 de verdade:
+   * uma tampa encostada some, e o que se quer ver é o gesto.
+   */
+  tampa: 0,
+
+  /**
+   * Ângulo da varredura dourada no alumínio, em voltas.
+   * Conduzido pelo scroll: o reflexo corre quando a página corre.
+   */
+  brilho: 0,
+
+  /**
    * Canal exibido na tela do notebook. Trocar dispara um crossfade na
    * textura — a tela nunca corta.
    */
@@ -45,6 +102,9 @@ export const cena = {
 
   /** Ligado enquanto a região da narrativa está na viewport. */
   ativo: false,
+
+  /** Qual faixa de seção está mandando na cena. Só diagnóstico. */
+  secao: null,
 };
 
 /**
@@ -55,6 +115,14 @@ export const cena = {
  * própria hero rodando dentro do notebook, que é a piada visual que amarra a
  * narrativa — o site que você está vendo, dentro do objeto que o apresentou.
  */
+export const CANAIS = {
+  social: "/videos/social-sm.mp4",
+  web: "/videos/web-sm.mp4",
+  design: "/videos/design-sm.mp4",
+  branding: "/videos/branding-sm.mp4",
+  prime: "/media/hero-480.mp4",
+};
+
 /**
  * Sonda: o caminho do notebook é a única animação do site que não se
  * inspeciona pelo DOM. Sem isto, "o objeto está no lugar errado" vira
@@ -74,13 +142,9 @@ if (typeof window !== "undefined") {
     rotY: cena.pose.rotY,
     rotX: cena.pose.rotX,
     zoom: cena.zoom,
+    presenca: cena.presenca,
+    tampa: cena.tampa,
     canal: cena.canal,
+    secao: cena.secao,
   });
 }
-
-export const CANAIS = {
-  social: "/videos/social-sm.mp4",
-  web: "/videos/web-sm.mp4",
-  design: "/videos/design-sm.mp4",
-  prime: "/media/hero-480.mp4",
-};

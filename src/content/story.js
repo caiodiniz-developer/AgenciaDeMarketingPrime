@@ -327,7 +327,10 @@ export const forcas = [
  *            (1,1) o superior direito. Além de ±1.6 o modelo está fora do
  *            quadro — e é assim que ele SAI de cena, viajando, nunca sumindo.
  *            Depois da seção Web o objeto fica na MARGEM ESQUERDA e só sobe
- *            e desce por ela, até voltar ao centro no fecho. Alternar entre
+ *            e desce por ela, até voltar ao centro no fecho. Uma pose à
+ *            direita no meio dessa sequência obrigava a atravessar a tela
+ *            inteira duas vezes seguidas — ida e volta —, que é o oposto de
+ *            trajeto: é vaivém. Alternar entre
  *            as duas bordas obrigaria a atravessar a tela inteira em cada
  *            troca — e a travessia passa por cima do conteúdo que a seção
  *            acabou de revelar.
@@ -342,7 +345,13 @@ export const forcas = [
  *            objeto percorre o caminho à vista, que é o pedido explícito do
  *            briefing. Nada de "some à direita, reaparece à esquerda".
  *
- * `canal`  — o que a tela do notebook mostra nesta seção. Ver lib/laptop.js.
+ * `presente` — `false` apaga o objeto nesta seção. O trajeto continua
+ *            correndo por baixo, então quando ele reacende já está no ponto
+ *            certo. Existe porque fio condutor sem PAUSA vira moldura: o olho
+ *            para de registrar o que nunca sai de cena, e a volta no fecho
+ *            deixa de valer alguma coisa.
+ *
+ * `canal`  — o que a tela do notebook mostra nesta seção. Ver lib/progress.js.
  */
 export const sections = [
   {
@@ -416,7 +425,11 @@ export const sections = [
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
     laptop: { x: -1.46, y: -0.28, scale: 0.44, rotY: 1.25, rotX: 0.14 },
-    canal: "design",
+    /* AUSÊNCIA. A construção da marca é o palco desta seção inteira, e o
+       objeto ali seria um segundo assunto disputando o mesmo bege. Ele
+       continua percorrendo o trajeto por baixo — só não é desenhado. */
+    presente: false,
+    canal: "branding",
   },
   {
     id: "estrategia",
@@ -424,8 +437,8 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: 1.22, y: 0.56, scale: 0.44, rotY: -1.2, rotX: 0.18 },
-    canal: "design",
+    laptop: { x: -1.35, y: 0.5, scale: 0.44, rotY: 1.2, rotX: 0.18 },
+    canal: "branding",
   },
 
   /* ── Método, prova e fecho ────────────────────────────────────────── */
@@ -437,7 +450,7 @@ export const sections = [
     label: "Como funciona",
     title: ["Entra informação.", "Sai presença."],
     body: [
-      { text: "O que a sua empresa já sabe de cor entra de um lado. Do outro sai comunicação pronta para ir ao ar — " },
+      { text: "O que a sua empresa já sabe de cor entra de um lado. Do outro sai comunicação pronta para ir ao ar, " },
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
@@ -452,12 +465,14 @@ export const sections = [
     label: "Por que funciona",
     title: ["O que sustenta", "uma marca."],
     body: [
-      { text: "Escolha uma e veja o que ela faz com a composição. É literalmente o que acontece com a comunicação de uma empresa quando " },
-      { text: "falta uma delas", tone: "gold" },
+      { text: "Passe o cursor pelo campo e escolha uma força. O que acontece com as peças é o que acontece com a comunicação de uma empresa quando " },
+      { text: "falta aquela força", tone: "gold" },
       { text: "." },
     ],
     laptop: { x: -1.44, y: 0.56, scale: 0.42, rotY: 1.3, rotX: 0.16 },
-    canal: "design",
+    // A segunda ausência: o campo das forças precisa da tela para ele.
+    presente: false,
+    canal: "prime",
   },
   {
     id: "clientes",

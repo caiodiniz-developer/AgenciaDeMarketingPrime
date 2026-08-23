@@ -704,6 +704,30 @@ body {
   position: relative;
 }
 
+/* ── Indicador de seção ──────────────────────────────────────────────── */
+.nav__links li {
+  position: relative;
+}
+
+.nav__marcador {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.5rem;
+  height: 1px;
+  background: var(--color-gold);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav__links li[data-ativo="true"] > a {
+  color: var(--color-bone);
+}
+
+html[data-nav-theme="bone"] .nav__links li[data-ativo="true"] > a {
+  color: #14120e;
+}
+
 .nav__logo {
   height: 100%;
   width: auto;
@@ -2782,11 +2806,15 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 /* ═════════════════════════════════════════════════════════════
    MÁQUINA PRIME — entra informação, sai presença
+   A esteira é literal: as peças andam sobre o mesmo path que
+   está desenhado. Por isso o palco tem proporção travada — se
+   a geometria do SVG e a do DOM divergirem, as peças saem da
+   linha, e é a linha que carrega a ideia inteira.
    ═════════════════════════════════════════════════════════════ */
 .maquina {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: clamp(1rem, 2.5vh, 2rem);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: clamp(0.4rem, 1vh, 0.9rem);
   height: 100%;
 }
 
@@ -2794,27 +2822,37 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   max-width: 44rem;
 }
 
+/* Nas seções que dividem a tela com uma composição, o título não pode ser o
+   monumento do manifesto: ali ele É a página, aqui ele divide o palco. */
 .maquina__cabeca .sec__title,
 .sistema__cabeca .sec__title,
 .quem__cabeca .sec__title {
-  font-size: clamp(1.9rem, 3.8vw, 3.2rem);
+  font-size: clamp(1.8rem, 3.4vw, 2.9rem);
 }
 
 .maquina__cabeca .sec__body,
 .sistema__cabeca .sec__body,
 .quem__cabeca .sec__body {
-  margin-top: clamp(0.9rem, 1.8vw, 1.4rem);
+  margin-top: clamp(0.7rem, 1.5vw, 1.1rem);
   max-width: 34rem;
-  font-size: clamp(0.95rem, 1.1vw, 1.08rem);
+  font-size: clamp(0.92rem, 1.05vw, 1.04rem);
 }
 
-.maquina__cena {
+.maquina__vao {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr) minmax(0, 0.9fr);
-  gap: clamp(1rem, 3vw, 2.5rem);
-  align-items: center;
   min-height: 0;
+}
+
+/* Proporção travada e centrada, pelo mesmo truque do palco da Estratégia:
+   `inset: 0` dá bloco de contenção definido, `margin: auto` centra, e a
+   proporção decide o tamanho. */
+.maquina__cena {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  aspect-ratio: 1200 / 360;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .maquina__trilha {
@@ -2822,8 +2860,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
   fill: none;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .maquina__calha {
@@ -2834,44 +2873,72 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .maquina__fio {
   stroke: var(--color-gold);
   stroke-width: 2;
-  filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.35));
+  filter: drop-shadow(0 0 7px rgba(201, 168, 76, 0.4));
 }
 
-.maquina__entradas {
-  grid-column: 1;
+.maquina__ramo {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+/* O caminho que sobrevive à decisão é o único dourado e contínuo. */
+.maquina__ramo[data-fica="true"] {
+  stroke: var(--color-gold);
+  stroke-dasharray: none;
+  stroke-width: 2;
 }
 
 .maquina__nucleo {
-  grid-column: 2;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
-.maquina__saidas {
-  grid-column: 3;
+.maquina__anel {
+  position: absolute;
+  width: clamp(6rem, 13vh, 9rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 76, 0.3);
 }
 
+.maquina__anel--dois {
+  width: clamp(8.5rem, 18vh, 12.5rem);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* As fichas e as entregas são posicionadas pelo MotionPath: precisam de
+   `position: absolute` dentro do palco e de nenhuma regra de fluxo. */
 .maquina__entradas,
 .maquina__saidas {
-  display: grid;
-  gap: 0.5rem;
+  position: absolute;
+  inset: 0;
   margin: 0;
   padding: 0;
   list-style: none;
-  position: relative;
-  z-index: 1;
+  pointer-events: none;
 }
 
 .ficha {
+  position: absolute;
   display: grid;
   gap: 0.15rem;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0.4rem;
-  background: rgba(12, 12, 12, 0.72);
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.35rem;
+  background: rgba(10, 10, 10, 0.88);
   backdrop-filter: blur(6px);
+  white-space: nowrap;
 }
 
 .ficha b {
-  font-size: 0.66rem;
+  font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.2em;
   color: var(--color-bone);
@@ -2879,64 +2946,45 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .ficha i {
   font-style: normal;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-family: var(--font-editorial);
   color: rgba(217, 217, 217, 0.5);
 }
 
-/* Fase "processando": as fichas se recolhem para o centro da cena. O Flip
-   mede a diferença — aqui só se descreve o destino. */
-.maquina__cena[data-fase="processando"] .maquina__entradas {
+.saida {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-  gap: 0;
+  padding: 0.28rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  background: rgba(24, 20, 10, 0.9);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--color-gold);
+  white-space: nowrap;
 }
 
-.maquina__nucleo {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: clamp(11rem, 30vh, 17rem);
-  z-index: 1;
-}
-
-.maquina__anel {
-  position: absolute;
-  width: clamp(10rem, 26vh, 15rem);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 1px solid rgba(201, 168, 76, 0.28);
-}
-
-.maquina__anel--dois {
-  width: clamp(13rem, 34vh, 19rem);
-  border-style: dashed;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
+/* As etapas explicam o que está acontecendo no palco. Ficam FORA dele: dentro
+   do núcleo competiam com as peças que passam por ali. */
 .maquina__etapas {
   position: relative;
   margin: 0;
   padding: 0;
   list-style: none;
-  width: min(100%, 24rem);
-  min-height: clamp(9rem, 24vh, 13rem);
+  min-height: clamp(5.5rem, 13vh, 7rem);
 }
 
 .etapa {
   position: absolute;
   inset: 0;
   display: grid;
-  align-content: center;
-  gap: 0.4rem;
-  text-align: center;
-  padding: 0 1rem;
+  align-content: start;
+  gap: 0.3rem;
+  max-width: 34rem;
 }
 
 .etapa__num {
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.28em;
   color: var(--color-gold);
@@ -2945,7 +2993,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .etapa__titulo {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
   font-weight: 700;
   text-transform: uppercase;
   color: var(--color-bone);
@@ -2960,28 +3008,12 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   text-wrap: pretty;
 }
 
-.maquina__saidas {
-  justify-items: end;
-}
-
-.saida {
-  padding: 0.3rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid rgba(201, 168, 76, 0.35);
-  background: rgba(201, 168, 76, 0.08);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  color: var(--color-gold);
-}
-
 .maquina__fecho {
   margin: 0;
   font-family: var(--font-editorial);
-  font-size: clamp(1.05rem, 1.8vw, 1.5rem);
+  font-size: clamp(1rem, 1.7vw, 1.4rem);
   font-style: italic;
   color: var(--color-bone);
-  text-align: center;
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -3023,8 +3055,26 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   display: grid;
   justify-items: center;
   gap: 0.4rem;
+  padding: 1.2rem 1.6rem;
   z-index: 2;
   pointer-events: none;
+}
+
+/* Um halo do tom do palco atrás da marca: as peças passam por cima do centro
+   nas demonstrações, e sem este respiro o nome da marca some dentro delas.
+   Halo, e não caixa: uma moldura no meio do campo viraria mais uma peça. */
+.palco__marca::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(240, 235, 224, 0.96) 0%,
+    rgba(240, 235, 224, 0.86) 45%,
+    rgba(240, 235, 224, 0) 72%
+  );
 }
 
 .palco__marca img {
@@ -3049,6 +3099,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   position: absolute;
   top: 0;
   left: 0;
+  /* left/top são animados pela demonstração e x/y pelo campo magnético.
+     Sem `will-change` explícito o navegador re-layouta a cada quadro em vez
+     de compor — e doze peças re-layoutando a 60 Hz derrubam o quadro. */
   display: grid;
   gap: 4px;
   width: 92px;
@@ -3247,30 +3300,80 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   stroke-width: 1.5;
 }
 
-/* ── Duas marcas, lado a lado ────────────────────────────────────────
-   Duas logos e nada mais. A composição anterior empilhava logo, nome, ficha
-   e uma grade de marcas d'água fingindo ser posts: muito elemento para pouca
-   informação, e a grade inventada não convencia ninguém. */
-.quem__marcas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1.5rem, 4vw, 4rem);
-  align-items: stretch;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* ── O arco, as duas marcas e a Prime no meio ────────────────────────
+   Composição, não grade. Com dois clientes, a grade denuncia os buracos que
+   ela deixa; o arco assume o número e faz dele desenho. */
+.quem__palco {
+  position: relative;
+  min-height: clamp(23rem, 52vh, 32rem);
+}
+
+.quem__arco {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  pointer-events: none;
+}
+
+.quem__arco-calha {
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 1;
+}
+
+.quem__arco-traco {
+  stroke-width: 1.5;
+}
+
+.quem__no {
+  fill: var(--color-gold);
+}
+
+.quem__centro {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 1.6rem);
+  transition: opacity 0.4s ease;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: rgba(201, 168, 76, 0.7);
+  pointer-events: none;
+}
+
+/* Uma marca embaixo à esquerda, outra em cima à direita: as pontas do arco. */
+.marca {
+  position: absolute;
+  width: min(30%, 17rem);
+  transition:
+    opacity 0.6s ease,
+    filter 0.6s ease;
+}
+
+.marca[data-indice="0"] {
+  left: 1%;
+  bottom: 2%;
+}
+
+.marca[data-indice="1"] {
+  right: 1%;
+  top: 0;
 }
 
 .marca__gatilho {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 1.4rem;
+  gap: 1rem;
   width: 100%;
-  padding: clamp(1.5rem, 4vh, 2.75rem) clamp(1rem, 2.5vw, 2rem) clamp(1.2rem, 3vh, 2rem);
+  padding: clamp(1rem, 2.4vh, 1.6rem) clamp(0.9rem, 2vw, 1.4rem) clamp(0.9rem, 2vh, 1.3rem);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 0.75rem;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+  border-radius: 0.7rem;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.35));
+  backdrop-filter: blur(3px);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -3281,11 +3384,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     background-color var(--t-ui) ease;
 }
 
-.marca__gatilho:hover,
-.marca__gatilho:focus-visible {
-  transform: translateY(-6px);
-  border-color: rgba(201, 168, 76, 0.45);
-  background: linear-gradient(165deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0));
+.marca[data-active="true"] .marca__gatilho {
+  transform: translateY(-6px) scale(1.03);
+  border-color: rgba(201, 168, 76, 0.5);
 }
 
 /* A logo do cliente é dele: não se recolore marca alheia. Quando a arte é
@@ -3294,9 +3395,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .marca__placa {
   display: grid;
   place-items: center;
-  min-height: clamp(7rem, 18vh, 11rem);
-  padding: clamp(0.8rem, 2vh, 1.5rem);
-  border-radius: 0.5rem;
+  min-height: clamp(5.5rem, 14vh, 8rem);
+  padding: clamp(0.6rem, 1.6vh, 1.1rem);
+  border-radius: 0.4rem;
 }
 
 .marca__placa[data-placa="true"] {
@@ -3305,37 +3406,34 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .marca__placa img {
   max-width: 100%;
-  max-height: clamp(5rem, 13vh, 8rem);
+  max-height: clamp(4rem, 10vh, 6rem);
   width: auto;
   object-fit: contain;
 }
 
 .marca__pe {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 .marca__nome {
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-size: clamp(0.9rem, 1.5vw, 1.2rem);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
   color: var(--color-bone);
 }
 
 .marca__arroba {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.14em;
   color: rgba(201, 168, 76, 0.8);
 }
 
-/* O risco dourado corre na base quando a marca está em foco: o mesmo gesto
-   discreto do resto do site, em vez de sombra e escala grandes. */
 .marca__risco {
   position: absolute;
-  left: clamp(1rem, 2.5vw, 2rem);
-  right: clamp(1rem, 2.5vw, 2rem);
+  left: clamp(0.9rem, 2vw, 1.4rem);
+  right: clamp(0.9rem, 2vw, 1.4rem);
   bottom: 0;
   height: 1px;
   background: var(--color-gold);
@@ -3344,17 +3442,160 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.marca__gatilho:hover .marca__risco,
-.marca__gatilho:focus-visible .marca__risco {
+.marca[data-active="true"] .marca__risco {
   transform: scaleX(1);
 }
 
+/* Com um perfil aberto, o ponto de encontro fica atrás do painel: mantê-lo
+   aceso ali é desenhar por baixo de uma superfície opaca. */
+.quem[data-ativo]:not([data-ativo=""]) .quem__centro,
+.quem[data-ativo]:not([data-ativo=""]) .quem__no {
+  opacity: 0;
+}
+
+/* A outra recua. É o que faz "em foco" significar alguma coisa. */
+.quem[data-ativo]:not([data-ativo=""]) .marca[data-active="false"] {
+  opacity: 0.3;
+  filter: saturate(0.4);
+}
+
+/* ── O painel do perfil, DENTRO da composição ────────────────────────
+   Ocupa a faixa central do palco, entre as duas marcas, e é revelado por
+   clip-path. Modal centralizado era a solução anterior: parava a página. */
+.quem__perfil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: min(34%, 22rem);
+  height: min(94%, 30rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.7rem;
+  overflow: hidden;
+  background: #0b0b0b;
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
+  clip-path: inset(50% 0% 50% 0% round 0.7rem);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    clip-path 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease;
+}
+
+.quem__perfil[data-aberto="true"] {
+  clip-path: inset(0% 0% 0% 0% round 0.7rem);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quem__perfil-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.quem__perfil-marca {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  overflow: hidden;
+}
+
+.quem__perfil-marca[data-placa="true"] {
+  background: #fff;
+}
+
+.quem__perfil-marca img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.quem__perfil-id {
+  display: grid;
+  line-height: 1.3;
+}
+
+.quem__perfil-id b {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-bone);
+}
+
+.quem__perfil-id i {
+  font-style: normal;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  color: rgba(201, 168, 76, 0.8);
+}
+
+.quem__perfil-janela {
+  position: relative;
+  min-height: 0;
+  background: #0f0f0f;
+}
+
+.quem__perfil-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #fff;
+}
+
+.quem__perfil-reserva {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 1.6rem;
+  text-align: center;
+  background: #0f0f0f;
+  font-family: var(--font-editorial);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: rgba(217, 217, 217, 0.6);
+}
+
+.quem__perfil-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.7rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  background: var(--color-gold);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #0a0a0a;
+  transition: filter var(--t-ui) ease;
+}
+
+.quem__perfil-link:hover,
+.quem__perfil-link:focus-visible {
+  filter: brightness(1.1);
+}
+
 .quem__dica {
-  margin: clamp(1rem, 3vh, 2rem) 0 0;
-  font-size: 0.68rem;
+  margin: clamp(0.8rem, 2.5vh, 1.6rem) 0 0;
+  font-size: 0.66rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(217, 217, 217, 0.35);
+  color: rgba(217, 217, 217, 0.32);
 }
 
 .quem__dica-toque {
@@ -3367,211 +3608,6 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   }
   .quem__dica-toque {
     display: inline;
-  }
-}
-
-/* ═════════════════════════════════════════════════════════════
-   POP-UP DO PERFIL
-   O Instagram real, dentro do site. Quando ele recusa ser
-   embutido — e recusa com frequência —, o conteúdo da Prime
-   assume o lugar com o caminho para o perfil verdadeiro.
-   ═════════════════════════════════════════════════════════════ */
-.pop {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  display: grid;
-  place-items: center;
-  padding: clamp(1rem, 4vh, 3rem) clamp(1rem, 4vw, 3rem);
-  background: rgba(3, 3, 3, 0.82);
-  backdrop-filter: blur(10px);
-}
-
-.pop__caixa {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  width: min(100%, 26rem);
-  max-height: min(100%, 44rem);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.9rem;
-  overflow: hidden;
-  background: #0b0b0b;
-  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.9);
-}
-
-.pop__topo {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.pop__marca {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 5px;
-  border-radius: 50%;
-  border: 1px solid rgba(201, 168, 76, 0.45);
-  overflow: hidden;
-}
-
-.pop__marca[data-placa="true"] {
-  background: #fff;
-}
-
-.pop__marca img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.pop__id {
-  display: grid;
-  flex: 1;
-  line-height: 1.3;
-}
-
-.pop__id b {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-bone);
-}
-
-.pop__id i {
-  font-style: normal;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  color: rgba(201, 168, 76, 0.8);
-}
-
-.pop__fechar {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 50%;
-  background: none;
-  color: var(--color-bone);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition:
-    background-color var(--t-ui) ease,
-    border-color var(--t-ui) ease;
-}
-
-.pop__fechar:hover,
-.pop__fechar:focus-visible {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(201, 168, 76, 0.5);
-}
-
-.pop__janela {
-  position: relative;
-  min-height: clamp(18rem, 48vh, 30rem);
-  background: #0f0f0f;
-}
-
-.pop__frame {
-  width: 100%;
-  height: 100%;
-  min-height: clamp(18rem, 48vh, 30rem);
-  border: 0;
-  display: block;
-  background: #fff;
-}
-
-.pop__reserva {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  text-align: center;
-  background: #0f0f0f;
-}
-
-.pop__carregando {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(217, 217, 217, 0.5);
-}
-
-.pop__spin {
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  border-top-color: var(--color-gold);
-  border-radius: 50%;
-  animation: pop-gira 0.9s linear infinite;
-}
-
-@keyframes pop-gira {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.pop__aviso {
-  margin: 0;
-  max-width: 20rem;
-  font-family: var(--font-editorial);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--color-bone);
-}
-
-.pop__sub {
-  margin: 0;
-  max-width: 20rem;
-  font-size: 0.78rem;
-  line-height: 1.6;
-  color: rgba(217, 217, 217, 0.5);
-}
-
-.pop__base {
-  display: grid;
-  padding: 0.9rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.pop__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.2rem;
-  border-radius: 999px;
-  background: var(--color-gold);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: #0a0a0a;
-  transition: filter var(--t-ui) ease;
-}
-
-.pop__link:hover,
-.pop__link:focus-visible {
-  filter: brightness(1.1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pop__spin {
-    animation: none;
-  }
-  .marca__gatilho,
-  .marca__risco {
-    transition: none;
   }
 }
 
@@ -3803,28 +3839,23 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     grid-row: auto;
   }
 
-  .maquina__cena {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
+  /* No celular a esteira continua: o que muda é a altura do palco, para o
+     texto das etapas caber embaixo sem espremer a curva. */
+  .maquina__vao {
+    min-height: clamp(11rem, 26vh, 15rem);
   }
 
-  .maquina__trilha {
+  .ficha b,
+  .saida {
+    font-size: 0.52rem;
+  }
+
+  .ficha i {
     display: none;
   }
 
-  .maquina__entradas,
-  .maquina__saidas {
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-    justify-items: stretch;
-  }
-
-  .maquina__cena[data-fase="processando"] .maquina__entradas {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: scale(0.85);
-  }
-
+  /* Empilhado: sem arco, sem sobreposição, e o painel do perfil vira o
+     bloco seguinte de cada marca em vez de flutuar no meio. */
   .marca {
     position: relative;
     width: 100%;
@@ -3832,15 +3863,27 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     right: auto;
     top: auto;
     bottom: auto;
-    margin-bottom: 3rem;
+    margin-bottom: 1.5rem;
   }
 
   .quem__palco {
+    display: grid;
     min-height: 0;
   }
 
-  .quem__arco {
+  .quem__arco,
+  .quem__centro {
     display: none;
+  }
+
+  .quem__perfil {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 100%;
+    height: clamp(24rem, 62vh, 34rem);
+    margin-bottom: 1.5rem;
   }
 
   /* Sem hover, o preview não pode viver fechado: ele É o conteúdo. */

@@ -1,16 +1,35 @@
 import { lazy, Suspense, useRef, useState } from "react";
 import { gsap, useGSAP, ScrollTrigger, SplitText, Flip } from "../lib/gsap";
 import { paintGradientAcross, gradientToken } from "../lib/gradientText";
-import { cena, FORA } from "../lib/progress";
+import { cena, NASCIMENTO } from "../lib/progress";
 import { sections } from "../content/story";
-import { pickTier } from "../lib/media";
+import { pickTier, prefersReducedMotion } from "../lib/media";
 import { EASE, DUR, STAGGER, BEAT, DEPTH } from "../lib/motion";
-import { isTouch } from "../lib/pointer";
+import { isTouch, pointer, damp } from "../lib/pointer";
 import Section from "./Section";
 import Rays from "./Rays";
 
 // three.js sozinho pesa mais que todo o resto do site: sai do caminho da hero.
 const LaptopScene = lazy(() => import("./LaptopScene"));
+
+/**
+ * O elemento que representa uma seção NO EIXO DO SCROLL.
+ *
+ * Uma seção presa não fica onde o layout diz. Durante o pin ela é retirada do
+ * fluxo, e depois dele o ScrollTrigger a desloca até o fim do espaçador — de
+ * modo que `getBoundingClientRect` devolve, em repouso, a posição do FIM da
+ * seção, não a do começo. Qualquer gatilho medido nela nasce uma seção
+ * inteira atrasado: o canal da tela, a luz, a presença do 3D e a pose
+ * passavam a responder pela seção anterior.
+ *
+ * O espaçador, esse, ocupa exatamente o curso de scroll da seção. É nele que
+ * tudo se mede — e só existe depois que os pins foram criados, que é por isso
+ * que estes gatilhos são montados por último.
+ */
+const ancoraDe = (id) => {
+  const el = document.querySelector(`[data-sec="${id}"]`);
+  return el ? el.closest(".pin-spacer") || el : null;
+};
 
 /** Seções que PRENDEM a tela. O reveal padrão não se aplica a elas. */
 const PRESAS = new Set(["social", "web", "design", "branding", "estrategia", "maquina"]);
@@ -45,7 +64,13 @@ export default function Story() {
       const alive = ScrollTrigger.create({
         trigger: root.current,
         start: "top bottom",
-        end: "bottom top",
+        /* Até o FIM DO DOCUMENTO, e não até a narrativa sair da tela.
+           O último ato — a tampa fechando enquanto a página descobre o
+           rodapé — acontece depois de `.story` passar do topo. Com
+           `bottom top` o `frameloop` virava "never" bem ali: o canvas
+           parava de desenhar e guardava o último quadro, então o notebook
+           congelava no meio do trajeto e a tampa nunca fechava. */
+        end: "max",
         onToggle: (self) => {
           setActive(self.isActive);
           cena.ativo = self.isActive;
@@ -218,13 +243,14 @@ export default function Story() {
             );
 
             limpezas.push(
-              caminhoDoNotebook(),
+              caminhoDoNotebook(root.current),
+              tampaFechando(),
               transicaoEntreSecoes(q, desktop),
               faixaDoManifesto(q),
               palavrasAcendendo(q),
               indiceInterativo(q, desktop),
               forcasDoSistema(q, desktop),
-              clientesNoArco(q, desktop),
+              clientesNoArco(q),
               cartoesComInclinacao(q, desktop),
               ctaCinematografico(q, desktop)
             );
@@ -262,20 +288,45 @@ export default function Story() {
              apagar o objeto para ele saltar de um lado a outro sem ser visto. */
           const avulsos = sections.map((s, i) => {
             const proxima = sections[i + 1];
+            const alvo = ancoraDe(s.id);
+            const alvoProximo = proxima && ancoraDe(proxima.id);
             return ScrollTrigger.create({
-              trigger: `[data-sec="${s.id}"]`,
-              start: "top 60%",
+              trigger: alvo,
+              /* A entrega da faixa acontece quando a PRÓXIMA seção já cobre
+                 mais da metade da tela. Em 60% a troca vinha cedo demais:
+                 numa seção curta, a faixa seguinte assumia enquanto a atual
+                 ainda era o que o leitor estava lendo — e a tela do notebook
+                 trocava de canal antes da hora. */
+              start: "top 45%",
               /* A faixa termina onde a PRÓXIMA começa, e não na base desta.
                  Com `bottom 40%`, uma seção presa por três telas sai da
                  própria faixa logo no início do pin: dali até a seção seguinte
                  não há nenhuma ativa, e a cena congela no estado da anterior.
                  Amarrar no elemento seguinte também imuniza contra o pin. */
-              endTrigger: proxima ? `[data-sec="${proxima.id}"]` : `[data-sec="${s.id}"]`,
-              end: proxima ? "top 60%" : "bottom bottom",
+              endTrigger: alvoProximo || alvo,
+              end: alvoProximo ? "top 45%" : "bottom bottom",
+              /* Canal e presença são reafirmados a CADA quadro em que a
+                 faixa está ativa, e não só na virada.
+
+                 `onToggle` só dispara quando o estado muda. Descendo isso
+                 basta; num salto — âncora, restauração de scroll, volta ao
+                 topo — várias faixas mudam de estado no mesmo update e a
+                 última a escrever não é necessariamente a que ficou ativa.
+                 O resultado era a tela do notebook exibindo o canal de uma
+                 seção que já tinha ficado para trás. Duas atribuições por
+                 quadro custam nada; discordar do scroll custa a ilusão. */
+              onUpdate: () => {
+                cena.secao = s.id;
+                if (s.canal) cena.canal = s.canal;
+                /* Só o degrau da seção. O produto com o nascimento é feito
+                   no loop de render — ver lib/progress.js. */
+                cena.presente = s.presente === false ? 0 : 1;
+              },
               onToggle: (self) => {
                 if (!self.isActive) return;
 
-                if (s.canal) cena.canal = s.canal;
+                /* O que é CARO fica na virada: mexer no estado do React
+                   re-renderiza a árvore, e o shader dos raios recompila. */
                 setLevel(s.rays ? 1 : 0.05);
 
                 /* Mexer no `level` do shader não basta: com `mix-blend-mode:
@@ -308,25 +359,13 @@ export default function Story() {
               beges.size ? "bone" : "ink"
             );
 
-          /* O alvo é o ESPAÇADOR do pin quando ele existe.
-             Uma seção presa não fica mais onde o layout diz: enquanto o pin
-             está ativo ela é retirada do fluxo, e depois dele o ScrollTrigger
-             a desloca até o fim do espaçador. Medir a seção em si dava uma
-             posição que nunca correspondia ao que o leitor vê — e o gatilho
-             do tema simplesmente nunca disparava na seção bege presa. O
-             espaçador, esse sim, ocupa exatamente o curso da seção. */
-          const ancora = (id) => {
-            const el = root.current?.querySelector(`[data-sec="${id}"]`);
-            return el?.closest(".pin-spacer") || el;
-          };
-
           sections
             .filter((s) => s.theme === "bone")
             .forEach((s) => {
               const i = sections.indexOf(s);
               const proxima = sections[i + 1];
-              const alvo = ancora(s.id);
-              const alvoProximo = proxima && ancora(proxima.id);
+              const alvo = ancoraDe(s.id);
+              const alvoProximo = proxima && ancoraDe(proxima.id);
               if (!alvo) return;
               avulsos.push(
                 ScrollTrigger.create({
@@ -415,36 +454,194 @@ export default function Story() {
  * exatamente o "teletransporte" que o briefing proíbe: antes cada seção fixava
  * uma pose e o modelo era apagado para saltar sem ser visto.
  */
-function caminhoDoNotebook() {
+function caminhoDoNotebook(raiz) {
   const tweens = [];
-  let anterior = { ...FORA };
+  const gatilhos = [];
+  let anterior = { ...NASCIMENTO };
 
-  sections.forEach((s) => {
+  /* ── O NASCIMENTO ─────────────────────────────────────────────────────
+     Durante a hero o objeto não existe: a cena sticky mora dentro de
+     `.story`, cujo topo está na base da janela, então ele fica abaixo da
+     dobra sem nenhuma regra extra.
+
+     Aqui ele NASCE. Vem do fundo do quadro — minúsculo, no centro, tombado
+     para trás —, cresce e sai para a primeira pose. Entrar deslizando pela
+     borda seria "mais um elemento chegando"; vir do escuro é um começo.
+     A presença sobe junto, então a primeira coisa que se vê é um ponto de
+     luz virando objeto. */
+  cena.nascido = 0;
+  cena.presenca = 0;
+  cena.presente = 1;
+  Object.assign(cena.pose, NASCIMENTO);
+  const nascer = { p: 0 };
+  tweens.push(
+    gsap.to(nascer, {
+      p: 1,
+      ease: "none",
+      onUpdate: () => (cena.nascido = nascer.p),
+      scrollTrigger: {
+        trigger: raiz,
+        /* Depois de a cena PRENDER, não antes.
+           A camada 3D é sticky dentro de `.story`: enquanto o topo da
+           narrativa ainda está descendo pela tela, o canvas inteiro está
+           abaixo da dobra. Um nascimento agendado ali acontece fora do
+           quadro — a presença sobe, o objeto cresce, e o leitor não vê nada.
+           A partir de "top 45%" a cena já cobre a janela. */
+        start: "top 45%",
+        end: "top -20%",
+        scrub: 1,
+        invalidateOnRefresh: true,
+      },
+    })
+  );
+
+  /* ── O TRAJETO ────────────────────────────────────────────────────────
+     Um trecho por seção, e cada trecho COBRE A FAIXA INTEIRA da sua seção —
+     do momento em que ela entra pela base até a seguinte fazer o mesmo.
+
+     A versão anterior recortava cada trecho só na chegada ("top bottom" →
+     "top 30%") e deixava o resto da seção sem ninguém escrevendo. Descendo
+     funcionava, porque o trecho seguinte assumia logo. SUBINDO, não: uma
+     tween com scrub que já está no fim não reescreve nada, então a pose
+     ficava travada na última seção visitada e o objeto acompanhava o leitor
+     de volta parado no lugar errado.
+
+     Agora a viagem ocupa os primeiros 25% da faixa e os 75% restantes são
+     uma pausa — que continua sendo renderizada. Em qualquer ponto da página
+     existe exatamente um trecho ativo, e ele é sempre o dono da pose. */
+  sections.forEach((s, i) => {
     if (!s.laptop) return;
     const de = { ...anterior };
+    const proxima = sections.slice(i + 1).find((n) => n.laptop);
+    const alvo = ancoraDe(s.id);
+    const alvoProximo = proxima && ancoraDe(proxima.id);
+    if (!alvo) return;
 
+    /* A VIAGEM. Distância de scroll FIXA — da base da tela até a seção
+       assumir o quadro —, e não uma fração da faixa.
+
+       Fração não serve porque as faixas têm tamanhos absurdamente
+       diferentes: uma seção presa mede quatro mil pixels e uma solta mede
+       novecentos. Vinte e cinco por cento de quatro mil é mais de uma tela
+       de viagem: o objeto só chegava à pose depois que o leitor já tinha
+       lido metade da seção. */
     tweens.push(
       gsap.fromTo(cena.pose, de, {
         ...s.laptop,
         ease: "none",
         immediateRender: false,
         scrollTrigger: {
-          trigger: `[data-sec="${s.id}"]`,
-          /* A viagem acontece ENQUANTO a seção sobe pela tela e termina
-             quando ela assume o quadro. Assim o objeto já está posicionado
-             quando o texto começa a ser lido. */
-          start: "top bottom",
-          end: "top 30%",
+          /* A primeira seção começa mais tarde: é ali que o objeto NASCE, e
+             o nascimento tem de coincidir com o momento em que a cena 3D já
+             cobre a janela. */
+          trigger: alvo,
+          start: i === 0 ? "top 45%" : "top bottom",
+          end: i === 0 ? "top -20%" : "top 32%",
           scrub: 0.9,
           invalidateOnRefresh: true,
         },
       })
     );
 
+    /* A PAUSA. Um gatilho que, no resto da faixa, reafirma a pose a cada
+       quadro.
+
+       Sem ele, uma tween com scrub que já chegou ao fim para de escrever —
+       e a pose ficava congelada na última seção VISITADA. Descendo ninguém
+       notava, porque a próxima assumia logo. Subindo, o objeto acompanhava
+       o leitor de volta parado no lugar errado. */
+    gatilhos.push(
+      ScrollTrigger.create({
+        trigger: alvo,
+        start: i === 0 ? "top -20%" : "top 32%",
+        endTrigger: alvoProximo || alvo,
+        end: alvoProximo ? "top bottom" : "bottom bottom",
+        onUpdate: () => Object.assign(cena.pose, s.laptop),
+      })
+    );
+
     anterior = s.laptop;
   });
 
-  return () => tweens.forEach((t) => t.scrollTrigger?.kill());
+  /* ── O REFLEXO ────────────────────────────────────────────────────────
+     Uma volta e meia de luz de contorno ao longo da narrativa inteira: o
+     dourado corre pelo alumínio enquanto a página corre. É lento de
+     propósito — reflexo que pisca vira estroboscópio. */
+  const luz = { v: 0 };
+  tweens.push(
+    gsap.to(luz, {
+      v: 1.5,
+      ease: "none",
+      onUpdate: () => (cena.brilho = luz.v),
+      scrollTrigger: { trigger: raiz, start: "top bottom", end: "bottom bottom", scrub: 1.4 },
+    })
+  );
+
+  return () => {
+    tweens.forEach((t) => {
+      t.scrollTrigger?.kill();
+      t.kill();
+    });
+    gatilhos.forEach((g) => g.kill());
+    cena.presente = 1;
+    cena.presenca = 1;
+    cena.nascido = 1;
+  };
+}
+
+/**
+ * A TAMPA FECHANDO.
+ *
+ * O último movimento da narrativa. Depois do CTA, enquanto a página desliza
+ * para descobrir o rodapé, a tampa desce sobre a base e a tela se apaga
+ * junto. O objeto que apresentou o site inteiro se encerra — e é a mesma
+ * ideia do rodapé: o fim é um gesto, não mais um texto.
+ *
+ * Só acontece porque o modelo aceitou ganhar uma dobradiça (ver
+ * LaptopScene): a partição entre tampa e base é deduzida da geometria, não
+ * de nomes de nó, que o arquivo não tem.
+ */
+function tampaFechando() {
+  const espacador = document.querySelector(".footer-spacer");
+  if (!espacador) return null;
+
+  const fecho = sections[sections.length - 1]?.laptop;
+
+  const estado = { t: 0 };
+  const tw = gsap.to(estado, {
+    t: 1,
+    ease: "none",
+    onUpdate: () => {
+      cena.tampa = estado.t;
+      /* Uma tween com scrub renderiza uma vez ao ser criada, no progresso 0.
+         Sem esta guarda, esse primeiro quadro escrevia a pose do FECHO logo
+         no carregamento — e o notebook aparecia pronto, no centro, antes de
+         nascer. */
+      if (estado.t <= 0.001) return;
+      /* O estado final é reafirmado aqui, e não deixado por conta do último
+         gatilho de seção. Numa rolagem contínua os dois dão o mesmo
+         resultado; num SALTO — voltar de um link âncora, restaurar a posição
+         ao recarregar, um teste automatizado — as tweens com scrub que já
+         estavam completas não reescrevem nada, e o objeto herdava a pose de
+         uma seção qualquer do meio da página. */
+      if (fecho) Object.assign(cena.pose, fecho);
+      cena.canal = "prime";
+      cena.nascido = 1;
+      cena.presente = 1;
+    },
+    scrollTrigger: {
+      trigger: espacador,
+      start: "top 85%",
+      end: "top 20%",
+      scrub: 1,
+      invalidateOnRefresh: true,
+    },
+  });
+
+  return () => {
+    tw.scrollTrigger?.kill();
+    cena.tampa = 0;
+  };
 }
 
 /**
@@ -818,32 +1015,63 @@ function entrarNaTela(q, desktop) {
     },
   });
 
-  // 1 · a câmera entra
-  tl.to(estado, { zoom: 1, duration: 0.32 }, 0.3)
-    .to(texto, { autoAlpha: 0, y: -40, duration: 0.18 }, 0.3)
-    .to(entregas, { autoAlpha: 0, duration: 0.14 }, 0.3);
+  /* ── 1 · a câmera entra ──────────────────────────────────────────────
+     A aproximação TERMINA antes de a página nascer. Sobrepostas, via-se um
+     notebook de tamanho normal com uma página em tamanho real atravessando
+     por trás dele — duas escalas disputando o mesmo quadro. Em sequência, a
+     leitura é a certa: a tela cresce até encher a janela, e só então o que
+     está dentro dela vira a página. */
+  tl.to(estado, { zoom: 1, duration: 0.26 }, 0.28)
+    .to(texto, { autoAlpha: 0, y: -40, duration: 0.16 }, 0.28)
+    .to(entregas, { autoAlpha: 0, duration: 0.12 }, 0.28)
+    /* Os argumentos também saem. Enquanto a seção estava por baixo da camada
+       3D, deixá-los acesos era profundidade; com a seção elevada para a
+       página fullscreen, eles passam a pintar POR CIMA do notebook — texto
+       de uma cena que já terminou, flutuando sobre a que começou. */
+    .to(razoes, { autoAlpha: 0, duration: 0.12 }, 0.3)
+    .to(razoes, { autoAlpha: 1, duration: 0.1 }, 0.94);
 
-  // 2 · a página nasce dentro do painel
-  if (dentro) tl.to(dentro, { clipPath: aberto, duration: 0.17 }, 0.55);
+  /* ── 2 · a página nasce dentro do painel, já cheio ───────────────────
+     A seção sobe de camada durante este trecho.
 
-  // 3 · o scroll da página é o scroll do site
+     `.sec` tem `z-index: 3` e isso CRIA um contexto de empilhamento: o
+     `z-index: 6` do painel só valia lá dentro, e a camada 3D — que está em
+     4, no contexto de fora — ficava por cima. A página fullscreen aparecia
+     ATRÁS do notebook, visível só na moldura em volta dele.
+
+     Subir a seção inteira é seguro aqui porque, neste ponto, todo o resto
+     dela já saiu de cena: título, argumentos e entregas estão apagados. */
+  /* O ESPAÇADOR também sobe. Ele é o filho direto de `.story` — a seção
+     presa mora dentro dele —, e é o z-index DELE que compete com a camada
+     3D no contexto de empilhamento da narrativa. Subir só a seção não
+     bastava: ela estava aninhada num irmão que continuava em `auto`. */
+  const camada = sec.closest(".pin-spacer") || sec;
+  tl.set([sec, camada], { zIndex: 6 }, 0.5);
+  if (dentro) tl.to(dentro, { clipPath: aberto, duration: 0.1 }, 0.54);
+
+  /* ── 3 · o scroll da página é o scroll do site ───────────────────────
+     O trecho mais longo da sequência, de propósito: é aqui que o leitor
+     está DENTRO da tela, e é esse tempo parado que transforma o efeito em
+     momento. */
   if (quadro) {
     tl.fromTo(
       quadro,
       { y: 0 },
-      { y: () => -Math.max(0, quadro.scrollHeight - window.innerHeight * 0.92), duration: 0.14 },
-      0.72
+      { y: () => -Math.max(0, quadro.scrollHeight - window.innerHeight * 0.92), duration: 0.22 },
+      0.64
     );
   }
 
   // 4 · sai de cena e a câmera recua junto
-  if (dentro) tl.to(dentro, { autoAlpha: 0, duration: 0.08 }, 0.88);
+  if (dentro) tl.to(dentro, { clipPath: fechado, duration: 0.1 }, 0.86);
+  tl.set([sec, camada], { zIndex: 3 }, 0.96);
   tl.to(estado, { zoom: 0, duration: 0.12 }, 0.88)
     .to(texto, { autoAlpha: 1, y: 0, duration: 0.08 }, 0.94);
 
   limpezas.push(() => {
     tl.scrollTrigger?.kill();
     cena.zoom = 0;
+    gsap.set([sec, sec.closest(".pin-spacer") || sec], { clearProps: "zIndex" });
   });
 
   return () => limpezas.forEach((fn) => fn && fn());
@@ -1040,21 +1268,49 @@ function maquinaPrime(q, desktop) {
   if (!maq) return null;
 
   const sec = maq.closest(".sec");
-  const cenaEl = maq.querySelector("[data-maquina-cena]");
   const fio = maq.querySelector("[data-maquina-fio]");
+  const ramos = [...maq.querySelectorAll("[data-maquina-ramo]")];
   const fichas = [...maq.querySelectorAll("[data-maquina-ficha]")];
-  const nucleo = maq.querySelector("[data-maquina-nucleo]");
-  const etapas = [...maq.querySelectorAll("[data-maquina-etapa]")];
   const saidas = [...maq.querySelectorAll("[data-maquina-saida]")];
-  const fecho = maq.querySelector("[data-maquina-fecho]");
+  const etapas = [...maq.querySelectorAll("[data-maquina-etapa]")];
   const aneis = [...maq.querySelectorAll(".maquina__anel")];
+  const fecho = maq.querySelector("[data-maquina-fecho]");
+  if (!fio) return null;
 
-  if (fio) gsap.set(fio, { drawSVG: "0%" });
-  gsap.set(fichas, { autoAlpha: 0, x: -60 });
-  gsap.set(etapas, { autoAlpha: 0, y: 24 });
-  gsap.set(saidas, { autoAlpha: 0, x: -30, scale: 0.9 });
+  /* As peças andam sobre o MESMO path que está desenhado. `align` faz o GSAP
+     converter entre o espaço do SVG e o do elemento — é por isso que a ficha
+     segue a curva de verdade em vez de correr numa reta paralela a ela. */
+  const sobreAEsteira = (el, de, ate, extra = {}) => ({
+    motionPath: {
+      path: fio,
+      align: fio,
+      alignOrigin: [0.5, 0.5],
+      start: de,
+      end: ate,
+      ...extra,
+    },
+  });
+
+  gsap.set(fio, { drawSVG: "0%" });
+  gsap.set(ramos, { drawSVG: "0%" });
   gsap.set(aneis, { autoAlpha: 0, scale: 0.7, transformOrigin: "50% 50%" });
+  gsap.set(etapas, { autoAlpha: 0, y: 22 });
   if (fecho) gsap.set(fecho, { autoAlpha: 0, y: 20 });
+
+  /* Estado de partida: as informações chegam SOLTAS, fora da esteira. É o
+     ponto da narrativa em que a empresa tem os dados e nenhum sistema. */
+  fichas.forEach((f, i) => {
+    gsap.set(f, {
+      autoAlpha: 0,
+      xPercent: -50,
+      yPercent: -50,
+      left: `${8 + (i % 2) * 9}%`,
+      top: `${16 + i * 21}%`,
+      rotate: (i % 2 ? 1 : -1) * (3 + i),
+      scale: 0.92,
+    });
+  });
+  gsap.set(saidas, { autoAlpha: 0, xPercent: -50, yPercent: -50, left: "50%", top: "50%", scale: 0.6 });
 
   let etapaAtual = -1;
   const mostrarEtapa = (i) => {
@@ -1063,7 +1319,7 @@ function maquinaPrime(q, desktop) {
     etapas.forEach((el, k) =>
       gsap.to(el, {
         autoAlpha: k === i ? 1 : 0,
-        y: k === i ? 0 : k < i ? -24 : 24,
+        y: k === i ? 0 : k < i ? -22 : 22,
         duration: DUR.ui,
         ease: EASE.out,
         overwrite: "auto",
@@ -1071,57 +1327,96 @@ function maquinaPrime(q, desktop) {
     );
   };
 
-  /* As fichas engolidas: um Flip só, disparado na travessia. Animar quatro
-     posições na mão exigiria saber onde o núcleo está — que é exatamente a
-     medida que o Flip tira sozinho, antes e depois. */
-  let engolidas = false;
-  const engolir = (sim) => {
-    if (sim === engolidas || !cenaEl) return;
-    const antes = Flip.getState(fichas);
-    cenaEl.dataset.fase = sim ? "processando" : "entrando";
-    engolidas = sim;
-    Flip.from(antes, {
-      duration: 0.9,
-      ease: "power3.inOut",
-      absolute: true,
-      stagger: 0.05,
-      overwrite: "auto",
-      onComplete: () => {
-        if (sim) gsap.to(fichas, { autoAlpha: 0, scale: 0.7, duration: 0.4, ease: EASE.out });
-      },
-    });
-    if (!sim) gsap.to(fichas, { autoAlpha: 1, scale: 1, duration: 0.4, ease: EASE.out });
-  };
-
   const tl = gsap.timeline({
     defaults: { ease: "none" },
     scrollTrigger: {
       trigger: sec,
       start: "top top",
-      end: () => `+=${window.innerHeight * (desktop ? 3.6 : 2.8)}`,
+      /* Quatro telas e meia: a sequência tem cinco atos, e comprimir isso em
+         duas telas transforma processo em pisca-pisca. */
+      end: () => `+=${window.innerHeight * (desktop ? 4.5 : 3.2)}`,
       pin: true,
-      scrub: 0.7,
+      scrub: 0.8,
       anticipatePin: 1,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
         const p = self.progress;
-        engolir(p > 0.36);
-        if (p < 0.3) mostrarEtapa(-1);
-        else mostrarEtapa(Math.min(etapas.length - 1, Math.floor(((p - 0.3) / 0.45) * etapas.length)));
+        if (p < 0.24) mostrarEtapa(-1);
+        else mostrarEtapa(Math.min(3, Math.floor((p - 0.24) / 0.19)));
       },
     },
   });
 
-  tl.to(fichas, { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.08, ease: EASE.out }, 0)
-    .to(fio, { drawSVG: "0% 42%", duration: 0.6 }, 0.2)
-    .to(aneis, { autoAlpha: 1, scale: 1, duration: 0.5, stagger: 0.1, ease: EASE.out }, 0.7)
-    // O anel gira devagar só enquanto a máquina "trabalha".
-    .to(aneis[0], { rotate: 90, duration: 2, ease: "none" }, 0.9)
-    .to(aneis[1], { rotate: -60, duration: 2, ease: "none" }, 0.9)
-    .to(fio, { drawSVG: "0% 100%", duration: 0.8 }, 2.1)
-    .to(saidas, { autoAlpha: 1, x: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: EASE.out }, 2.3)
-    .to(fecho, { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 3)
-    .to({}, { duration: 0.4 }, 3.3);
+  /* ── 1 · ENTRA ───────────────────────────────────────────────────────
+     As informações aparecem soltas e a esteira começa a ser desenhada por
+     baixo delas. Ainda não há sistema: há material. */
+  tl.to(fichas, { autoAlpha: 1, duration: 0.25, stagger: 0.06, ease: EASE.out }, 0)
+    .to(fio, { drawSVG: "0% 48%", duration: 0.5 }, 0.18)
+    .to(aneis, { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.08, ease: EASE.out }, 0.45);
+
+  /* ── 2 · ESCUTAR ─────────────────────────────────────────────────────
+     A linha CAPTURA cada ficha e a leva até o núcleo. Elas entram em fila,
+     não em bloco: o escalonamento é o que faz a esteira parecer esteira. */
+  fichas.forEach((f, i) => {
+    tl.to(
+      f,
+      {
+        /* Cada uma para num ponto ligeiramente diferente da esteira. Todas
+           no mesmo ponto viravam uma pilha: quatro fichas exatamente
+           sobrepostas leem como uma só, e a fila — que é o que mostra a
+           esteira funcionando — desaparece. */
+        ...sobreAEsteira(f, 0.02 + i * 0.03, 0.4 + i * 0.05),
+        rotate: 0,
+        scale: 1,
+        duration: 0.85,
+        ease: "power1.inOut",
+      },
+      0.62 + i * 0.07
+    );
+  });
+
+  /* ── 3 · DECIDIR ─────────────────────────────────────────────────────
+     Três caminhos se abrem. Dois apagam. Um continua dourado — que é a
+     definição visual de decidir: não é escolher, é DESCARTAR. */
+  tl.to(ramos, { drawSVG: "100%", duration: 0.45, stagger: 0.06 }, 1.7)
+    .to(
+      ramos.filter((r) => r.dataset.fica !== "true"),
+      { drawSVG: "100% 100%", autoAlpha: 0, duration: 0.4, stagger: 0.08 },
+      2.15
+    )
+    .to(ramos.find((r) => r.dataset.fica === "true"), { autoAlpha: 1, duration: 0.3 }, 2.15);
+
+  /* ── 4 · PRODUZIR ────────────────────────────────────────────────────
+     No mesmo ponto em que a matéria-prima parou, ela vira outra coisa: as
+     fichas encolhem para dentro do núcleo e as entregas nascem dali. Não é
+     um corte — é o mesmo lugar, duas formas. */
+  tl.to(fichas, { scale: 0.35, autoAlpha: 0, duration: 0.4, stagger: 0.04, ease: EASE.out }, 2.5)
+    .to(saidas, { autoAlpha: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: EASE.out }, 2.62);
+
+  /* ── 5 · NO AR ───────────────────────────────────────────────────────
+     As entregas percorrem o RESTO da mesma esteira e saem pela direita.
+     A frase da seção — "entra informação, sai presença" — acontece
+     literalmente, da esquerda para a direita, na mesma linha. */
+  tl.to(fio, { drawSVG: "0% 100%", duration: 0.6 }, 2.7);
+  saidas.forEach((el, i) => {
+    tl.to(
+      el,
+      {
+        /* Sete paradas distintas ao longo da metade final da esteira: as
+           entregas saem em COMBOIO. Empilhadas no mesmo ponto, sete viram
+           três, e o "sai presença" perde a quantidade — que é metade do
+           argumento. */
+        ...sobreAEsteira(el, 0.52, 0.62 + i * 0.055),
+        duration: 0.9,
+        ease: "power1.inOut",
+      },
+      2.85 + i * 0.09
+    );
+  });
+
+  tl.to(fecho, { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 3.9)
+    // Pausa no clímax: sem ela o fecho aparece no último quadro do pin.
+    .to({}, { duration: 0.45 }, 4.1);
 
   return () => tl.scrollTrigger?.kill();
 }
@@ -1280,8 +1575,12 @@ function forcasDoSistema(q, desktop) {
     pecas.forEach((el, i) => {
       const p = posicaoDaPeca(demo, i, n, w, h);
       gsap.to(el, {
-        x: p.x,
-        y: p.y,
+        /* `left`/`top` e não `x`/`y`: o campo magnético é dono do transform
+           da peça, e duas fontes escrevendo na mesma propriedade brigam a
+           cada quadro. Aqui a posição de LAYOUT e o desvio do CURSOR vivem
+           em canais separados e se somam sem se atropelar. */
+        left: p.x,
+        top: p.y,
         rotate: p.rot,
         scale: p.scale,
         autoAlpha: p.opacity,
@@ -1325,7 +1624,7 @@ function forcasDoSistema(q, desktop) {
   const h = palco.clientHeight || 1;
   pecas.forEach((el, i) => {
     const p = posicaoDaPeca("repouso", i, pecas.length, w, h);
-    gsap.set(el, { x: p.x, y: p.y, rotate: p.rot, scale: p.scale, autoAlpha: p.opacity });
+    gsap.set(el, { left: p.x, top: p.y, x: 0, y: 0, rotate: p.rot, scale: p.scale, autoAlpha: p.opacity });
   });
   if (eixo) gsap.set(eixo, { autoAlpha: 0 });
   if (seta) gsap.set(seta, { drawSVG: "0%" });
@@ -1373,6 +1672,100 @@ function forcasDoSistema(q, desktop) {
   ScrollTrigger.addEventListener("refreshInit", refazer);
   limpezas.push(() => ScrollTrigger.removeEventListener("refreshInit", refazer));
 
+  /* ── O CAMPO MAGNÉTICO ────────────────────────────────────────────────
+     A composição não espera o clique: ela REAGE ao cursor o tempo todo.
+     Sem uma força escolhida, as peças fogem dele — comunicação sem direção
+     se espalha. Com uma força ativa, elas obedecem à lógica dela: a de
+     DIREÇÃO puxa para o eixo, a de CONSISTÊNCIA resiste ao empurrão, a de
+     ESTRATÉGIA aponta o cursor como se fosse o objetivo.
+
+     O deslocamento é somado POR CIMA da posição do layout, num segundo nó de
+     transform (`x`/`y` na peça, `--mx`/`--my` no interior), porque a posição
+     de base é escrita pelas tweens de demonstração — as duas brigariam pela
+     mesma propriedade. */
+  if (desktop && !isTouch() && !prefersReducedMotion()) {
+    const estados = pecas.map(() => ({ dx: 0, dy: 0 }));
+    /* Um `quickSetter` por eixo. `quickSetter(el, "css", {...})` parece
+       conveniente mas não aceita `x`/`y`: eles são atalhos de transform do
+       GSAP, não propriedades de CSS, e o navegador rejeita a escrita. */
+    const moverX = pecas.map((el) => gsap.quickSetter(el, "x", "px"));
+    const moverY = pecas.map((el) => gsap.quickSetter(el, "y", "px"));
+    let dentro = false;
+
+    const visivel = ScrollTrigger.create({
+      trigger: palco.closest(".sec"),
+      start: "top bottom",
+      end: "bottom top",
+      onToggle: (self) => {
+        dentro = self.isActive;
+        /* `will-change` só enquanto o campo está de fato rodando. Deixado
+           fixo no CSS, ele mantém doze camadas promovidas na memória de
+           vídeo pela página inteira — o custo que a marca de higiene do
+           verificador existe para pegar. */
+        pecas.forEach((el) => {
+          el.style.willChange = self.isActive ? "transform" : "";
+        });
+      },
+    });
+    limpezas.push(() => {
+      visivel.kill();
+      pecas.forEach((el) => (el.style.willChange = ""));
+    });
+
+    const tick = (_t, dtMs) => {
+      if (!dentro) return;
+      const dt = Math.min(dtMs / 1000, 0.05);
+      const r = palco.getBoundingClientRect();
+      const px = pointer.x - r.left;
+      const py = pointer.y - r.top;
+      const perto = pointer.active && px > -80 && px < r.width + 80 && py > -80 && py < r.height + 80;
+
+      for (let i = 0; i < pecas.length; i++) {
+        const p = pecas[i].getBoundingClientRect();
+        const cx = p.left + p.width / 2 - r.left;
+        const cy = p.top + p.height / 2 - r.top;
+        let ax = 0;
+        let ay = 0;
+
+        if (perto) {
+          const vx = cx - px;
+          const vy = cy - py;
+          const d = Math.hypot(vx, vy) || 1;
+          const forca = Math.max(0, 1 - d / 240);
+
+          if (forca > 0) {
+            const u = { x: vx / d, y: vy / d };
+            if (atual === "apontar" || atual === "convergir") {
+              // Direção e estratégia ATRAEM: o cursor vira o objetivo.
+              ax = -u.x * forca * 26;
+              ay = -u.y * forca * 26;
+            } else if (atual === "alinhar" || atual === "refinar") {
+              // Consistência e qualidade resistem: quase não cedem.
+              ax = u.x * forca * 7;
+              ay = u.y * forca * 7;
+            } else {
+              // Sem direção, tudo se espalha.
+              ax = u.x * forca * 40;
+              ay = u.y * forca * 40;
+            }
+          }
+        }
+
+        const e = estados[i];
+        e.dx = damp(e.dx, ax, 0.09, dt);
+        e.dy = damp(e.dy, ay, 0.09, dt);
+        moverX[i](e.dx);
+        moverY[i](e.dy);
+      }
+    };
+
+    gsap.ticker.add(tick);
+    limpezas.push(() => {
+      gsap.ticker.remove(tick);
+      pecas.forEach((el) => gsap.set(el, { x: 0, y: 0 }));
+    });
+  }
+
   return () => limpezas.forEach((fn) => fn());
 }
 
@@ -1383,75 +1776,45 @@ function forcasDoSistema(q, desktop) {
  * cena: a ficha abre, o preview cresce e a outra recua. O Flip cuida da
  * mudança de layout — é ele que sabe de onde para onde cada peça foi.
  */
-function clientesNoArco(q, desktop) {
+function clientesNoArco(q) {
   const [palco] = q("[data-quem-palco]");
-  if (!palco) return null;
+  const arco = palco?.querySelector("[data-quem-arco]");
+  const no = palco?.querySelector("[data-quem-no]");
+  const centro = palco?.querySelector("[data-quem-centro]");
+  if (!arco) return null;
 
-  const arco = palco.querySelector("[data-quem-arco]");
-  const marcas = [...palco.querySelectorAll("[data-marca]")];
-  if (!marcas.length) return null;
+  /* Só o DESENHO fica aqui. Quem decide a marca em foco é o React, pelo
+     ponteiro e pelo teclado — a versão anterior escrevia `data-active` por
+     fora, e as duas fontes discordavam no primeiro hover: o componente
+     abria o painel de uma marca enquanto o GSAP acendia a outra. */
+  const tweens = [];
 
-  const limpezas = [];
+  gsap.set(arco, { drawSVG: "0%" });
+  gsap.set([no, centro].filter(Boolean), { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
 
-  if (arco) {
-    gsap.set(arco, { drawSVG: "0%" });
-    const traco = gsap.to(arco, {
+  tweens.push(
+    gsap.to(arco, {
       drawSVG: "100%",
       ease: "none",
-      scrollTrigger: {
-        trigger: palco,
-        start: "top 78%",
-        end: "bottom 62%",
-        scrub: 0.8,
-      },
-    });
-    limpezas.push(() => traco.scrollTrigger?.kill());
-  }
+      scrollTrigger: { trigger: palco, start: "top 80%", end: "bottom 65%", scrub: 0.8 },
+    })
+  );
 
-  /* Só os elementos que de fato MUDAM de lugar. Incluir a ficha inteira punha
-     um contêiner em `position: absolute` durante a tween, e as peças dentro
-     dele passavam a se medir contra um pai que não era mais o do layout. */
-  const pecas = () => palco.querySelectorAll("[data-flip-id]");
+  /* O nó e o nome da Prime só acendem quando o arco já passou por eles: o
+     ponto de encontro tem de ser consequência da linha, não um enfeite que
+     já estava lá. */
+  tweens.push(
+    gsap.to([no, centro].filter(Boolean), {
+      autoAlpha: 1,
+      scale: 1,
+      ease: EASE.out,
+      duration: 0.6,
+      stagger: 0.12,
+      scrollTrigger: { trigger: palco, start: "top 45%", once: true },
+    })
+  );
 
-  const ativar = (i) => {
-    const antes = Flip.getState(pecas(), { props: "textAlign" });
-    marcas.forEach((el, k) => (el.dataset.active = String(k === i)));
-    Flip.from(antes, {
-      duration: 0.7,
-      ease: "power3.inOut",
-      absolute: true,
-      nested: true,
-      overwrite: "auto",
-    });
-  };
-
-  if (desktop && !isTouch()) {
-    const onOver = (e) => {
-      const alvo = e.target.closest("[data-marca]");
-      if (alvo) ativar(Number(alvo.dataset.indice));
-    };
-    const onLeave = () => ativar(-1);
-    palco.addEventListener("pointerover", onOver);
-    palco.addEventListener("focusin", onOver);
-    palco.addEventListener("pointerleave", onLeave);
-    limpezas.push(() => {
-      palco.removeEventListener("pointerover", onOver);
-      palco.removeEventListener("focusin", onOver);
-      palco.removeEventListener("pointerleave", onLeave);
-    });
-  } else {
-    marcas.forEach((el, i) => {
-      const st = ScrollTrigger.create({
-        trigger: el,
-        start: "top 68%",
-        end: "bottom 42%",
-        onToggle: (self) => self.isActive && ativar(i),
-      });
-      limpezas.push(() => st.kill());
-    });
-  }
-
-  return () => limpezas.forEach((fn) => fn());
+  return () => tweens.forEach((t) => t.scrollTrigger?.kill());
 }
 
 /**
@@ -1547,6 +1910,16 @@ function estadoFinalSemMovimento(q) {
   const mostrar = (sel, props = {}) =>
     gsap.set(q(sel), { autoAlpha: 1, x: 0, y: 0, scale: 1, ...props });
 
+  /* Sem o trajeto, a pose ficaria na de NASCIMENTO — um ponto minúsculo no
+     centro da tela, que é o começo de uma animação que não vai acontecer.
+     Aqui o objeto assume de uma vez a pose do fecho: presente, de frente,
+     parado. Reduzir movimento não é remover o personagem. */
+  Object.assign(cena.pose, { x: 0.62, y: -0.5, scale: 0.7, rotY: -0.5, rotX: 0.08 });
+  cena.nascido = 1;
+  cena.presente = 1;
+  cena.presenca = 1;
+  cena.canal = "prime";
+
   gsap.set(q("[data-bd-linha], [data-bd-guia], [data-bd-cota], [data-bd-traco]"), {
     drawSVG: "100%",
   });
@@ -1572,6 +1945,8 @@ function estadoFinalSemMovimento(q) {
   gsap.set(etapas, { autoAlpha: 1, position: "relative", y: 0 });
 
   gsap.set(q("[data-quem-arco]"), { drawSVG: "100%" });
+  mostrar("[data-quem-no]");
+  mostrar("[data-quem-centro]");
 
   // O palco das forças nasce montado, na demonstração de consistência.
   const [palco] = q("[data-palco]");
@@ -1582,7 +1957,7 @@ function estadoFinalSemMovimento(q) {
     const h = palco.clientHeight || 1;
     pecas.forEach((el, i) => {
       const p = posicaoDaPeca("alinhar", i, pecas.length, w, h);
-      gsap.set(el, { x: p.x, y: p.y, rotate: 0, scale: 1, autoAlpha: 1 });
+      gsap.set(el, { left: p.x, top: p.y, rotate: 0, scale: 1, autoAlpha: 1 });
     });
     mostrar("[data-palco-marca]");
   }

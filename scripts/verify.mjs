@@ -121,12 +121,36 @@ await sleep(3000);
 log("\n── Caminho do notebook ──");
 
 const PARADAS = [
-  ["manifesto", 1.16, -0.46],
+  /* O manifesto fica de fora: no topo dele o NASCIMENTO ainda está
+     acontecendo, e a pose alvo por definição só chega depois. Quem cobre
+     aquele trecho são as duas checagens de nascimento acima. */
+  ["servicos", 1.16, 0.42],
   ["social", 0.78, -0.74],
   ["web", 0, -0.16],
   ["design", -0.98, -0.82],
   ["contato", 0, -0.58],
 ];
+
+/* O NASCIMENTO. O objeto não pode existir durante a hero — é o pedido
+   explícito — e tem de nascer CRESCENDO, não aparecendo pronto. */
+const noTopo = await lerCena(page);
+checar(
+  "ausente durante a hero",
+  noTopo && noTopo.presenca < 0.02,
+  "presenca " + noTopo?.presenca?.toFixed(2)
+);
+
+const nascimento = [];
+for (let i = 0; i <= 26; i++) {
+  await fracao(page, (i / 26) * 0.16, 150);
+  const c = await lerCena(page);
+  if (c) nascimento.push({ s: c.scale, p: c.presenca });
+}
+checar(
+  "nasce crescendo, e nao aparecendo pronto",
+  nascimento.some((n) => n.p > 0.05 && n.p < 0.9 && n.s < 0.45),
+  "houve quadro com presenca parcial e escala pequena"
+);
 
 const trajeto = [];
 for (const [id, ax, ay] of PARADAS) {
@@ -176,6 +200,43 @@ checar(
   new Set(canais.filter(Boolean)).size >= 3,
   canais.join(" → ")
 );
+
+/* ═══ 2b · Ausencia e fechamento ══════════════════════════════════════════
+   O fio condutor precisa de PAUSA, e o ultimo gesto e a tampa descendo. */
+log("\n── Ausência e tampa ──");
+const meioDaSecao = async (id) => {
+  const g = await page.evaluate((sid) => {
+    const el = document.getElementById(sid);
+    const sp = el.closest(".pin-spacer") || el;
+    return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
+  }, id);
+  await page.evaluate((y) => window.scrollTo(0, y), g.topo + g.alt * 0.5);
+  await sleep(1500);
+};
+
+const ausencias = {};
+for (const id of ["branding", "porque", "estrategia", "contato"]) {
+  await meioDaSecao(id);
+  const c = await lerCena(page);
+  ausencias[id] = c ? { p: +c.presenca.toFixed(2), faixa: c.secao } : null;
+}
+const presencaEm = (id) => ausencias[id]?.p;
+checar(
+  "o notebook sai de cena onde a secao tem palco proprio",
+  presencaEm("branding") === 0 && presencaEm("porque") === 0,
+  JSON.stringify(ausencias)
+);
+checar(
+  "e volta depois",
+  presencaEm("estrategia") === 1 && presencaEm("contato") === 1,
+  JSON.stringify(ausencias)
+);
+
+await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await sleep(2400);
+const fimCena = await lerCena(page);
+checar("a tampa fecha no fecho", fimCena && fimCena.tampa > 0.9, "tampa " + fimCena?.tampa?.toFixed(2));
+checar("e o objeto volta ao centro", fimCena && Math.abs(fimCena.x) < 0.05, "x " + fimCena?.x);
 
 /* ═══ 3 · Seções presas ═══════════════════════════════════════════════════
    Um pin que não engata é um scroll que passa reto pela experiência inteira.
@@ -389,15 +450,44 @@ for (const f of [0.34, 0.42, 0.5, 0.58, 0.66, 0.73]) {
 }
 checar("as etapas se revezam", etapasVistas.size >= 3, `etapas vistas: ${[...etapasVistas].join(",")}`);
 
-await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.95);
-await sleep(1500);
-const saidas = await page.evaluate(
-  () =>
-    [...document.querySelectorAll("[data-maquina-saida]")].filter(
-      (e) => +getComputedStyle(e).opacity > 0.6
-    ).length
+/* As pecas precisam PERCORRER a esteira, nao aparecer nas pontas. Mede-se a
+   posicao das mesmas fichas em dois momentos: se elas nao andaram, a esteira
+   e decoracao. */
+await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.12);
+await sleep(1600);
+const fichasAntes = await page.evaluate(() =>
+  [...document.querySelectorAll("[data-maquina-ficha]")].map((e) =>
+    Math.round(e.getBoundingClientRect().left)
+  )
 );
-checar("as sete entregas saem", saidas === 7, `${saidas}/7 visíveis`);
+await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.46);
+await sleep(1800);
+const fichasDepois = await page.evaluate(() =>
+  [...document.querySelectorAll("[data-maquina-ficha]")].map((e) =>
+    Math.round(e.getBoundingClientRect().left)
+  )
+);
+const andaram = fichasAntes.filter((v, i) => Math.abs(v - fichasDepois[i]) > 120).length;
+checar(
+  "as informacoes percorrem a esteira",
+  andaram >= 3,
+  andaram + "/4 fichas se deslocaram mais de 120px"
+);
+
+await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.9);
+await sleep(1700);
+const saidas = await page.evaluate(() => {
+  const els = [...document.querySelectorAll("[data-maquina-saida]")];
+  const visiveis = els.filter((e) => +getComputedStyle(e).opacity > 0.6);
+  const xs = visiveis.map((e) => Math.round(e.getBoundingClientRect().left));
+  return { n: visiveis.length, distintos: new Set(xs).size };
+});
+checar("as sete entregas saem", saidas.n === 7, saidas.n + "/7 visiveis");
+checar(
+  "e saem em comboio, nao empilhadas",
+  saidas.distintos >= 5,
+  saidas.distintos + " posicoes distintas"
+);
 
 /* ═══ 10 · Por que funciona: a demonstração muda o layout ════════════════ */
 log("\n── Por que funciona ──");
@@ -429,83 +519,116 @@ checar(
 const eixo = await page.evaluate(
   () => +getComputedStyle(document.querySelector("[data-palco-eixo]").parentElement).opacity
 );
-checar("o eixo aparece só em DIREÇÃO", eixo > 0.8, `opacidade ${eixo}`);
+checar("o eixo aparece só em DIREÇÃO", eixo > 0.8, "opacidade " + eixo);
+
+/* O CAMPO MAGNETICO: a composicao responde ao cursor mesmo parada. */
+const caixaPalco = await page.evaluate(() => {
+  const r = document.querySelector("[data-palco]").getBoundingClientRect();
+  return { x: r.left, y: r.top, w: r.width, h: r.height };
+});
+const lerPecas = () =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("[data-palco-peca]")]
+      .map((e) => {
+        const r = e.getBoundingClientRect();
+        return Math.round(r.left) + "," + Math.round(r.top);
+      })
+      .join("|")
+  );
+await page.mouse.move(caixaPalco.x + caixaPalco.w * 0.85, caixaPalco.y + caixaPalco.h * 0.15);
+await sleep(1300);
+const campoA = await lerPecas();
+await page.mouse.move(caixaPalco.x + caixaPalco.w * 0.2, caixaPalco.y + caixaPalco.h * 0.7);
+await sleep(1400);
+const campoB = await lerPecas();
+checar("o campo responde ao cursor", campoA !== campoB, "as pecas se deslocam com o ponteiro");
 
 /* ═══ 11 · Clientes ═══════════════════════════════════════════════════════ */
 log("\n── Clientes ──");
 await irPara(page, "clientes");
-const ladoALado = await page.evaluate(() => {
+const arranjo = await page.evaluate(() => {
   const cards = [...document.querySelectorAll(".marca__gatilho")].map((e) =>
     e.getBoundingClientRect()
   );
   if (cards.length < 2) return null;
-  // Lado a lado: mesma faixa vertical, colunas diferentes.
+  /* Arco: uma marca embaixo a esquerda, outra em cima a direita. Se as duas
+     estiverem na mesma faixa, a composicao virou grade de novo. */
   return {
     n: cards.length,
-    mesmaLinha: Math.abs(cards[0].top - cards[1].top) < 12,
-    separados: cards[1].left > cards[0].right - 4,
-    altura: Math.round(cards[0].height),
+    desnivel: Math.round(Math.abs(cards[0].top - cards[1].top)),
+    esquerdaPrimeiro: cards[0].left < cards[1].left,
   };
 });
 checar(
-  "duas marcas lado a lado",
-  ladoALado && ladoALado.n === 2 && ladoALado.mesmaLinha && ladoALado.separados,
-  JSON.stringify(ladoALado)
+  "as marcas formam um arco, nao uma fileira",
+  arranjo && arranjo.n === 2 && arranjo.desnivel > 90 && arranjo.esquerdaPrimeiro,
+  JSON.stringify(arranjo)
 );
 
-/* O pop-up: abrir sem sair do site é o pedido, e o iframe do Instagram é a
-   parte que NÃO está sob nosso controle. Mede-se as duas coisas: o diálogo
-   abre sempre, e o embed carrega quando o Instagram deixa. */
+const arcoTracado = await page.evaluate(() => {
+  const p = document.querySelector("[data-quem-arco]");
+  return Math.round(parseFloat(getComputedStyle(p).strokeDasharray) || 0);
+});
+checar("o arco e desenhado pelo scroll", arcoTracado > 300, arcoTracado + "px tracados");
+
+/* O painel abre DENTRO da composicao — nao como modal por cima da pagina. */
 const alvoMarca = await page.evaluate(() => {
   const m = document.querySelector('[data-marca="real-pisos"] .marca__gatilho');
   const r = m.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 });
+/* Tira o ponteiro de cima da composição antes de medir o estado de repouso:
+   o hover é o gatilho, e o cursor pode ter ficado ali da checagem anterior. */
+await page.mouse.move(4, 4);
+await sleep(900);
+const painelFechado = await page.evaluate(
+  () => +getComputedStyle(document.querySelector("[data-quem-perfil]")).opacity
+);
+checar("o painel nasce fechado", painelFechado < 0.05, "opacidade " + painelFechado);
+
 await page.mouse.move(alvoMarca.x, alvoMarca.y);
-await sleep(1200);
-const popAberto = await page.evaluate(() => {
-  const d = document.querySelector(".pop");
-  if (!d) return null;
-  const frame = d.querySelector("iframe");
+await sleep(1400);
+const painelAberto = await page.evaluate(() => {
+  const el = document.querySelector("[data-quem-perfil]");
+  const palco = document.querySelector("[data-quem-palco]");
+  const r = el.getBoundingClientRect();
+  const pr = palco.getBoundingClientRect();
+  const frame = el.querySelector("iframe");
   return {
-    papel: d.getAttribute("role"),
-    modal: d.getAttribute("aria-modal"),
+    op: +getComputedStyle(el).opacity,
+    dentroDoPalco: r.top >= pr.top - 8 && r.bottom <= pr.bottom + 8 && r.left >= pr.left - 8,
     src: frame?.getAttribute("src") || null,
-    link: d.querySelector(".pop__link")?.href || null,
+    link: el.querySelector(".quem__perfil-link")?.href || null,
   };
 });
-checar("o pop-up abre ao apontar a marca", Boolean(popAberto), JSON.stringify(popAberto));
+checar("abre ao apontar a marca", painelAberto.op > 0.9, "opacidade " + painelAberto.op);
+checar(
+  "e abre DENTRO da composicao, nao como modal",
+  painelAberto.dentroDoPalco,
+  "o painel esta contido no palco da secao"
+);
 checar(
   "o iframe aponta para o perfil real",
-  popAberto?.src?.includes("instagram.com/realpisos"),
-  popAberto?.src
+  painelAberto.src && painelAberto.src.includes("instagram.com/realpisos"),
+  painelAberto.src
 );
 checar(
-  "e há saída para o perfil verdadeiro",
-  popAberto?.link === "https://www.instagram.com/realpisos/",
-  popAberto?.link
+  "e ha saida para o perfil verdadeiro",
+  painelAberto.link === "https://www.instagram.com/realpisos/",
+  painelAberto.link
 );
 
-await sleep(5000);
-const embed = await page.evaluate(() => {
-  const r = document.querySelector(".pop__reserva");
-  return { reserva: Boolean(r), aviso: r?.querySelector(".pop__aviso")?.textContent || null };
-});
+const outraRecua = await page.evaluate(
+  () => +getComputedStyle(document.querySelector('[data-marca="wanderson-carvalho"]')).opacity
+);
+checar("a outra marca recua", outraRecua < 0.6, "opacidade " + outraRecua);
+
+await sleep(4200);
+const embedOk = await page.evaluate(() => !document.querySelector(".quem__perfil-reserva"));
 log(
-  embed.reserva
-    ? `  info  o Instagram recusou o embed nesta execução; a reserva assumiu — "${embed.aviso}"`
-    : "  info  o embed do Instagram carregou dentro do pop-up"
-);
-
-const travou = await page.evaluate(() => getComputedStyle(document.body).overflow);
-checar("o fundo não rola com o pop-up aberto", travou === "hidden", travou);
-
-await page.keyboard.press("Escape");
-await sleep(900);
-checar(
-  "Escape fecha o pop-up",
-  await page.evaluate(() => !document.querySelector(".pop")),
-  ""
+  embedOk
+    ? "  info  o embed do Instagram carregou dentro da composicao"
+    : "  info  o Instagram recusou o embed nesta execucao; a reserva assumiu"
 );
 
 /* ═══ 12 · WhatsApp ═══════════════════════════════════════════════════════ */
@@ -626,6 +749,36 @@ if (botaoMenu) {
     JSON.stringify(fechado)
   );
 }
+
+/* ═══ 15b · Indicador da navbar ══════════════════════════════════════════ */
+log("\n── Navbar ──");
+await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
+await sleep(900);
+const marcados = [];
+for (const id of ["web", "metodo", "clientes"]) {
+  await irPara(page, id);
+  marcados.push(
+    await page.evaluate(() => {
+      const li = document.querySelector('.nav__links li[data-ativo="true"]');
+      const m = document.querySelector(".nav__marcador");
+      return {
+        item: li ? li.dataset.navItem : null,
+        dentro: Boolean(li && m && li.contains(m)),
+        op: m ? +getComputedStyle(m).opacity : 0,
+      };
+    })
+  );
+}
+checar(
+  "a barra marca a secao em cena",
+  marcados.filter((m) => m.item).length >= 2,
+  marcados.map((m) => m.item).join(" -> ")
+);
+checar(
+  "e o marcador viaja ate o item ativo",
+  marcados.some((m) => m.dentro && m.op > 0.8),
+  JSON.stringify(marcados[marcados.length - 1])
+);
 
 /* ═══ 16 · Higiene ════════════════════════════════════════════════════════ */
 log("\n── Higiene ──");

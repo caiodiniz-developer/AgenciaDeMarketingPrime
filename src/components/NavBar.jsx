@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { gsap, useGSAP } from "../lib/gsap";
+import { gsap, useGSAP, Flip } from "../lib/gsap";
 import { getLenis } from "../lib/scroll";
 import { EASE, DUR, STAGGER } from "../lib/motion";
 import { prefersReducedMotion } from "../lib/media";
@@ -20,7 +20,10 @@ export default function NavBar() {
   const [visible, setVisible] = useState(false);
   const [encolhida, setEncolhida] = useState(false);
   const [aberto, setAberto] = useState(false);
+  const [secao, setSecao] = useState(null);
   const painel = useRef(null);
+  const barra = useRef(null);
+  const marcador = useRef(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -43,6 +46,60 @@ export default function NavBar() {
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+
+  /* ── O INDICADOR DE SEÇÃO ─────────────────────────────────────────────
+     Qual item da barra corresponde ao que está na tela. Um `IntersectionObserver`
+     e não um ScrollTrigger por link: a barra não precisa saber de progresso,
+     só de qual seção está em cena — e o observer faz isso sem tocar no
+     scroll, que é o recurso mais disputado desta página. */
+  useEffect(() => {
+    const alvos = navItems
+      .map(({ id }) => document.getElementById(id))
+      .filter(Boolean);
+    if (!alvos.length) return undefined;
+
+    const obs = new IntersectionObserver(
+      (entradas) => {
+        const dentro = entradas.filter((e) => e.isIntersecting);
+        if (!dentro.length) return;
+        /* A que estiver mais alta na tela ganha: com duas seções cruzando a
+           faixa central, a de cima é a que o leitor está terminando de ler. */
+        dentro.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        setSecao(dentro[0].target.id);
+      },
+      { rootMargin: "-45% 0px -45% 0px" }
+    );
+    alvos.forEach((a) => obs.observe(a));
+    return () => obs.disconnect();
+  }, []);
+
+  /* O marcador VIAJA entre os itens em vez de piscar no novo.
+     Flip mede onde ele estava e onde precisa estar — que é exatamente o que
+     não dá para escrever à mão quando os itens têm larguras diferentes. */
+  useGSAP(
+    () => {
+      const marca = marcador.current;
+      const barraEl = barra.current;
+      if (!marca || !barraEl) return;
+
+      const alvo = secao && barraEl.querySelector(`[data-nav-item="${secao}"]`);
+      if (!alvo) {
+        gsap.to(marca, { autoAlpha: 0, duration: DUR.micro });
+        return;
+      }
+
+      const antes = Flip.getState(marca);
+      alvo.appendChild(marca);
+      gsap.set(marca, { autoAlpha: 1 });
+      Flip.from(antes, {
+        duration: prefersReducedMotion() ? 0 : 0.5,
+        ease: EASE.out,
+        absolute: true,
+        overwrite: "auto",
+      });
+    },
+    { dependencies: [secao] }
+  );
 
   /* Com o menu aberto, rolar por trás dele é desorientador. Travar pelo Lenis
      e não por `overflow: hidden` no body: com o scroll suavizado ativo, o
@@ -118,14 +175,22 @@ export default function NavBar() {
             <span className="sr-only">Agência Prime — ir para o topo</span>
           </a>
 
-          <ul className="nav__links">
+          <ul className="nav__links" ref={barra}>
             {navItems.map(({ id, label }) => (
-              <li key={id}>
-                <a href={`#${id}`} onClick={(e) => goTo(e, id)} data-cursor="link">
+              <li key={id} data-nav-item={id} data-ativo={String(secao === id)}>
+                <a
+                  href={`#${id}`}
+                  onClick={(e) => goTo(e, id)}
+                  data-cursor="link"
+                  aria-current={secao === id ? "true" : undefined}
+                >
                   {label}
                 </a>
               </li>
             ))}
+            {/* Um só, movido de item em item pelo Flip. Um por link, acendendo
+                e apagando, seria fade — não trajeto. */}
+            <span className="nav__marcador" ref={marcador} aria-hidden="true" />
           </ul>
 
           <a
