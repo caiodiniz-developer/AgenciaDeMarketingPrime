@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "encode:hero": "node scripts/encode-hero.mjs",
-    "encode:videos": "node scripts/encode-videos.mjs"
+    "encode:videos": "node scripts/encode-videos.mjs",
+    "verify": "node scripts/verify.mjs",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

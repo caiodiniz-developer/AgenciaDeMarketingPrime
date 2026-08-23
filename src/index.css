@@ -865,74 +865,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   left: 0;
   z-index: 1;
   width: 100%;
-  padding: clamp(3.5rem, 7vw, 6rem) var(--pad-x) clamp(1.25rem, 2vw, 2rem);
+  padding: 0 0 clamp(1rem, 2vw, 1.5rem);
   background: var(--color-ink-050);
   color: var(--color-ash);
-}
-
-.footer__inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(2rem, 5vw, 4rem);
-  align-items: start;
-  max-width: 76rem;
-  margin: 0 auto;
-  padding-bottom: clamp(2.5rem, 5vw, 4rem);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.footer__logo {
-  display: block;
-  height: clamp(1.6rem, 2.4vw, 2.1rem);
-  width: auto;
-}
-
-.footer__claim {
-  margin: 1.1rem 0 0;
-  font-family: var(--font-editorial);
-  font-style: italic;
-  font-size: 1rem;
-  color: var(--color-ash);
-}
-
-.footer__nav ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.7rem;
-}
-
-.footer__nav a,
-.footer__base a {
-  font-size: 0.8125rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--color-ash);
-  transition: color var(--t-micro) ease;
-}
-
-.footer__nav a:hover,
-.footer__base a:hover {
-  color: var(--color-gold);
-}
-
-.footer__mail {
-  font-family: var(--font-display);
-  font-size: clamp(1rem, 1.6vw, 1.375rem);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  color: var(--color-bone);
-  border-bottom: 1px solid rgba(201, 168, 76, 0.4);
-  padding-bottom: 0.2rem;
-  transition: color var(--t-micro) ease, border-color var(--t-micro) ease;
-}
-
-.footer__mail:hover {
-  color: var(--color-gold);
-  border-color: var(--color-gold);
 }
 
 .footer__base {
@@ -1759,8 +1694,8 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .social {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
-  grid-template-rows: 1fr auto;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 0 clamp(1.5rem, 4vw, 3.5rem);
   height: 100%;
   align-items: center;
@@ -1803,61 +1738,105 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   position: relative;
   grid-column: 2;
   grid-row: 1 / span 2;
+  align-self: stretch;
   height: 100%;
   transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-/* A moldura de perfil só faz sentido quando as peças viram feed. */
+/* O cabeçalho do perfil. Só faz sentido quando as peças viram feed. */
 .social__moldura {
   position: absolute;
-  left: 14%;
-  right: 14%;
-  top: 8%;
-  display: flex;
-  align-items: center;
-  padding: 0 0 0.9rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  left: 0.9rem;
+  right: 0.9rem;
+  top: 1rem;
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 0 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .social__perfil {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.8rem;
 }
 
-.social__perfil img {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  object-fit: contain;
-  padding: 6px;
-  border: 1px solid rgba(201, 168, 76, 0.4);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.social__perfil span {
+.social__avatar {
   display: grid;
-  line-height: 1.3;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-gold);
+  /* O anel do Instagram, traduzido para a paleta da Prime: dourado sobre
+     preto em vez do degradê de rede social. */
+  background: #0a0a0a;
+  box-shadow: 0 0 0 1.5px var(--color-gold);
 }
 
-.social__perfil b {
-  font-size: 0.78rem;
+.social__id {
+  display: grid;
+  gap: 0.1rem;
+  line-height: 1.35;
+}
+
+.social__id b {
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--color-bone);
 }
 
-.social__perfil i {
+.social__id i {
   font-style: normal;
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(201, 168, 76, 0.75);
+  color: rgba(201, 168, 76, 0.85);
+}
+
+.social__id u {
+  text-decoration: none;
+  font-family: var(--font-editorial);
+  font-size: 0.68rem;
+  color: rgba(217, 217, 217, 0.5);
+}
+
+.social__destaques {
+  display: flex;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social__destaques li {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(217, 217, 217, 0.55);
+}
+
+.social__bolha {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  background: radial-gradient(70% 70% at 40% 30%, rgba(201, 168, 76, 0.16), rgba(10, 10, 10, 1));
 }
 
 .peca {
+  position: relative;
   margin: 0;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   overflow: hidden;
   background: #0d0d0d;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1865,69 +1844,173 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .peca__mid {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   overflow: hidden;
 }
 
-.peca__img,
+/* Cada peça é uma PEÇA GRÁFICA desenhada na identidade da Prime — não um
+   recorte de fotografia. Seis quadros do mesmo vídeo não parecem um feed;
+   parecem erro de repetição. */
+.peca--marca .peca__mid {
+  background: radial-gradient(120% 120% at 30% 20%, #1a1712 0%, #070707 70%);
+}
+
+.peca__marca {
+  width: 46%;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.95;
+}
+
+.peca--assinatura .peca__mid {
+  background: linear-gradient(140deg, #0a0a0a 0%, #14120c 100%);
+}
+
+.peca__wordmark {
+  width: 74%;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.peca--frase .peca__mid {
+  background: linear-gradient(150deg, rgba(201, 168, 76, 0.16), rgba(10, 10, 10, 1) 68%);
+}
+
+.peca__frase {
+  padding: 12%;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.62rem, 1vw, 0.86rem);
+  font-style: italic;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--color-bone);
+}
+
+.peca--numero .peca__mid {
+  background: #0a0a0a;
+}
+
+.peca__numero {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(201, 168, 76, 0.7);
+}
+
+.peca--tipo .peca__mid {
+  background: var(--color-gold);
+}
+
+.peca__tipo {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1;
+  color: #0a0a0a;
+}
+
+.peca__paleta {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+}
+
+.peca__paleta i {
+  display: block;
+}
+
+.peca--grade .peca__mid {
+  background: #0a0a0a;
+}
+
+.peca__grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  width: 62%;
+  height: 62%;
+}
+
+.peca__grade i {
+  display: block;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+}
+
+.peca--story .peca__mid {
+  background: linear-gradient(200deg, #191510 0%, #070707 70%);
+  align-content: start;
+  padding: 12%;
+}
+
+.peca__story {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+}
+
+.peca__story b {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.peca__story b:first-child {
+  background: var(--color-gold);
+}
+
+.peca__story b:last-child {
+  width: 55%;
+}
+
 .peca__video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(0.25) contrast(1.05);
+  filter: grayscale(0.2) contrast(1.06);
 }
 
-/* Um recorte por peça. É o mesmo material — não há peça de cliente inventada
-   aqui —, mas seis quadros idênticos lado a lado leem como bug de repetição. */
-.peca:nth-of-type(1) .peca__img {
-  object-position: 20% 30%;
-}
-.peca:nth-of-type(3) .peca__img {
-  object-position: 80% 40%;
-  filter: grayscale(0.55) contrast(1.12) brightness(0.9);
-}
-.peca:nth-of-type(4) .peca__img {
-  object-position: 50% 85%;
-}
-.peca:nth-of-type(5) .peca__img {
-  object-position: 10% 60%;
-  filter: grayscale(0.1) contrast(1.02) brightness(1.08);
-}
-.peca:nth-of-type(6) .peca__img {
-  object-position: 90% 15%;
-  filter: grayscale(0.7) contrast(1.15);
-}
-
-.peca__veu {
+/* O único formato que mostra filmagem: é o que um Reel é. */
+.peca__play {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.62) 100%);
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.55));
+}
+
+.peca__play::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 14px solid rgba(255, 255, 255, 0.9);
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  margin-left: 4px;
 }
 
 .peca__rotulo {
   position: absolute;
-  left: 0.6rem;
-  bottom: 0.5rem;
-  right: 0.6rem;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 0.58rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.9rem 0.5rem 0.35rem;
+  /* Um véu curto na base: sem ele, a legenda desaparecia na peça de paleta,
+     que é a única com faixa clara. */
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+  font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-bone);
-}
-
-.peca__rotulo i {
-  font-style: normal;
-  font-size: 0.54rem;
-  letter-spacing: 0.1em;
-  color: rgba(201, 168, 76, 0.85);
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
 }
 
 /* ── Estado 1 · solto ─────────────────────────────────────────────────
@@ -1935,66 +2018,59 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    relação entre as peças. É o perfil de quem publica quando lembra. */
 .social__palco[data-estado="solto"] .peca {
   position: absolute;
-}
-
-.social__palco[data-estado="solto"] .peca:nth-of-type(1) {
-  left: 2%;
-  top: 6%;
-  width: 32%;
   aspect-ratio: 1;
-  transform: rotate(-8deg);
 }
 
-.social__palco[data-estado="solto"] .peca:nth-of-type(2) {
-  right: 4%;
-  top: 2%;
-  width: 25%;
-  aspect-ratio: 9 / 16;
-  transform: rotate(6deg);
-}
-
-.social__palco[data-estado="solto"] .peca:nth-of-type(3) {
-  left: 38%;
-  top: 30%;
-  width: 22%;
-  aspect-ratio: 9 / 16;
-  transform: rotate(-3deg);
-}
-
-.social__palco[data-estado="solto"] .peca:nth-of-type(4) {
-  left: 6%;
-  bottom: 6%;
-  width: 34%;
-  aspect-ratio: 4 / 5;
-  transform: rotate(4deg);
-}
-
-.social__palco[data-estado="solto"] .peca:nth-of-type(5) {
-  right: 8%;
-  bottom: 22%;
-  width: 26%;
-  aspect-ratio: 1;
-  transform: rotate(-6deg);
-}
-
-.social__palco[data-estado="solto"] .peca:nth-of-type(6) {
-  right: 26%;
-  bottom: 2%;
-  width: 24%;
-  aspect-ratio: 4 / 5;
-  transform: rotate(9deg);
-}
+.social__palco[data-estado="solto"] .peca:nth-of-type(1) { left: 1%;  top: 4%;   width: 27%; transform: rotate(-8deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(2) { right: 3%; top: 0%;   width: 22%; aspect-ratio: 9 / 16; transform: rotate(6deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(3) { left: 34%; top: 12%;  width: 26%; transform: rotate(-3deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(4) { left: 4%;  top: 38%;  width: 21%; transform: rotate(5deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(5) { left: 62%; top: 34%;  width: 24%; transform: rotate(-6deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(6) { left: 30%; top: 46%;  width: 20%; transform: rotate(9deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(7) { left: 6%;  bottom: 2%; width: 25%; transform: rotate(-5deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(8) { left: 40%; bottom: 4%; width: 19%; aspect-ratio: 9 / 16; transform: rotate(4deg); }
+.social__palco[data-estado="solto"] .peca:nth-of-type(9) { right: 4%; bottom: 6%; width: 27%; transform: rotate(-9deg); }
 
 /* ── Estado 2 · feed ──────────────────────────────────────────────────
-   As mesmas seis peças, agora numa grade de perfil. Nada foi acrescentado:
-   só organizado — que é exatamente o argumento da seção. */
+   As mesmas nove peças, agora na grade três por três de um perfil. Nada foi
+   acrescentado: só organizado — que é exatamente o argumento da seção. */
 .social__palco[data-estado="feed"],
 .social__palco[data-estado="entrando"] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
-  align-content: center;
-  padding: 16% 14% 6%;
+  align-content: start;
+  /* Sobra em cima para o cabeçalho do perfil. O recuo superior é em rem, e
+     não em porcentagem: padding percentual mede a LARGURA, e num palco largo
+     ele empurrava o aparelho para uma altura que não cabia na tela. */
+  padding: clamp(6.5rem, 14vh, 8.5rem) 0.9rem 0.9rem;
+  /* Largura de aparelho, e altura pelo conteúdo. O bloco se centra na
+     coluna em vez de esticar — assim a moldura desenhada em `::before`
+     coincide com o feed, e não sobra painel vazio embaixo. */
+  width: min(100%, 27rem);
+  height: auto;
+  align-self: center;
+  margin-inline: auto;
+}
+
+/* O aparelho. Só existe quando as peças viram feed — antes, elas estão
+   espalhadas pelo palco e uma moldura de celular não faria sentido. */
+.social__palco::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1.6rem;
+  background: linear-gradient(180deg, rgba(12, 12, 12, 0.9), rgba(6, 6, 6, 0.75));
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+
+.social__palco[data-estado="feed"]::before,
+.social__palco[data-estado="entrando"]::before {
+  opacity: 1;
 }
 
 .social__palco[data-estado="feed"] .peca,
@@ -2004,15 +2080,18 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   width: auto;
   aspect-ratio: 1;
   transform: none;
-  border-radius: 0.2rem;
+  border-radius: 0.15rem;
 }
 
 /* ── Estado 3 · entrando ──────────────────────────────────────────────
    O feed encolhe e viaja na direção do notebook, que está à esquerda do
    quadro. É a emenda com a próxima seção: o conteúdo literalmente entra
    na tela do objeto que abre WEB. */
+/* O feed encolhe e viaja NA DIREÇÃO DO NOTEBOOK — que nesta seção está no
+   canto inferior direito. Viajar para o lado oposto ao objeto quebraria
+   justamente a emenda que o movimento existe para criar. */
 .social__palco[data-estado="entrando"] {
-  transform: scale(0.38) translate(-52%, 4%);
+  transform: scale(0.34) translate(58%, 62%);
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -2021,7 +2100,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .web {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
 }
 
@@ -2036,17 +2115,18 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.2;
+  opacity: 0.32;
 }
 
+/* O escurecedor concentra a sombra onde o TEXTO pousa e deixa o vídeo
+   respirar no resto: o objetivo da seção é mostrar que a Prime constrói
+   digital, e para isso a filmagem precisa aparecer. */
 .web__scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    62% 58% at 50% 48%,
-    rgba(0, 0, 0, 0.35) 0%,
-    rgba(0, 0, 0, 0.86) 100%
-  );
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.45) 42%, rgba(0, 0, 0, 0.2) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 .web__texto {
@@ -2394,7 +2474,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .branding {
   display: grid;
   grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
-  grid-template-rows: 1fr auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 0 clamp(1.5rem, 4vw, 3.5rem);
   height: 100%;
   align-items: center;
@@ -2412,6 +2492,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .branding__palco {
+  position: relative;
   grid-column: 2;
   grid-row: 1;
   display: grid;
@@ -2419,6 +2500,35 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   gap: clamp(1rem, 3vw, 2.5rem);
   align-items: center;
   height: 100%;
+}
+
+/* A MARCA REAL, no centro da construção. Revelada por clip-path: ela é arte
+   pronta, e fingir que está sendo traçada seria mentir sobre o que a peça é. */
+.branding__desenho {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  height: 100%;
+}
+
+.branding__marca {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* A arte é a assinatura horizontal: contida pela circunferência de
+   construção, e não pela largura do palco. */
+.branding__marca img {
+  width: min(52%, 15rem);
+  height: auto;
+  object-fit: contain;
+  /* A marca é clara e o palco é bege: sem inverter, ela sumiria no papel. */
+  filter: brightness(0) saturate(100%) invert(48%) sepia(43%) saturate(680%)
+    hue-rotate(2deg) brightness(88%) contrast(88%);
 }
 
 .branding__svg {
@@ -2443,14 +2553,9 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 [data-bd-traco] {
   stroke: var(--bone-ink);
-  stroke-width: 3;
+  stroke-width: 2;
   fill: none;
-  stroke-linecap: square;
-}
-
-[data-bd-massa] {
-  fill: #8a7128;
-  stroke: none;
+  stroke-linecap: round;
 }
 
 .bd-cotas line {
@@ -2517,7 +2622,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .spec__cores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
   margin: 0;
   padding: 0;
@@ -2573,9 +2678,17 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    ═════════════════════════════════════════════════════════════ */
 .estrategia {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
-  gap: clamp(0.8rem, 2vh, 1.6rem);
+  gap: clamp(0.6rem, 1.4vh, 1.1rem);
+}
+
+.sec--estrategia .sec__title {
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+}
+
+.estrategia__texto .sec__body {
+  margin-top: 0.7rem;
 }
 
 .estrategia__texto {
@@ -2596,7 +2709,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   position: absolute;
   inset: 0;
   margin: auto;
-  aspect-ratio: 900 / 560;
+  aspect-ratio: 900 / 580;
   max-width: 100%;
   max-height: 100%;
 }
@@ -2644,17 +2757,23 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .est-rotulo {
   position: absolute;
-  transform: translate(-50%, -170%);
+  transform: translate(-50%, -230%);
   white-space: nowrap;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(217, 217, 217, 0.65);
+  color: rgba(217, 217, 217, 0.72);
+  /* O halo abre espaço no meio das linhas: sem ele, o feixe passa por cima
+     das letras e o rótulo fica ilegível justamente quando converge. */
+  text-shadow:
+    0 0 6px #050505,
+    0 0 12px #050505,
+    0 0 3px #050505;
 }
 
 .est-rotulo--foco {
-  transform: translate(-50%, 130%);
+  transform: translate(-50%, 200%);
   font-family: var(--font-display);
   font-size: clamp(0.85rem, 1.5vw, 1.15rem);
   letter-spacing: 0.1em;
@@ -2666,7 +2785,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    ═════════════════════════════════════════════════════════════ */
 .maquina {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: clamp(1rem, 2.5vh, 2rem);
   height: 100%;
 }
@@ -2966,6 +3085,21 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   background: #8a7128;
 }
 
+.palco__legenda {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.9rem;
+  z-index: 3;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(138, 113, 40, 0.85);
+  pointer-events: none;
+}
+
 .palco__eixo {
   position: absolute;
   inset: 0;
@@ -3113,267 +3247,106 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   stroke-width: 1.5;
 }
 
-/* As duas marcas nas pontas do arco: uma embaixo à esquerda, outra em cima
-   à direita. É composição, não grade — com dois clientes, a grade denuncia
-   os buracos que ela deixa. */
-.marca {
-  position: absolute;
-  width: min(34%, 21rem);
-  transition: opacity 0.6s ease, filter 0.6s ease;
-}
-
-.marca[data-indice="0"] {
-  left: 0;
-  bottom: 0;
-}
-
-.marca[data-indice="1"] {
-  right: 0;
-  top: 0;
-}
-
-/* A ficha aberta cresce para BAIXO na marca de cima e para CIMA na de baixo:
-   sem isso, o preview da marca inferior sai pela base da seção.
-   A inversão vale para os DOIS níveis — a ficha dentro da marca e o nome
-   dentro da ficha. Invertendo só o de fora, o preview cresce para cima mas
-   por dentro continua empurrando o nome para baixo, e os dois colidem. */
-.marca[data-indice="0"],
-.marca[data-indice="0"] .marca__ficha {
-  display: flex;
-  flex-direction: column-reverse;
-}
-
-.marca[data-indice="0"] .marca__ficha {
-  margin: 0 0 1rem;
-  gap: 0.6rem;
-}
-
-.marca[data-indice="0"] .perfil {
-  margin: 0;
-}
-
-.marca[data-indice="0"][data-active="true"] .perfil {
-  margin: 0 0 0.9rem;
-}
-
-.marca__selo {
+/* ── Duas marcas, lado a lado ────────────────────────────────────────
+   Duas logos e nada mais. A composição anterior empilhava logo, nome, ficha
+   e uma grade de marcas d'água fingindo ser posts: muito elemento para pouca
+   informação, e a grade inventada não convencia ninguém. */
+.quem__marcas {
   display: grid;
-  place-items: center;
-  height: clamp(4.5rem, 10vh, 6.5rem);
-  padding: 0.9rem 1.4rem;
-  border-radius: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marca__gatilho {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 1.4rem;
+  width: 100%;
+  padding: clamp(1.5rem, 4vh, 2.75rem) clamp(1rem, 2.5vw, 2rem) clamp(1.2rem, 3vh, 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.75rem;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   transition:
-    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.5s ease;
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color var(--t-ui) ease,
+    background-color var(--t-ui) ease;
+}
+
+.marca__gatilho:hover,
+.marca__gatilho:focus-visible {
+  transform: translateY(-6px);
+  border-color: rgba(201, 168, 76, 0.45);
+  background: linear-gradient(165deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0));
 }
 
 /* A logo do cliente é dele: não se recolore marca alheia. Quando a arte é
    escura demais para o fundo preto, o que muda é o FUNDO — uma placa clara
    sob ela — e não a tinta. */
-.marca__selo[data-placa="true"] {
-  background: rgba(255, 255, 255, 0.92);
+.marca__placa {
+  display: grid;
+  place-items: center;
+  min-height: clamp(7rem, 18vh, 11rem);
+  padding: clamp(0.8rem, 2vh, 1.5rem);
+  border-radius: 0.5rem;
 }
 
-.marca__selo img {
-  height: clamp(2.8rem, 6.5vh, 4.2rem);
+.marca__placa[data-placa="true"] {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.marca__placa img {
   max-width: 100%;
+  max-height: clamp(5rem, 13vh, 8rem);
   width: auto;
   object-fit: contain;
 }
 
-.marca__ficha {
-  margin-top: 1rem;
+.marca__pe {
+  display: grid;
+  gap: 0.2rem;
 }
 
 .marca__nome {
-  margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.55);
-  transition: color var(--t-ui) ease;
-}
-
-/* ── Preview do perfil ────────────────────────────────────────────────
-   Fechado por padrão; abre na marca em foco. */
-.perfil {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition:
-    max-height 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.45s ease,
-    margin 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.perfil__topo {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.perfil__avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid rgba(201, 168, 76, 0.4);
-  overflow: hidden;
-  padding: 5px;
-}
-
-.perfil__avatar[data-placa="true"] {
-  background: #fff;
-}
-
-.perfil__avatar img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.perfil__id {
-  display: grid;
-  line-height: 1.3;
-}
-
-.perfil__id b {
-  font-size: 0.8rem;
-  font-weight: 600;
   color: var(--color-bone);
 }
 
-.perfil__id i {
-  font-style: normal;
-  font-size: 0.6rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(201, 168, 76, 0.75);
+.marca__arroba {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: rgba(201, 168, 76, 0.8);
 }
 
-.perfil__grade {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin: 0.6rem 0;
-  max-width: 13rem;
-}
-
-.perfil__celula {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border-radius: 2px;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(201, 168, 76, 0.07));
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-}
-
-.perfil__celula img {
-  width: 58%;
-  height: auto;
-  object-fit: contain;
-  opacity: 0.28;
-}
-
-.perfil__nota {
-  margin: 0 0 0.7rem;
-  font-family: var(--font-editorial);
-  font-size: 0.7rem;
-  font-style: italic;
-  color: rgba(217, 217, 217, 0.45);
-}
-
-.perfil__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border: 1px solid rgba(201, 168, 76, 0.5);
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--color-gold);
-  transition:
-    background-color var(--t-ui) ease,
-    color var(--t-ui) ease;
-}
-
-.perfil__link:hover,
-.perfil__link:focus-visible {
+/* O risco dourado corre na base quando a marca está em foco: o mesmo gesto
+   discreto do resto do site, em vez de sombra e escala grandes. */
+.marca__risco {
+  position: absolute;
+  left: clamp(1rem, 2.5vw, 2rem);
+  right: clamp(1rem, 2.5vw, 2rem);
+  bottom: 0;
+  height: 1px;
   background: var(--color-gold);
-  color: #0a0a0a;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.marca__frentes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0.8rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.marca__frentes li {
-  padding: 0.28rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  font-size: 0.64rem;
-  letter-spacing: 0.1em;
-  color: rgba(217, 217, 217, 0.7);
-}
-
-.marca__depoimento {
-  margin: 1rem 0 0;
-  padding-left: 1rem;
-  border-left: 2px solid rgba(201, 168, 76, 0.5);
-  font-family: var(--font-editorial);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: rgba(217, 217, 217, 0.8);
-}
-
-.marca__depoimento cite {
-  display: block;
-  margin-top: 0.5rem;
-  font-style: normal;
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-gold);
-}
-
-/* ── Foco ────────────────────────────────────────────────────────────── */
-.marca[data-active="true"] {
-  z-index: 2;
-}
-
-.marca[data-active="true"] .marca__nome {
-  color: var(--color-bone);
-}
-
-.marca[data-active="true"] .marca__selo {
-  transform: scale(1.06);
-}
-
-.marca[data-active="true"] .perfil {
-  max-height: 15rem;
-  opacity: 1;
-  margin-top: 0.9rem;
-}
-
-/* A outra recua: é o que faz "em foco" significar alguma coisa. */
-.quem__palco:has(.marca[data-active="true"]) .marca[data-active="false"] {
-  opacity: 0.35;
-  filter: saturate(0.5);
+.marca__gatilho:hover .marca__risco,
+.marca__gatilho:focus-visible .marca__risco {
+  transform: scaleX(1);
 }
 
 .quem__dica {
@@ -3394,6 +3367,211 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   }
   .quem__dica-toque {
     display: inline;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   POP-UP DO PERFIL
+   O Instagram real, dentro do site. Quando ele recusa ser
+   embutido — e recusa com frequência —, o conteúdo da Prime
+   assume o lugar com o caminho para o perfil verdadeiro.
+   ═════════════════════════════════════════════════════════════ */
+.pop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vh, 3rem) clamp(1rem, 4vw, 3rem);
+  background: rgba(3, 3, 3, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.pop__caixa {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: min(100%, 26rem);
+  max-height: min(100%, 44rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background: #0b0b0b;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.9);
+}
+
+.pop__topo {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.pop__marca {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  overflow: hidden;
+}
+
+.pop__marca[data-placa="true"] {
+  background: #fff;
+}
+
+.pop__marca img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pop__id {
+  display: grid;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.pop__id b {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-bone);
+}
+
+.pop__id i {
+  font-style: normal;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: rgba(201, 168, 76, 0.8);
+}
+
+.pop__fechar {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: none;
+  color: var(--color-bone);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background-color var(--t-ui) ease,
+    border-color var(--t-ui) ease;
+}
+
+.pop__fechar:hover,
+.pop__fechar:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(201, 168, 76, 0.5);
+}
+
+.pop__janela {
+  position: relative;
+  min-height: clamp(18rem, 48vh, 30rem);
+  background: #0f0f0f;
+}
+
+.pop__frame {
+  width: 100%;
+  height: 100%;
+  min-height: clamp(18rem, 48vh, 30rem);
+  border: 0;
+  display: block;
+  background: #fff;
+}
+
+.pop__reserva {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  background: #0f0f0f;
+}
+
+.pop__carregando {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(217, 217, 217, 0.5);
+}
+
+.pop__spin {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-top-color: var(--color-gold);
+  border-radius: 50%;
+  animation: pop-gira 0.9s linear infinite;
+}
+
+@keyframes pop-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pop__aviso {
+  margin: 0;
+  max-width: 20rem;
+  font-family: var(--font-editorial);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-bone);
+}
+
+.pop__sub {
+  margin: 0;
+  max-width: 20rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: rgba(217, 217, 217, 0.5);
+}
+
+.pop__base {
+  display: grid;
+  padding: 0.9rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.pop__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: 999px;
+  background: var(--color-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #0a0a0a;
+  transition: filter var(--t-ui) ease;
+}
+
+.pop__link:hover,
+.pop__link:focus-visible {
+  filter: brightness(1.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop__spin {
+    animation: none;
+  }
+  .marca__gatilho,
+  .marca__risco {
+    transition: none;
   }
 }
 
@@ -3462,37 +3640,116 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   RODAPÉ — o encerramento
-   O grande elemento é a marca, em tamanho cinematográfico. Depois
-   de vinte telas de argumento, o fecho não é mais texto.
+   RODAPÉ — o encerramento, num bloco só
+   A marca ficava numa faixa isolada e os links noutra, com um
+   vazio entre as duas. Agora a marca divide a linha com o que o
+   leitor pode FAZER agora: navegar ou falar com a Prime.
    ═════════════════════════════════════════════════════════════ */
-.footer__marca {
+.footer__inner {
   position: relative;
   display: grid;
-  place-items: center;
-  padding: clamp(2.5rem, 7vh, 5rem) var(--pad-x) clamp(1.5rem, 4vh, 3rem);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  padding: clamp(2.5rem, 7vh, 4.5rem) var(--pad-x) clamp(2rem, 5vh, 3rem);
+  max-width: 80rem;
+  margin: 0 auto;
 }
 
 .footer__brilho {
   position: absolute;
-  left: 50%;
+  left: 28%;
   top: 50%;
-  width: min(80vw, 46rem);
+  width: min(60vw, 34rem);
   aspect-ratio: 2 / 1;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     50% 50% at 50% 50%,
-    rgba(201, 168, 76, 0.22) 0%,
+    rgba(201, 168, 76, 0.18) 0%,
     rgba(201, 168, 76, 0) 70%
   );
   pointer-events: none;
 }
 
-.footer__wordmark {
+.footer__marca {
   position: relative;
-  width: min(78vw, 44rem);
+}
+
+.footer__wordmark {
+  display: block;
+  width: min(100%, 34rem);
   height: auto;
   object-fit: contain;
+}
+
+.footer__colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.footer__titulo {
+  margin: 0 0 0.9rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.8);
+}
+
+.footer__nav ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer__nav a,
+.footer__zap,
+.footer__mail {
+  display: inline-block;
+  border: 0;
+  font-size: 0.86rem;
+  text-decoration: none;
+  color: rgba(217, 217, 217, 0.68);
+  transition: color var(--t-ui) ease, transform var(--t-ui) ease;
+}
+
+.footer__nav a:hover,
+.footer__nav a:focus-visible,
+.footer__zap:hover,
+.footer__zap:focus-visible,
+.footer__mail:hover,
+.footer__mail:focus-visible {
+  color: var(--color-gold);
+  transform: translateX(3px);
+}
+
+.footer__contato {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.footer__zap {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-bone);
+}
+
+@media (max-width: 860px) {
+  .footer__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .footer__brilho {
+    left: 50%;
+    top: 28%;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════
@@ -3781,6 +4038,14 @@ html[data-nav-theme="bone"] .nav__traco {
   /* Estado inicial no CSS, e não só no GSAP: sem isto o painel pisca aberto
      no quadro entre o React montar e a timeline rodar. */
   clip-path: inset(0% 0% 100% 0%);
+}
+
+/* O `display: grid` acima atropela o `display: none` que o navegador aplica a
+   `[hidden]`. O painel ficava recortado — invisível — mas ainda na árvore:
+   cinco links continuavam recebendo Tab e sendo lidos por leitor de tela,
+   com o menu fechado. */
+.menu[hidden] {
+  display: none;
 }
 
 .menu[data-aberto="true"] {

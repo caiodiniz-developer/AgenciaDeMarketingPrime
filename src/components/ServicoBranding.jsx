@@ -31,6 +31,10 @@ export default function ServicoBranding({ section, servico }) {
       </div>
 
       <div className="branding__palco">
+        {/* A coluna do desenho é o bloco de contenção da marca: sem ela, a
+           marca se centrava sobre o PALCO inteiro — que inclui a coluna das
+           especificações — e ia parar em cima da paleta. */}
+        <div className="branding__desenho">
         <svg
           className="branding__svg"
           viewBox="0 0 520 520"
@@ -57,11 +61,9 @@ export default function ServicoBranding({ section, servico }) {
             <line x1="420" y1="100" x2="100" y2="420" data-bd-guia />
           </g>
 
-          {/* 3 · O símbolo: um P construído com as mesmas medidas da grade —
-                 haste, ombro e contraforma. */}
+          {/* 3 · A circunferência de fora, que fecha a construção. */}
           <g className="bd-simbolo" data-bd="simbolo">
-            <path d="M190 400 L190 120 L290 120 A90 90 0 0 1 290 300 L190 300" data-bd-traco />
-            <path d="M190 120 L290 120 A90 90 0 0 1 290 300 L190 300 Z" data-bd-massa />
+            <circle cx="260" cy="260" r="140" data-bd-traco />
           </g>
 
           {/* 4 · Cotas: o detalhe que diz "isto foi medido, não improvisado". */}
@@ -78,6 +80,16 @@ export default function ServicoBranding({ section, servico }) {
             </text>
           </g>
         </svg>
+
+        {/* A MARCA DE VERDADE, no centro da construção.
+            Antes havia aqui um "P" que eu desenhei em SVG. Numa seção que
+            vende identidade visual, exibir um símbolo inventado no lugar da
+            marca real da empresa é o erro mais caro possível: a peça que
+            deveria provar competência passava a provar o contrário. */}
+        <div className="branding__marca" data-bd-marca>
+          <img src="/logo-mark.png" alt="Marca da Agência Prime" />
+        </div>
+        </div>
 
         {/* 5 · Tipografia e cor entram como DOM, não como SVG: são texto e
                precisam ser texto — inclusive para quem lê com leitor de tela. */}

@@ -95,7 +95,17 @@ const page = await browser.newPage();
    desligar isso explicitamente, TODA verificação mede o caminho reduzido e
    conclui que o site funciona — enquanto nada do movimento real é testado. */
 await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-page.on("console", (m) => m.type() === "error" && erros.push(m.text()));
+const doInstagram = (t) =>
+  /instagram|ErrorUtils|allow-same-origin|fburl.com/i.test(t);
+page.on("console", (m) => {
+  if (m.type() !== "error") return;
+  const t = m.text();
+  /* O embed do Instagram vive numa caixa de areia sem `allow-same-origin` e o
+     script deles reclama de cookie. É erro de outra origem, dentro de um
+     frame que não controlamos: contá-lo como nosso esconderia os nossos. */
+  if (doInstagram(t)) return;
+  erros.push(t);
+});
 page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
 page.on("response", (r) => r.status() >= 400 && ruins.push(`${r.status()} ${r.url()}`));
 
@@ -111,10 +121,10 @@ await sleep(3000);
 log("\n── Caminho do notebook ──");
 
 const PARADAS = [
-  ["manifesto", 1.34, -0.42],
-  ["social", -0.8, -0.66],
+  ["manifesto", 1.16, -0.46],
+  ["social", 0.78, -0.74],
   ["web", 0, -0.16],
-  ["design", -1.5, -0.42],
+  ["design", -0.98, -0.82],
   ["contato", 0, -0.58],
 ];
 
@@ -134,8 +144,8 @@ for (const [id, ax, ay] of PARADAS) {
 /* Continuidade: amostragem densa e nenhum salto brusco entre amostras
    vizinhas. Um "teletransporte" apareceria aqui como um degrau. */
 const amostras = [];
-for (let i = 0; i <= 30; i++) {
-  await fracao(page, 0.1 + (i / 30) * 0.88, 260);
+for (let i = 0; i <= 80; i++) {
+  await fracao(page, 0.1 + (i / 80) * 0.88, 130);
   const p = await lerCena(page);
   if (p) amostras.push(p.x);
 }
@@ -145,7 +155,10 @@ for (let i = 1; i < amostras.length; i++) {
 }
 checar(
   "trajeto sem degrau",
-  amostras.length > 20 && maiorSalto < 2.2,
+  /* O limite é a maior transição do roteiro (o retorno ao centro no fecho,
+     1,46 de largura). Um teletransporte — que é o que este teste existe para
+     pegar — apareceria como um salto de três ou mais numa amostra só. */
+  amostras.length > 60 && maiorSalto < 1.5,
   `maior salto entre amostras: ${maiorSalto.toFixed(2)} (em ${amostras.length} pontos)`
 );
 
@@ -209,8 +222,8 @@ const gradeFeed = await page.evaluate(() => {
   return { n: pecas.length, linhas: topos.size };
 });
 checar(
-  "as peças formam grade",
-  gradeFeed.n === 6 && gradeFeed.linhas <= 3,
+  "as nove peças formam a grade três por três",
+  gradeFeed.n === 9 && gradeFeed.linhas === 3,
   `${gradeFeed.n} peças em ${gradeFeed.linhas} linhas`
 );
 
@@ -294,8 +307,10 @@ for (const f of [0.05, 0.45, 0.9]) {
          de 0 ao comprimento do traço. O dash-offset fica praticamente parado
          em zero — medi-lo não diz nada sobre o progresso. */
       const arr = t ? parseFloat(getComputedStyle(t).strokeDasharray) || 0 : -1;
-      const massa = document.querySelector("[data-bd-massa]");
-      return { arr: Math.round(arr), massa: massa ? +getComputedStyle(massa).opacity : -1 };
+      const marca = document.querySelector("[data-bd-marca]");
+      const cp = marca ? getComputedStyle(marca).clipPath : "";
+      const pc = /circle\(([\d.]+)/.exec(cp);
+      return { arr: Math.round(arr), revelada: pc ? Number(pc[1]) : -1 };
     })
   );
 }
@@ -304,7 +319,19 @@ checar(
   desenho[2].arr > desenho[0].arr + 100,
   `comprimento desenhado ${desenho.map((d) => d.arr).join(" → ")}px`
 );
-checar("o símbolo ganha massa", desenho[2].massa > 0.8, `opacidade ${desenho[2].massa}`);
+checar(
+  "a marca real é revelada",
+  desenho[2].revelada > 40,
+  `clip-path em ${desenho[2].revelada}% ao fim da construção`
+);
+checar(
+  "é a arte do projeto, não um símbolo inventado",
+  await page.evaluate(() => {
+    const img = document.querySelector("[data-bd-marca] img");
+    return Boolean(img && img.naturalWidth > 0 && img.getAttribute("src").includes("logo"));
+  }),
+  "logo-mark.png carregada"
+);
 
 /* ═══ 8 · Estratégia: rótulo e ponto na MESMA geometria ═══════════════════
    O SVG é encaixado com "meet" e os rótulos são DOM em porcentagem. Se as
@@ -407,49 +434,79 @@ checar("o eixo aparece só em DIREÇÃO", eixo > 0.8, `opacidade ${eixo}`);
 /* ═══ 11 · Clientes ═══════════════════════════════════════════════════════ */
 log("\n── Clientes ──");
 await irPara(page, "clientes");
-const links = await page.evaluate(() =>
-  [...document.querySelectorAll(".perfil__link")].map((a) => a.href)
-);
+const ladoALado = await page.evaluate(() => {
+  const cards = [...document.querySelectorAll(".marca__gatilho")].map((e) =>
+    e.getBoundingClientRect()
+  );
+  if (cards.length < 2) return null;
+  // Lado a lado: mesma faixa vertical, colunas diferentes.
+  return {
+    n: cards.length,
+    mesmaLinha: Math.abs(cards[0].top - cards[1].top) < 12,
+    separados: cards[1].left > cards[0].right - 4,
+    altura: Math.round(cards[0].height),
+  };
+});
 checar(
-  "links reais para os perfis",
-  links.includes("https://www.instagram.com/realpisos/") &&
-    links.includes("https://www.instagram.com/fisiowandersoncarvalho/"),
-  links.join(" ")
-);
-checar(
-  "sem iframe do Instagram",
-  await page.evaluate(() => !document.querySelector('iframe[src*="instagram"]')),
-  "preview construído com assets do projeto"
+  "duas marcas lado a lado",
+  ladoALado && ladoALado.n === 2 && ladoALado.mesmaLinha && ladoALado.separados,
+  JSON.stringify(ladoALado)
 );
 
+/* O pop-up: abrir sem sair do site é o pedido, e o iframe do Instagram é a
+   parte que NÃO está sob nosso controle. Mede-se as duas coisas: o diálogo
+   abre sempre, e o embed carrega quando o Instagram deixa. */
 const alvoMarca = await page.evaluate(() => {
-  const m = document.querySelector('[data-marca="real-pisos"] .marca__selo');
+  const m = document.querySelector('[data-marca="real-pisos"] .marca__gatilho');
   const r = m.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 });
-const antesHover = await page.evaluate(
-  () => document.querySelector('[data-marca="real-pisos"] .perfil').getBoundingClientRect().height
-);
 await page.mouse.move(alvoMarca.x, alvoMarca.y);
-await sleep(1400);
-const depoisHover = await page.evaluate(
-  () => document.querySelector('[data-marca="real-pisos"] .perfil').getBoundingClientRect().height
+await sleep(1200);
+const popAberto = await page.evaluate(() => {
+  const d = document.querySelector(".pop");
+  if (!d) return null;
+  const frame = d.querySelector("iframe");
+  return {
+    papel: d.getAttribute("role"),
+    modal: d.getAttribute("aria-modal"),
+    src: frame?.getAttribute("src") || null,
+    link: d.querySelector(".pop__link")?.href || null,
+  };
+});
+checar("o pop-up abre ao apontar a marca", Boolean(popAberto), JSON.stringify(popAberto));
+checar(
+  "o iframe aponta para o perfil real",
+  popAberto?.src?.includes("instagram.com/realpisos"),
+  popAberto?.src
 );
 checar(
-  "o preview abre no hover",
-  depoisHover > antesHover + 80,
-  `${Math.round(antesHover)}px → ${Math.round(depoisHover)}px`
+  "e há saída para o perfil verdadeiro",
+  popAberto?.link === "https://www.instagram.com/realpisos/",
+  popAberto?.link
 );
-const recuo = await page.evaluate(
-  () => +getComputedStyle(document.querySelector('[data-marca="wanderson-carvalho"]')).opacity
-);
-checar("a outra marca recua", recuo < 0.6, `opacidade ${recuo}`);
 
-const arco = await page.evaluate(() => {
-  const p = document.querySelector("[data-quem-arco]");
-  return Math.round(parseFloat(getComputedStyle(p).strokeDashoffset) || 0);
+await sleep(5000);
+const embed = await page.evaluate(() => {
+  const r = document.querySelector(".pop__reserva");
+  return { reserva: Boolean(r), aviso: r?.querySelector(".pop__aviso")?.textContent || null };
 });
-checar("o arco é desenhado", arco < 60, `dashoffset ${arco}`);
+log(
+  embed.reserva
+    ? `  info  o Instagram recusou o embed nesta execução; a reserva assumiu — "${embed.aviso}"`
+    : "  info  o embed do Instagram carregou dentro do pop-up"
+);
+
+const travou = await page.evaluate(() => getComputedStyle(document.body).overflow);
+checar("o fundo não rola com o pop-up aberto", travou === "hidden", travou);
+
+await page.keyboard.press("Escape");
+await sleep(900);
+checar(
+  "Escape fecha o pop-up",
+  await page.evaluate(() => !document.querySelector(".pop")),
+  ""
+);
 
 /* ═══ 12 · WhatsApp ═══════════════════════════════════════════════════════ */
 log("\n── WhatsApp ──");
@@ -548,11 +605,26 @@ if (botaoMenu) {
   checar("o painel abre", aberto && aberto.vis === "visible" && aberto.op > 0.8, JSON.stringify(aberto));
   checar("com os links da navegação", aberto && aberto.links >= 4, `${aberto?.links} links`);
   await page.keyboard.press("Escape");
-  await sleep(1600);
-  const fechado = await page.evaluate(
-    () => getComputedStyle(document.querySelector(".menu")).visibility
+  await sleep(1200);
+  /* Mede se o painel saiu da RENDERIZAÇÃO, e não a `visibility`:
+     `display: none` não muda `visibility`, então a asserção antiga acusava
+     "aberto" mesmo com o menu fora da árvore. O que interessa é justamente
+     isto — com o menu fechado, os cinco links não podem receber Tab nem ser
+     lidos por leitor de tela. */
+  const fechado = await page.evaluate(() => {
+    const m = document.querySelector(".menu");
+    const link = m.querySelector("a");
+    return {
+      display: getComputedStyle(m).display,
+      renderizado: Boolean(m.offsetParent) || m.getClientRects().length > 0,
+      linkAlcancavel: Boolean(link && link.getClientRects().length),
+    };
+  });
+  checar(
+    "fecha no Escape e sai da árvore",
+    fechado.display === "none" && !fechado.renderizado && !fechado.linkAlcancavel,
+    JSON.stringify(fechado)
   );
-  checar("fecha no Escape", fechado === "hidden", fechado);
 }
 
 /* ═══ 16 · Higiene ════════════════════════════════════════════════════════ */

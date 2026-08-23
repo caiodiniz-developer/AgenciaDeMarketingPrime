@@ -11,11 +11,11 @@ import { prefersReducedMotion } from "../lib/media";
  * dá curso de scroll para isso acontecer; a altura vem medida do próprio
  * rodapé, então mudar o conteúdo dele não quebra o efeito.
  *
- * O ENCERRAMENTO
- * O grande elemento aqui é a marca — a arte de rodapé do projeto, em tamanho
- * cinematográfico. Ela chega levemente encolhida e assenta enquanto a página
- * descobre o rodapé, com uma luz dourada baixíssima por trás. Depois de vinte
- * telas de argumento, o fecho não é mais texto: é a assinatura.
+ * UM BLOCO SÓ
+ * A marca ficava numa faixa isolada, com os links e o e-mail numa segunda
+ * faixa abaixo — duas composições disputando o mesmo fecho, e um vazio entre
+ * elas. Agora é um bloco: a marca à esquerda, navegação e contato à direita,
+ * na mesma linha de base. O encerramento é uma imagem só.
  */
 export default function Footer() {
   const el = useRef(null);
@@ -59,7 +59,7 @@ export default function Footer() {
 
     tl.fromTo(
       marca,
-      { scale: 0.85, autoAlpha: 0, yPercent: 6 },
+      { scale: 0.86, autoAlpha: 0, yPercent: 8 },
       { scale: 1, autoAlpha: 1, yPercent: 0, ease: "none" },
       0
     );
@@ -86,43 +86,50 @@ export default function Footer() {
 
   return (
     <footer className="footer" ref={el}>
-      {/* O grande elemento do encerramento. */}
-      <div className="footer__marca">
-        <span className="footer__brilho" data-rodape-brilho aria-hidden="true" />
-        <img
-          className="footer__wordmark"
-          data-rodape-marca
-          src="/logo-footer.png"
-          alt="Agência Prime"
-        />
-      </div>
+      <span className="footer__brilho" data-rodape-brilho aria-hidden="true" />
 
       <div className="footer__inner">
-        <nav className="footer__nav" aria-label="Rodapé">
-          <ul>
-            {navItems.map(({ id, label }) => (
-              <li key={id}>
-                <a href={`#${id}`} onClick={(e) => irPara(e, id)} data-cursor="link">
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* A marca é o grande elemento do encerramento — mas divide a linha
+            com o que o leitor pode FAZER agora. Sozinha numa faixa, ela era
+            um pôster no meio do caminho. */}
+        <div className="footer__marca">
+          <img
+            className="footer__wordmark"
+            data-rodape-marca
+            src="/logo-footer.png"
+            alt="Agência Prime"
+          />
+        </div>
 
-        <div className="footer__contact">
-          <a
-            className="footer__zap"
-            href={CONTATO.whatsapp.link}
-            target="_blank"
-            rel="noreferrer noopener"
-            data-cursor="link"
-          >
-            {CONTATO.whatsapp.exibicao}
-          </a>
-          <a className="footer__mail" href={`mailto:${CONTATO.email}`} data-cursor="link">
-            {CONTATO.email}
-          </a>
+        <div className="footer__colunas">
+          <nav className="footer__nav" aria-label="Rodapé">
+            <h2 className="footer__titulo">Navegar</h2>
+            <ul>
+              {navItems.map(({ id, label }) => (
+                <li key={id}>
+                  <a href={`#${id}`} onClick={(e) => irPara(e, id)} data-cursor="link">
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="footer__contato">
+            <h2 className="footer__titulo">Falar com a Prime</h2>
+            <a
+              className="footer__zap"
+              href={CONTATO.whatsapp.link}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-cursor="link"
+            >
+              {CONTATO.whatsapp.exibicao}
+            </a>
+            <a className="footer__mail" href={`mailto:${CONTATO.email}`} data-cursor="link">
+              {CONTATO.email}
+            </a>
+          </div>
         </div>
       </div>
 

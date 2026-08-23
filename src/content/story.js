@@ -326,9 +326,17 @@ export const forcas = [
  *            x e y de -1 a 1: (-1,-1) é o canto inferior esquerdo da tela,
  *            (1,1) o superior direito. Além de ±1.6 o modelo está fora do
  *            quadro — e é assim que ele SAI de cena, viajando, nunca sumindo.
- *            As poses de bastidor vão a ±3 com folga de propósito: a pose é
- *            perseguida com amortecimento, e um alvo logo depois da borda
- *            deixa o objeto espiando no canto enquanto ainda está chegando.
+ *            Depois da seção Web o objeto fica na MARGEM ESQUERDA e só sobe
+ *            e desce por ela, até voltar ao centro no fecho. Alternar entre
+ *            as duas bordas obrigaria a atravessar a tela inteira em cada
+ *            troca — e a travessia passa por cima do conteúdo que a seção
+ *            acabou de revelar.
+ *
+ *            NENHUMA seção manda o objeto para longe do quadro. Ele é o fio
+ *            condutor da página: some, e a narrativa visual se parte em onze
+ *            pedaços. Em vez de sair, ele circula pelas BORDAS — entra e sai
+ *            pela esquerda e pela direita, alto e baixo — mostrando sempre um
+ *            pedaço, e só ocupa o centro na seção Web, que é dele.
  *
  *            A pose é interpolada com scrub entre uma seção e a seguinte: o
  *            objeto percorre o caminho à vista, que é o pedido explícito do
@@ -351,7 +359,7 @@ export const sections = [
     ],
     /** O diagnóstico em uma palavra, atravessando a tela. */
     palavra: "PERCEPÇÃO",
-    laptop: { x: 1.34, y: -0.42, scale: 0.52, rotY: -1.05, rotX: 0.16 },
+    laptop: { x: 1.16, y: -0.46, scale: 0.54, rotY: -1.05, rotX: 0.16 },
     canal: "social",
   },
   {
@@ -366,7 +374,7 @@ export const sections = [
       { text: "sustentam entre si", tone: "gold" },
       { text: " — e que, juntas, substituem o departamento de marketing que a sua empresa não tem." },
     ],
-    laptop: { x: 0.86, y: 0.36, scale: 0.4, rotY: -0.78, rotX: 0.22 },
+    laptop: { x: 1.05, y: 0.42, scale: 0.44, rotY: -0.78, rotX: 0.22 },
     canal: "social",
   },
 
@@ -377,7 +385,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: -0.8, y: -0.66, scale: 0.5, rotY: 0.52, rotX: 0.12 },
+    laptop: { x: 0.78, y: -0.74, scale: 0.44, rotY: -0.6, rotX: 0.14 },
     canal: "social",
   },
   {
@@ -397,7 +405,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -1.5, y: -0.42, scale: 0.62, rotY: 1.05, rotX: 0.14 },
+    laptop: { x: -0.98, y: -0.82, scale: 0.44, rotY: 0.9, rotX: 0.16 },
     canal: "design",
   },
   {
@@ -407,7 +415,7 @@ export const sections = [
     rays: false,
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
-    laptop: { x: -2.6, y: 0.3, scale: 0.52, rotY: 1.3, rotX: 0.12 },
+    laptop: { x: -1.46, y: -0.28, scale: 0.44, rotY: 1.25, rotX: 0.14 },
     canal: "design",
   },
   {
@@ -416,7 +424,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -3.1, y: 0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: 1.22, y: 0.56, scale: 0.44, rotY: -1.2, rotX: 0.18 },
     canal: "design",
   },
 
@@ -433,7 +441,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -3.3, y: -0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -1.42, y: -0.56, scale: 0.44, rotY: 1.3, rotX: 0.14 },
     canal: "design",
   },
   {
@@ -448,7 +456,7 @@ export const sections = [
       { text: "falta uma delas", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -3.3, y: 0.1, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -1.44, y: 0.56, scale: 0.42, rotY: 1.3, rotX: 0.16 },
     canal: "design",
   },
   {
@@ -463,7 +471,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -3.3, y: -0.2, scale: 0.5, rotY: 1.4, rotX: 0.1 },
+    laptop: { x: -1.46, y: 0.34, scale: 0.42, rotY: 1.2, rotX: 0.18 },
     canal: "prime",
   },
   {

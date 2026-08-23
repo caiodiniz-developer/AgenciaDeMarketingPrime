@@ -294,23 +294,51 @@ export default function Story() {
           });
 
           /* O tema da barra é decisão à parte: ele tem de virar quando o bege
-             chega DEBAIXO dela, não quando a seção entra em cena. */
+             chega DEBAIXO dela, não quando a seção entra em cena.
+
+             UM CONJUNTO, e não um atributo por gatilho. Cada seção bege tinha
+             o próprio trigger escrevendo `data-nav-theme` no `onToggle` — que
+             dispara tanto ao ENTRAR quanto ao SAIR. Bastava a segunda seção
+             bege reportar "saí" enquanto a primeira estava em cena para a
+             barra voltar a preto por cima do bege, e os links sumirem. */
+          const beges = new Set();
+          const aplicarTema = () =>
+            document.documentElement.setAttribute(
+              "data-nav-theme",
+              beges.size ? "bone" : "ink"
+            );
+
+          /* O alvo é o ESPAÇADOR do pin quando ele existe.
+             Uma seção presa não fica mais onde o layout diz: enquanto o pin
+             está ativo ela é retirada do fluxo, e depois dele o ScrollTrigger
+             a desloca até o fim do espaçador. Medir a seção em si dava uma
+             posição que nunca correspondia ao que o leitor vê — e o gatilho
+             do tema simplesmente nunca disparava na seção bege presa. O
+             espaçador, esse sim, ocupa exatamente o curso da seção. */
+          const ancora = (id) => {
+            const el = root.current?.querySelector(`[data-sec="${id}"]`);
+            return el?.closest(".pin-spacer") || el;
+          };
+
           sections
             .filter((s) => s.theme === "bone")
             .forEach((s) => {
               const i = sections.indexOf(s);
               const proxima = sections[i + 1];
+              const alvo = ancora(s.id);
+              const alvoProximo = proxima && ancora(proxima.id);
+              if (!alvo) return;
               avulsos.push(
                 ScrollTrigger.create({
-                  trigger: `[data-sec="${s.id}"]`,
+                  trigger: alvo,
                   start: "top 12%",
-                  endTrigger: proxima ? `[data-sec="${proxima.id}"]` : `[data-sec="${s.id}"]`,
-                  end: proxima ? "top 12%" : "bottom 12%",
-                  onToggle: (self) =>
-                    document.documentElement.setAttribute(
-                      "data-nav-theme",
-                      self.isActive ? "bone" : "ink"
-                    ),
+                  endTrigger: alvoProximo || alvo,
+                  end: alvoProximo ? "top 12%" : "bottom 12%",
+                  onToggle: (self) => {
+                    if (self.isActive) beges.add(s.id);
+                    else beges.delete(s.id);
+                    aplicarTema();
+                  },
                 })
               );
             });
@@ -886,7 +914,7 @@ function marcaSendoConstruida(q, desktop) {
   const linhas = [...cena3.querySelectorAll("[data-bd-linha]")];
   const guias = [...cena3.querySelectorAll("[data-bd-guia]")];
   const traco = cena3.querySelector("[data-bd-traco]");
-  const massa = cena3.querySelector("[data-bd-massa]");
+  const marca = cena3.querySelector("[data-bd-marca]");
   const cotas = [...cena3.querySelectorAll("[data-bd-cota]")];
   const textos = [...cena3.querySelectorAll("[data-bd-texto]")];
   const specs = [...cena3.querySelectorAll("[data-bd-spec]")];
@@ -895,7 +923,10 @@ function marcaSendoConstruida(q, desktop) {
 
   gsap.set([...linhas, ...guias, ...cotas], { drawSVG: "0%" });
   if (traco) gsap.set(traco, { drawSVG: "0%" });
-  if (massa) gsap.set(massa, { autoAlpha: 0 });
+  /* A marca é REVELADA, não desenhada: ela existe como arte pronta, e fingir
+     que está sendo traçada seria mentir sobre o que a peça é. Um círculo
+     abrindo do centro lê como "a construção chegou a isto". */
+  if (marca) gsap.set(marca, { clipPath: "circle(0% at 50% 50%)", autoAlpha: 1, scale: 0.9 });
   gsap.set(textos, { autoAlpha: 0 });
   gsap.set(specs, { autoAlpha: 0, y: 28 });
   gsap.set(cores, { autoAlpha: 0, x: -14 });
@@ -917,7 +948,11 @@ function marcaSendoConstruida(q, desktop) {
   tl.to(linhas, { drawSVG: "100%", duration: 0.6, stagger: 0.012 }, 0)
     .to(guias, { drawSVG: "100%", duration: 0.5, stagger: 0.06 }, 0.5)
     .to(traco, { drawSVG: "100%", duration: 0.8 }, 0.95)
-    .to(massa, { autoAlpha: 1, duration: 0.4, ease: EASE.out }, 1.6)
+    .to(
+      marca,
+      { clipPath: "circle(62% at 50% 50%)", scale: 1, duration: 0.5, ease: EASE.out },
+      1.55
+    )
     // As guias recuam quando o símbolo existe: andaime não fica na entrega.
     .to(guias, { drawSVG: "100% 100%", duration: 0.4 }, 1.7)
     .to(cotas, { drawSVG: "100%", duration: 0.35, stagger: 0.04 }, 1.85)
@@ -1226,6 +1261,22 @@ function forcasDoSistema(q, desktop) {
 
     itens.forEach((li) => (li.dataset.active = String(li.dataset.forca === demo)));
 
+    /* A legenda diz o que a composição está demonstrando. Sem ela, o leitor
+       vê peças se mexendo e tem de adivinhar por quê. */
+    const legenda = palco.querySelector("[data-palco-legenda]");
+    if (legenda) {
+      const ativa = itens.find((li) => li.dataset.forca === demo);
+      const texto = ativa?.querySelector(".forca__rotulo")?.textContent || "";
+      gsap.to(legenda, {
+        autoAlpha: 0,
+        duration: 0.2,
+        onComplete: () => {
+          legenda.textContent = texto;
+          gsap.to(legenda, { autoAlpha: 1, duration: 0.35, ease: EASE.out });
+        },
+      });
+    }
+
     pecas.forEach((el, i) => {
       const p = posicaoDaPeca(demo, i, n, w, h);
       gsap.to(el, {
@@ -1499,7 +1550,7 @@ function estadoFinalSemMovimento(q) {
   gsap.set(q("[data-bd-linha], [data-bd-guia], [data-bd-cota], [data-bd-traco]"), {
     drawSVG: "100%",
   });
-  mostrar("[data-bd-massa]");
+  gsap.set(q("[data-bd-marca]"), { clipPath: "circle(62% at 50% 50%)", autoAlpha: 1, scale: 1 });
   mostrar("[data-bd-texto]");
   mostrar("[data-bd-spec]");
   mostrar("[data-bd-cor]");

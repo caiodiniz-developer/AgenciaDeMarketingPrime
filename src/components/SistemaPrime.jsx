@@ -51,6 +51,10 @@ export default function SistemaPrime({ section }) {
             </span>
           ))}
 
+          {/* A legenda nomeia o que está sendo demonstrado. Sem ela, o
+              leitor vê doze peças se mexendo e tem de adivinhar por quê. */}
+          <span className="palco__legenda" data-palco-legenda aria-hidden="true" />
+
           {/* Eixo que só aparece na demonstração de DIREÇÃO. */}
           <svg className="palco__eixo" viewBox="0 0 400 400" aria-hidden="true">
             <line x1="30" y1="200" x2="370" y2="200" data-palco-eixo />
