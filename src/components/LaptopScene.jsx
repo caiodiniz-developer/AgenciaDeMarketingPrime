@@ -542,7 +542,17 @@ function Laptop({ luzOuro, sonda }) {
     /* Ao entrar na tela, a perspectiva se endireita: uma tela cheia e torta
        lê como erro, não como câmera. */
     const endireita = 1 - s.zoom;
-    g.rotation.set((c.rotX + s.rx) * endireita, (c.rotY + s.ry) * endireita, 0);
+    /* O giro contínuo entra AQUI, somado à pose — e é atenuado por
+       `endireita` como o resto: durante a aproximação final a tela precisa
+       ficar de frente, e um objeto ainda girando ali arruinaria o momento.
+       Também é atenuado pela ESCALA: perto da câmera, o mesmo ângulo vira um
+       deslocamento enorme na tela. */
+    const arrasto = (cena.giro || 0) * (1 - Math.min(1, c.scale)) * 0.7;
+    g.rotation.set(
+      (c.rotX + s.rx) * endireita,
+      (c.rotY + s.ry + arrasto) * endireita,
+      0
+    );
     g.scale.setScalar(escala);
 
     /* Sonda de colocação: sem ela, "o objeto está deslocado" é discussão de

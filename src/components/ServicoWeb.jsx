@@ -26,12 +26,13 @@ export default function ServicoWeb({ section, servico }) {
         <video
           className="web__video"
           data-frente-video
+          data-fundo
           src={fundo.src}
           poster={fundo.poster}
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           disablePictureInPicture
           tabIndex={-1}
         />

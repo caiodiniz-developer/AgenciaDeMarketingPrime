@@ -89,6 +89,16 @@ export const cena = {
   tampa: 0,
 
   /**
+   * Giro lento acrescentado ao longo da narrativa inteira, em radianos.
+   *
+   * As poses por seção dizem PARA ONDE o objeto vai; isto faz com que ele
+   * nunca esteja completamente parado no caminho. Sem esse acréscimo, entre
+   * duas poses o notebook fica imóvel — e objeto imóvel numa página que rola
+   * lê como imagem colada, não como coisa no espaço.
+   */
+  giro: 0,
+
+  /**
    * Ângulo da varredura dourada no alumínio, em voltas.
    * Conduzido pelo scroll: o reflexo corre quando a página corre.
    */

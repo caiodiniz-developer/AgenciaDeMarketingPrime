@@ -53,12 +53,13 @@ export default function ServicoDesign({ section, servico }) {
         <video
           className="design__video"
           data-frente-video
+          data-fundo
           src={midia.src}
           poster={midia.poster}
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           disablePictureInPicture
           tabIndex={-1}
           aria-hidden="true"

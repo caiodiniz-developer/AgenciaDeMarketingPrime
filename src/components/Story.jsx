@@ -6,6 +6,7 @@ import { sections } from "../content/story";
 import { pickTier, prefersReducedMotion } from "../lib/media";
 import { EASE, DUR, STAGGER, BEAT, DEPTH } from "../lib/motion";
 import { isTouch, pointer, damp } from "../lib/pointer";
+import { autoplayDeFundo } from "../lib/video";
 import Section from "./Section";
 import Rays from "./Rays";
 
@@ -242,7 +243,12 @@ export default function Story() {
               maquinaPrime(q, desktop)
             );
 
-            limpezas.push(
+            /* Autoplay dos fundos: um observador para todos, ligado aqui e não
+             por seção. Ver lib/video.js — o gatilho por seção não funcionava
+             em seção presa, e era metade dos vídeos do site parados. */
+          limpezas.push(autoplayDeFundo(root.current));
+
+          limpezas.push(
               caminhoDoNotebook(root.current),
               tampaFechando(),
               transicaoEntreSecoes(q, desktop),
@@ -567,12 +573,19 @@ function caminhoDoNotebook(raiz) {
      Uma volta e meia de luz de contorno ao longo da narrativa inteira: o
      dourado corre pelo alumínio enquanto a página corre. É lento de
      propósito — reflexo que pisca vira estroboscópio. */
-  const luz = { v: 0 };
+  const luz = { v: 0, g: 0 };
   tweens.push(
     gsap.to(luz, {
       v: 1.5,
+      /* Um terço de volta ao longo da página inteira. É pouco de propósito:
+         somado às poses, dá a sensação de um objeto que nunca para — sem
+         nunca virar um carrossel girando sozinho. */
+      g: 1.1,
       ease: "none",
-      onUpdate: () => (cena.brilho = luz.v),
+      onUpdate: () => {
+        cena.brilho = luz.v;
+        cena.giro = luz.g;
+      },
       scrollTrigger: { trigger: raiz, start: "top bottom", end: "bottom bottom", scrub: 1.4 },
     })
   );
@@ -602,8 +615,15 @@ function caminhoDoNotebook(raiz) {
  * de nomes de nó, que o arquivo não tem.
  */
 function tampaFechando() {
-  const espacador = document.querySelector(".footer-spacer");
-  if (!espacador) return null;
+  /* O gatilho é a SAÍDA DO CTA, não o espaçador do rodapé.
+     O espaçador tem exatamente a altura do rodapé — é ele que dá curso para
+     a página descobri-lo — e o rodapé encolheu para uma linha de assinatura.
+     Com cento e noventa pixels de curso, a tampa parava na metade do
+     caminho: o último gesto da narrativa simplesmente não terminava.
+     A saída do CTA tem uma tela inteira, e é exatamente onde o objeto está
+     pousado. */
+  const alvo = document.querySelector('[data-sec="contato"]');
+  if (!alvo) return null;
 
   const fecho = sections[sections.length - 1]?.laptop;
 
@@ -630,16 +650,43 @@ function tampaFechando() {
       cena.presente = 1;
     },
     scrollTrigger: {
-      trigger: espacador,
-      start: "top 85%",
-      end: "top 20%",
+      trigger: alvo,
+      /* Começa quando o CTA assume a tela e termina pouco antes do fim do
+         documento. Depois do CTA sobra só a altura do rodapé de curso — e o
+         rodapé agora é uma linha —, então a janela tem de ser aberta ANTES,
+         enquanto a seção ainda está subindo. */
+      start: "top 30%",
+      end: "bottom 80%",
       scrub: 1,
       invalidateOnRefresh: true,
     },
   });
 
+  /* ── O REPOUSO ────────────────────────────────────────────────────────
+     Do fim do fechamento até o fim do documento, alguém precisa continuar
+     afirmando o estado final.
+
+     Uma tween com scrub para de escrever quando chega ao fim, e depois do
+     CTA não há mais nenhuma faixa de seção ativa. O resultado era o objeto
+     soltando no último trecho da página: enquanto o rodapé era descoberto,
+     o notebook escorregava de volta para uma pose antiga, com a tampa
+     aberta — bem no gesto que fecha a narrativa. */
+  const repouso = ScrollTrigger.create({
+    trigger: alvo,
+    start: "bottom 80%",
+    end: "max",
+    onUpdate: () => {
+      cena.tampa = 1;
+      cena.nascido = 1;
+      cena.presente = 1;
+      cena.canal = "prime";
+      if (fecho) Object.assign(cena.pose, fecho);
+    },
+  });
+
   return () => {
     tw.scrollTrigger?.kill();
+    repouso.kill();
     cena.tampa = 0;
   };
 }
@@ -829,40 +876,6 @@ function indiceInterativo(q, desktop) {
 }
 
 /**
- * Liga e desliga os vídeos de fundo de uma seção conforme ela entra e sai.
- * Repetido em quase toda frente, então mora em um lugar só.
- */
-function videoNaCena(sec) {
-  const videos = [...sec.querySelectorAll("[data-frente-video], [data-peca-video]")];
-  videos.forEach((v) => {
-    v.muted = true;
-    v.defaultMuted = true;
-    v.setAttribute("muted", "");
-  });
-
-  const st = ScrollTrigger.create({
-    trigger: sec,
-    start: "top bottom",
-    end: "bottom top",
-    onToggle: (self) => {
-      videos.forEach((v) => {
-        if (!self.isActive) {
-          v.pause();
-          return;
-        }
-        if (v.preload !== "auto") v.preload = "auto";
-        v.play().catch(() => {});
-      });
-    },
-  });
-
-  return () => {
-    st.kill();
-    videos.forEach((v) => v.pause());
-  };
-}
-
-/**
  * SOCIAL — o feed se montando.
  *
  * Três estados, conduzidos pelo scroll numa seção presa:
@@ -888,7 +901,7 @@ function feedSeMontando(q, desktop) {
   const moldura = palco.querySelector("[data-social-moldura]");
   if (!pecas.length) return null;
 
-  const limpezas = [videoNaCena(sec)];
+  const limpezas = [];
   let estado = "solto";
 
   const trocar = (novo) => {
@@ -963,7 +976,7 @@ function entrarNaTela(q, desktop) {
   const razoes = [...web.querySelectorAll("[data-razao]")];
   const entregas = web.querySelector("[data-entregas]");
 
-  const limpezas = [videoNaCena(sec)];
+  const limpezas = [];
 
   const fechado = "circle(0% at 50% 50%)";
   const aberto = "circle(78% at 50% 50%)";
@@ -1093,7 +1106,7 @@ function interfaceViraEditorial(q, desktop) {
   const cartazes = [...palco.querySelectorAll("[data-flip-id]")];
   if (!cartazes.length) return null;
 
-  const limpezas = [videoNaCena(sec)];
+  const limpezas = [];
   let estado = "interface";
 
   const trocar = (novo) => {
@@ -1248,11 +1261,7 @@ function sistemaConvergindo(q, desktop) {
     .to(foco, { autoAlpha: 1, duration: 0.35, ease: EASE.out }, 2.3)
     .to({}, { duration: 0.4 }, 2.7);
 
-  const limpar = videoNaCena(sec);
-  return () => {
-    tl.scrollTrigger?.kill();
-    limpar();
-  };
+  return () => tl.scrollTrigger?.kill();
 }
 
 /**
@@ -1300,17 +1309,35 @@ function maquinaPrime(q, desktop) {
   /* Estado de partida: as informações chegam SOLTAS, fora da esteira. É o
      ponto da narrativa em que a empresa tem os dados e nenhum sistema. */
   fichas.forEach((f, i) => {
+    /* Espalhadas de verdade: a faixa vertical inteira do palco, e um degrau
+       horizontal maior. Com 21% de passo elas ficavam a oito pixels umas das
+       outras — na tela, quatro etiquetas coladas em coluna, que é o oposto de
+       "informação solta". */
     gsap.set(f, {
       autoAlpha: 0,
       xPercent: -50,
       yPercent: -50,
-      left: `${8 + (i % 2) * 9}%`,
-      top: `${16 + i * 21}%`,
+      left: `${7 + (i % 2) * 13}%`,
+      top: `${11 + i * 26}%`,
       rotate: (i % 2 ? 1 : -1) * (3 + i),
       scale: 0.92,
     });
   });
-  gsap.set(saidas, { autoAlpha: 0, xPercent: -50, yPercent: -50, left: "50%", top: "50%", scale: 0.6 });
+  /* As entregas saem em DUAS FILAS, uma acima e outra abaixo da esteira.
+     Numa fila só, sete pílulas de noventa pixels não cabem na metade final
+     da curva: elas se encavalavam duas a duas e o comboio virava um borrão.
+     `yPercent` é seguro aqui porque o MotionPath escreve em `x`/`y` — os dois
+     canais se somam sem disputar a mesma propriedade. */
+  saidas.forEach((el, i) => {
+    gsap.set(el, {
+      autoAlpha: 0,
+      xPercent: -50,
+      yPercent: i % 2 ? -145 : 45,
+      left: "50%",
+      top: "50%",
+      scale: 0.6,
+    });
+  });
 
   let etapaAtual = -1;
   const mostrarEtapa = (i) => {
@@ -1361,17 +1388,19 @@ function maquinaPrime(q, desktop) {
     tl.to(
       f,
       {
-        /* Cada uma para num ponto ligeiramente diferente da esteira. Todas
-           no mesmo ponto viravam uma pilha: quatro fichas exatamente
-           sobrepostas leem como uma só, e a fila — que é o que mostra a
-           esteira funcionando — desaparece. */
-        ...sobreAEsteira(f, 0.02 + i * 0.03, 0.4 + i * 0.05),
+        /* Cada uma ENTRA num ponto distante da esteira e para num ponto
+           distinto. Com origens a três centésimos umas das outras, as quatro
+           chegavam à linha praticamente no mesmo lugar e no mesmo instante:
+           uma pilha de etiquetas se movendo junto, não uma esteira. */
+        ...sobreAEsteira(f, i * 0.1, 0.33 + i * 0.065),
         rotate: 0,
         scale: 1,
-        duration: 0.85,
+        duration: 0.8,
         ease: "power1.inOut",
       },
-      0.62 + i * 0.07
+      /* E entram em fila indiana. O intervalo é o que faz a esteira parecer
+         esteira: quatro peças partindo juntas são um bloco. */
+      0.6 + i * 0.16
     );
   });
 
@@ -1390,15 +1419,44 @@ function maquinaPrime(q, desktop) {
      No mesmo ponto em que a matéria-prima parou, ela vira outra coisa: as
      fichas encolhem para dentro do núcleo e as entregas nascem dali. Não é
      um corte — é o mesmo lugar, duas formas. */
-  tl.to(fichas, { scale: 0.35, autoAlpha: 0, duration: 0.4, stagger: 0.04, ease: EASE.out }, 2.5)
-    .to(saidas, { autoAlpha: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: EASE.out }, 2.62);
+  tl.to(fichas, { scale: 0.35, autoAlpha: 0, duration: 0.4, stagger: 0.04, ease: EASE.out }, 2.5);
 
   /* ── 5 · NO AR ───────────────────────────────────────────────────────
      As entregas percorrem o RESTO da mesma esteira e saem pela direita.
      A frase da seção — "entra informação, sai presença" — acontece
      literalmente, da esquerda para a direita, na mesma linha. */
   tl.to(fio, { drawSVG: "0% 100%", duration: 0.6 }, 2.7);
+
+  /* NO CELULAR AS ENTREGAS NÃO SOBEM NA ESTEIRA.
+     São sete pílulas de setenta pixels numa curva de trezentos e sessenta:
+     não cabem, e o comboio vira uma pilha. Ali elas caem numa fileira
+     embaixo do palco — o mesmo desfecho ("sai presença"), num formato que a
+     largura comporta. */
+  if (!desktop) {
+    saidas.forEach((el, i) => {
+      tl.to(
+        el,
+        { autoAlpha: 1, scale: 1, duration: 0.3, ease: EASE.out },
+        2.8 + i * 0.08
+      );
+    });
+    tl.to(fecho, { autoAlpha: 1, y: 0, duration: 0.4, ease: EASE.out }, 3.9).to(
+      {},
+      { duration: 0.45 },
+      4.1
+    );
+    return () => tl.scrollTrigger?.kill();
+  }
+
   saidas.forEach((el, i) => {
+    /* Cada entrega ACENDE no instante em que parte. Antes todas nasciam
+       juntas no núcleo e ficavam ali empilhadas até a vez de cada uma: sete
+       pílulas exatamente sobrepostas no centro do palco. */
+    tl.to(
+      el,
+      { autoAlpha: 1, scale: 1, duration: 0.25, ease: EASE.out },
+      2.82 + i * 0.09
+    );
     tl.to(
       el,
       {
@@ -1406,7 +1464,7 @@ function maquinaPrime(q, desktop) {
            entregas saem em COMBOIO. Empilhadas no mesmo ponto, sete viram
            três, e o "sai presença" perde a quantidade — que é metade do
            argumento. */
-        ...sobreAEsteira(el, 0.52, 0.62 + i * 0.055),
+        ...sobreAEsteira(el, 0.52, 0.56 + i * 0.064),
         duration: 0.9,
         ease: "power1.inOut",
       },

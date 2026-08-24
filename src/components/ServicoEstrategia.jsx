@@ -1,4 +1,5 @@
 import { Rich, Title, Numero } from "./Peca";
+import { videoDaFrente } from "../lib/media";
 
 /**
  * ESTRATÉGIA — do emaranhado à direção.
@@ -56,8 +57,29 @@ for (const a of PONTOS) {
 }
 
 export default function ServicoEstrategia({ section, servico }) {
+  const fundo = videoDaFrente(servico.video);
+
   return (
     <div className="estrategia" data-estrategia>
+      {/* O fundo é filmagem real da frente, bem escurecida: atmosfera, não
+          conteúdo. O diagrama por cima é o assunto. */}
+      <div className="estrategia__fundo" aria-hidden="true">
+        <video
+          className="estrategia__video"
+          data-frente-video
+          data-fundo
+          src={fundo.src}
+          poster={fundo.poster}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          disablePictureInPicture
+          tabIndex={-1}
+        />
+        <span className="estrategia__scrim" />
+      </div>
+
       <div className="estrategia__texto">
         <Numero numero={servico.numero} nome={servico.nome} />
         <Title lines={servico.chamada} id={section.id} />

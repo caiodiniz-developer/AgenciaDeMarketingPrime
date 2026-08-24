@@ -368,7 +368,7 @@ export const sections = [
     ],
     /** O diagnóstico em uma palavra, atravessando a tela. */
     palavra: "PERCEPÇÃO",
-    laptop: { x: 1.16, y: -0.46, scale: 0.54, rotY: -1.05, rotX: 0.16 },
+    laptop: { x: 1.14, y: -0.44, scale: 0.5, rotY: -1.1, rotX: 0.2 },
     canal: "social",
   },
   {
@@ -383,7 +383,7 @@ export const sections = [
       { text: "sustentam entre si", tone: "gold" },
       { text: " — e que, juntas, substituem o departamento de marketing que a sua empresa não tem." },
     ],
-    laptop: { x: 1.05, y: 0.42, scale: 0.44, rotY: -0.78, rotX: 0.22 },
+    laptop: { x: 0.98, y: 0.46, scale: 0.36, rotY: -1.28, rotX: 0.26 },
     canal: "social",
   },
 
@@ -394,7 +394,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: 0.78, y: -0.74, scale: 0.44, rotY: -0.6, rotX: 0.14 },
+    laptop: { x: 0.74, y: -0.72, scale: 0.58, rotY: -0.52, rotX: 0.1 },
     canal: "social",
   },
   {
@@ -414,7 +414,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -0.98, y: -0.82, scale: 0.44, rotY: 0.9, rotX: 0.16 },
+    laptop: { x: -0.92, y: -0.78, scale: 0.62, rotY: 0.72, rotX: 0.12 },
     canal: "design",
   },
   {
@@ -424,7 +424,7 @@ export const sections = [
     rays: false,
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
-    laptop: { x: -1.46, y: -0.28, scale: 0.44, rotY: 1.25, rotX: 0.14 },
+    laptop: { x: -1.5, y: -0.1, scale: 0.34, rotY: 1.35, rotX: 0.18 },
     /* AUSÊNCIA. A construção da marca é o palco desta seção inteira, e o
        objeto ali seria um segundo assunto disputando o mesmo bege. Ele
        continua percorrendo o trajeto por baixo — só não é desenhado. */
@@ -437,7 +437,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -1.35, y: 0.5, scale: 0.44, rotY: 1.2, rotX: 0.18 },
+    laptop: { x: -1.3, y: 0.52, scale: 0.4, rotY: 1.15, rotX: 0.22 },
     canal: "branding",
   },
 
@@ -454,7 +454,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.42, y: -0.56, scale: 0.44, rotY: 1.3, rotX: 0.14 },
+    laptop: { x: -1.36, y: -0.58, scale: 0.52, rotY: 1.05, rotX: 0.12 },
     canal: "design",
   },
   {
@@ -465,9 +465,12 @@ export const sections = [
     label: "Por que funciona",
     title: ["O que sustenta", "uma marca."],
     body: [
-      { text: "Passe o cursor pelo campo e escolha uma força. O que acontece com as peças é o que acontece com a comunicação de uma empresa quando " },
-      { text: "falta aquela força", tone: "gold" },
-      { text: "." },
+      /* Sem "passe o cursor": no toque não existe cursor, e a frase mandava
+         metade dos leitores fazer uma coisa impossível. E o ponto final vive
+         DENTRO do destaque — solto, ele virava uma linha só com um ponto
+         quando o texto quebrava antes dele. */
+      { text: "Escolha uma força. O que acontece com as peças é o que acontece com a comunicação de uma empresa quando " },
+      { text: "falta justamente ela.", tone: "gold" },
     ],
     laptop: { x: -1.44, y: 0.56, scale: 0.42, rotY: 1.3, rotX: 0.16 },
     // A segunda ausência: o campo das forças precisa da tela para ele.
@@ -486,7 +489,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.46, y: 0.34, scale: 0.42, rotY: 1.2, rotX: 0.18 },
+    laptop: { x: -1.44, y: 0.3, scale: 0.38, rotY: 1.25, rotX: 0.2 },
     canal: "prime",
   },
   {
@@ -504,7 +507,7 @@ export const sections = [
     cta: { label: "Falar com a Prime", href: CONTATO.whatsapp.link },
     /* Fim da jornada: o notebook volta ao centro, aberto, encarando o leitor.
        O objeto que apresentou a experiência fecha a narrativa. */
-    laptop: { x: 0, y: -0.58, scale: 0.92, rotY: 0, rotX: 0.05 },
+    laptop: { x: 0, y: -0.78, scale: 0.74, rotY: 0, rotX: 0.06 },
     canal: "prime",
   },
 ];

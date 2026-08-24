@@ -59,7 +59,7 @@ export default function Footer() {
 
     tl.fromTo(
       marca,
-      { scale: 0.86, autoAlpha: 0, yPercent: 8 },
+      { scale: 0.96, autoAlpha: 0, yPercent: 14 },
       { scale: 1, autoAlpha: 1, yPercent: 0, ease: "none" },
       0
     );
@@ -89,14 +89,16 @@ export default function Footer() {
       <span className="footer__brilho" data-rodape-brilho aria-hidden="true" />
 
       <div className="footer__inner">
-        {/* A marca é o grande elemento do encerramento — mas divide a linha
-            com o que o leitor pode FAZER agora. Sozinha numa faixa, ela era
-            um pôster no meio do caminho. */}
+        {/* A assinatura. Usa a versão APARADA do asset: o original vem no
+            formato de post (1080×1350) com a frase numa faixa de 734×72 no
+            meio e todo o resto transparente — impossível de dimensionar por
+            CSS sem inchar o rodapé para 424px. Ver scripts/trim-footer.mjs;
+            o arquivo original não é tocado. */}
         <div className="footer__marca">
           <img
             className="footer__wordmark"
             data-rodape-marca
-            src="/logo-footer.png"
+            src="/logo-footer-trim.png"
             alt="Agência Prime"
           />
         </div>

@@ -124,11 +124,11 @@ const PARADAS = [
   /* O manifesto fica de fora: no topo dele o NASCIMENTO ainda está
      acontecendo, e a pose alvo por definição só chega depois. Quem cobre
      aquele trecho são as duas checagens de nascimento acima. */
-  ["servicos", 1.16, 0.42],
+  ["servicos", 0.98, 0.46],
   ["social", 0.78, -0.74],
   ["web", 0, -0.16],
   ["design", -0.98, -0.82],
-  ["contato", 0, -0.58],
+  ["contato", 0, -0.78],
 ];
 
 /* O NASCIMENTO. O objeto não pode existir durante a hero — é o pedido
@@ -682,7 +682,19 @@ const rodape = await page.evaluate(() => {
 });
 checar("usa o asset logo-footer", rodape.src.includes("logo-footer"), rodape.src);
 checar("carregou de fato", rodape.natural > 0, `${rodape.natural}px de largura natural`);
-checar("é o grande elemento", rodape.largura > 380, `${rodape.largura}px na tela`);
+checar(
+  "é uma assinatura, não um cartaz",
+  rodape.largura > 120 && rodape.largura < 320,
+  `${rodape.largura}px na tela`
+);
+const alturaRodape = await page.evaluate(() =>
+  Math.round(document.querySelector(".footer").offsetHeight)
+);
+checar(
+  "e o rodapé inteiro é compacto",
+  alturaRodape < 260,
+  `${alturaRodape}px de altura`
+);
 checar("chegou aceso", rodape.op > 0.85, `opacidade ${rodape.op.toFixed(2)}`);
 
 /* ═══ 14 · Overflow horizontal ════════════════════════════════════════════ */

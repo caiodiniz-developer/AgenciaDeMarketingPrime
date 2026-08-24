@@ -895,6 +895,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .footer__base {
+  font-size: 0.64rem;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -1129,6 +1130,13 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 /* ═════════════════════════════════════════════════════════════
    CTA — fecho cinematográfico
    ═════════════════════════════════════════════════════════════ */
+/* O fecho fica ACIMA da camada 3D. O notebook pousa logo abaixo do botão,
+   e basta um quadro de atraso no amortecimento para ele passar por cima da
+   única coisa clicável da seção. */
+.sec--cta {
+  z-index: 5;
+}
+
 .sec--cta {
   position: relative;
   overflow: hidden;
@@ -2520,7 +2528,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   grid-column: 2;
   grid-row: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
   gap: clamp(1rem, 3vw, 2.5rem);
   align-items: center;
   height: 100%;
@@ -2596,10 +2604,46 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   stroke: none;
 }
 
+/* A amostra: o vídeo da frente como peça sobre a mesa, não como fundo.
+   Esta é a única seção clara do site, e um vídeo sangrando a tela a
+   transformaria em mais uma seção escura. */
+.branding__amostra {
+  position: relative;
+  margin: 0;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  border: 1px solid var(--bone-line);
+  background: #14120e;
+  aspect-ratio: 16 / 10;
+  box-shadow: 0 18px 40px -28px rgba(40, 34, 22, 0.7);
+}
+
+.branding__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.75) contrast(1.04);
+}
+
+.branding__amostra figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1.4rem 0.7rem 0.5rem;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+}
+
 .branding__specs {
   display: grid;
-  gap: clamp(0.9rem, 2.2vh, 1.6rem);
+  gap: clamp(0.5rem, 1.4vh, 1rem);
   align-content: center;
+  min-height: 0;
 }
 
 .spec {
@@ -2700,7 +2744,36 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 /* ═════════════════════════════════════════════════════════════
    ESTRATÉGIA — do emaranhado à direção
    ═════════════════════════════════════════════════════════════ */
+.sec--estrategia {
+  position: relative;
+}
+
+.estrategia__fundo {
+  position: absolute;
+  inset: -14% -8%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.estrategia__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.22;
+  filter: grayscale(0.35) contrast(1.05);
+}
+
+.estrategia__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0.3) 100%),
+    radial-gradient(70% 60% at 60% 55%, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.82) 100%);
+}
+
 .estrategia {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
@@ -2928,8 +3001,8 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .ficha {
   position: absolute;
   display: grid;
-  gap: 0.15rem;
-  padding: 0.5rem 0.85rem;
+  gap: 0.22rem;
+  padding: 0.4rem 0.7rem;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 0.35rem;
   background: rgba(10, 10, 10, 0.88);
@@ -2938,28 +3011,33 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .ficha b {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 600;
   letter-spacing: 0.2em;
+  /* Altura de linha explícita nas duas: sem ela, a caixa de texto fica mais
+     alta que a trilha do grid e o rótulo encosta na nota. Numa etiqueta de
+     quarenta pixels, dois pixels de vazamento já são texto sobre texto. */
+  line-height: 1.25;
   color: var(--color-bone);
 }
 
 .ficha i {
   font-style: normal;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
+  line-height: 1.3;
   font-family: var(--font-editorial);
   color: rgba(217, 217, 217, 0.5);
 }
 
 .saida {
   position: absolute;
-  padding: 0.28rem 0.8rem;
+  padding: 0.24rem 0.66rem;
   border-radius: 999px;
   border: 1px solid rgba(201, 168, 76, 0.4);
   background: rgba(24, 20, 10, 0.9);
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   color: var(--color-gold);
   white-space: nowrap;
 }
@@ -3676,32 +3754,34 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   RODAPÉ — o encerramento, num bloco só
-   A marca ficava numa faixa isolada e os links noutra, com um
-   vazio entre as duas. Agora a marca divide a linha com o que o
-   leitor pode FAZER agora: navegar ou falar com a Prime.
+   RODAPÉ — pequeno, encaixado, e só
+   A frase da marca era um pôster de trinta e quatro rem ocupando
+   meia tela. Encerramento não é mais um ato: é a assinatura
+   depois do ponto final. Agora ela tem o tamanho de uma
+   assinatura e divide UMA linha com a navegação e o contato.
    ═════════════════════════════════════════════════════════════ */
 .footer__inner {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: clamp(2rem, 5vw, 5rem);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  padding: clamp(2.5rem, 7vh, 4.5rem) var(--pad-x) clamp(2rem, 5vh, 3rem);
+  justify-content: space-between;
+  gap: clamp(1.2rem, 3vw, 2.5rem);
+  padding: clamp(1.4rem, 3.5vh, 2.2rem) var(--pad-x) clamp(1rem, 2.5vh, 1.5rem);
   max-width: 80rem;
   margin: 0 auto;
 }
 
 .footer__brilho {
   position: absolute;
-  left: 28%;
-  top: 50%;
-  width: min(60vw, 34rem);
-  aspect-ratio: 2 / 1;
+  left: 18%;
+  top: 45%;
+  width: min(40vw, 22rem);
+  aspect-ratio: 2.4 / 1;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     50% 50% at 50% 50%,
-    rgba(201, 168, 76, 0.18) 0%,
+    rgba(201, 168, 76, 0.13) 0%,
     rgba(201, 168, 76, 0) 70%
   );
   pointer-events: none;
@@ -3709,33 +3789,39 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .footer__marca {
   position: relative;
+  flex: 0 1 auto;
 }
 
 .footer__wordmark {
   display: block;
-  width: min(100%, 34rem);
+  /* Com o arquivo aparado, a proporção dele É a da frase (7:1): dá para
+     dimensionar pela largura sem arrastar mil pixels de transparência junto,
+     que era o que empurrava o rodapé para 424px de altura. */
+  width: clamp(11rem, 22vw, 16rem);
   height: auto;
   object-fit: contain;
 }
 
 .footer__colunas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: clamp(1.5rem, 3vw, 3rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
 }
 
 .footer__titulo {
-  margin: 0 0 0.9rem;
-  font-size: 0.62rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.56rem;
   font-weight: 600;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: rgba(201, 168, 76, 0.8);
+  color: rgba(201, 168, 76, 0.7);
 }
 
 .footer__nav ul {
-  display: grid;
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -3745,11 +3831,10 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .footer__zap,
 .footer__mail {
   display: inline-block;
-  border: 0;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   text-decoration: none;
-  color: rgba(217, 217, 217, 0.68);
-  transition: color var(--t-ui) ease, transform var(--t-ui) ease;
+  color: rgba(217, 217, 217, 0.62);
+  transition: color var(--t-ui) ease;
 }
 
 .footer__nav a:hover,
@@ -3759,32 +3844,32 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 .footer__mail:hover,
 .footer__mail:focus-visible {
   color: var(--color-gold);
-  transform: translateX(3px);
 }
 
 .footer__contato {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.15rem;
   align-content: start;
 }
 
 .footer__zap {
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--color-bone);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 760px) {
   .footer__inner {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
   }
 
   .footer__brilho {
-    left: 50%;
-    top: 28%;
+    left: 40%;
+    top: 25%;
   }
 }
 
@@ -3839,19 +3924,49 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     grid-row: auto;
   }
 
-  /* No celular a esteira continua: o que muda é a altura do palco, para o
-     texto das etapas caber embaixo sem espremer a curva. */
-  .maquina__vao {
-    min-height: clamp(11rem, 26vh, 15rem);
+  /* No celular a esteira continua carregando as ENTRADAS: é ela que mostra
+     o processo. O que muda é a saída — ver abaixo. */
+  .maquina {
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   }
 
-  .ficha b,
-  .saida {
-    font-size: 0.52rem;
+  .maquina__vao {
+    min-height: clamp(13rem, 30vh, 17rem);
+  }
+
+  .ficha b {
+    font-size: 0.5rem;
   }
 
   .ficha i {
     display: none;
+  }
+
+  /* As entregas saem do palco e viram uma fileira. Numa curva de trezentos e
+     sessenta pixels, sete pílulas não cabem em fila — e empilhadas elas
+     deixam de comunicar quantidade, que é metade do argumento da seção. */
+  .maquina__saidas {
+    /* Desce para logo abaixo do palco, em vez de sobrepô-lo. Continua
+       absoluta — o palco tem proporção travada e não pode ganhar altura —
+       mas ancorada na base dele. */
+    inset: auto 0 auto 0;
+    top: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.3rem;
+    padding-top: 0.8rem;
+  }
+
+  .saida {
+    position: static;
+    transform: none !important;
+    font-size: 0.5rem;
+  }
+
+  /* Espaço para a fileira que agora vive embaixo do palco. */
+  .maquina__vao {
+    padding-bottom: 2.6rem;
   }
 
   /* Empilhado: sem arco, sem sobreposição, e o painel do perfil vira o

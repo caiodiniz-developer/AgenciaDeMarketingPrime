@@ -102,7 +102,11 @@ export default function Maquina({ section }) {
             ))}
           </ul>
 
-          {/* ── Sai ────────────────────────────────────────────────────── */}
+          {/* ── Sai ────────────────────────────────────────────────────
+              Vive DENTRO do palco porque é lá que as pílulas viajam sobre a
+              esteira — o MotionPath precisa das duas geometrias no mesmo
+              lugar. No celular o CSS a desloca para baixo do palco, onde a
+              largura comporta uma fileira. */}
           <ul className="maquina__saidas" data-maquina-saidas>
             {saidas.map((s) => (
               <li className="saida" data-maquina-saida key={s}>

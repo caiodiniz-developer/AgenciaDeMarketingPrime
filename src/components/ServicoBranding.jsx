@@ -1,4 +1,5 @@
 import { Rich, Title, Numero } from "./Peca";
+import { videoDaFrente } from "../lib/media";
 
 /**
  * BRANDING — a marca sendo CONSTRUÍDA, não exibida pronta.
@@ -20,6 +21,8 @@ import { Rich, Title, Numero } from "./Peca";
 
 /** Camadas do SVG, na ordem em que a coreografia as acende. */
 export default function ServicoBranding({ section, servico }) {
+  const fundo = videoDaFrente(servico.video);
+
   return (
     <div className="branding" data-branding>
       <div className="branding__texto">
@@ -90,6 +93,29 @@ export default function ServicoBranding({ section, servico }) {
           <img src="/logo-mark.png" alt="Marca da Agência Prime" />
         </div>
         </div>
+
+        {/* O vídeo da frente entra EMOLDURADO, e não sangrando a página.
+            Esta é a única seção clara do site — o respiro entre três telas
+            pretas —, e um vídeo em tela cheia por baixo do papel a
+            transformaria em mais uma seção escura. Emoldurado, ele lê como o
+            que é: uma peça sobre a mesa. */}
+        <figure className="branding__amostra">
+          <video
+            className="branding__video"
+            data-frente-video
+            data-fundo
+            src={fundo.src}
+            poster={fundo.poster}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            disablePictureInPicture
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+          <figcaption>Identidade aplicada</figcaption>
+        </figure>
 
         {/* 5 · Tipografia e cor entram como DOM, não como SVG: são texto e
                precisam ser texto — inclusive para quem lê com leitor de tela. */}

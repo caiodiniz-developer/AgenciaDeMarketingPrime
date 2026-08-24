@@ -51,12 +51,13 @@ export default function ServicoSocial({ section, servico }) {
         <video
           className="social__video"
           data-frente-video
+          data-fundo
           src={fundo.src}
           poster={fundo.poster}
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           disablePictureInPicture
           tabIndex={-1}
         />
@@ -110,12 +111,13 @@ export default function ServicoSocial({ section, servico }) {
                   <video
                     className="peca__video"
                     data-peca-video
+                    data-fundo
                     src={reel.src}
                     poster={reel.poster}
                     muted
                     loop
                     playsInline
-                    preload="none"
+                    preload="metadata"
                     disablePictureInPicture
                     tabIndex={-1}
                   />
