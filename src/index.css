@@ -2886,7 +2886,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    ═════════════════════════════════════════════════════════════ */
 .maquina {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: clamp(0.4rem, 1vh, 0.9rem);
   height: 100%;
 }
@@ -2923,7 +2923,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   position: absolute;
   inset: 0;
   margin: auto;
-  aspect-ratio: 1200 / 360;
+  aspect-ratio: 1200 / 520;
   max-width: 100%;
   max-height: 100%;
 }
@@ -2939,14 +2939,15 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .maquina__calha {
-  stroke: rgba(255, 255, 255, 0.08);
-  stroke-width: 1.5;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 2;
+  stroke-dasharray: 2 7;
 }
 
 .maquina__fio {
   stroke: var(--color-gold);
-  stroke-width: 2;
-  filter: drop-shadow(0 0 7px rgba(201, 168, 76, 0.4));
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(201, 168, 76, 0.55));
 }
 
 .maquina__ramo {
@@ -2962,10 +2963,33 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   stroke-width: 2;
 }
 
+/* ENTRA e SAI, nas duas pontas da esteira. Sem eles a curva é decoração;
+   com eles, a seção se explica sem depender do parágrafo. */
+.maquina__extremo {
+  position: absolute;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(217, 217, 217, 0.42);
+  pointer-events: none;
+}
+
+.maquina__extremo--entra {
+  left: 1.5%;
+  top: 88%;
+}
+
+.maquina__extremo--sai {
+  right: 1.5%;
+  top: 10%;
+  color: rgba(201, 168, 76, 0.75);
+}
+
 .maquina__nucleo {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 52%;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
@@ -3044,12 +3068,20 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 /* As etapas explicam o que está acontecendo no palco. Ficam FORA dele: dentro
    do núcleo competiam com as peças que passam por ali. */
+/* Sobre o canto superior esquerdo do palco: a esteira começa embaixo e sobe,
+   então essa área fica livre. Embaixo do palco, como estava, o texto abria um
+   vazio de duzentos pixels e deixava de parecer parte da mesma cena. */
 .maquina__etapas {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 2%;
+  z-index: 2;
+  width: min(46%, 27rem);
   margin: 0;
   padding: 0;
   list-style: none;
   min-height: clamp(5.5rem, 13vh, 7rem);
+  pointer-events: none;
 }
 
 .etapa {
@@ -3088,6 +3120,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 
 .maquina__fecho {
   margin: 0;
+  text-align: right;
   font-family: var(--font-editorial);
   font-size: clamp(1rem, 1.7vw, 1.4rem);
   font-style: italic;
@@ -3927,7 +3960,22 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   /* No celular a esteira continua carregando as ENTRADAS: é ela que mostra
      o processo. O que muda é a saída — ver abaixo. */
   .maquina {
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+  }
+
+  /* Sem largura para o texto conviver com a curva, ele volta para baixo. */
+  .maquina__etapas {
+    position: relative;
+    top: auto;
+    width: 100%;
+  }
+
+  .maquina__extremo {
+    display: none;
+  }
+
+  .maquina__fecho {
+    text-align: left;
   }
 
   .maquina__vao {
@@ -4098,7 +4146,14 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     opacity: 1;
   }
 
-  /* As etapas do método deixam de se revezar e viram uma lista legível. */
+  /* GRUPOS QUE SE REVEZAM VIRAM LISTA.
+     Vários blocos deste site ficam EMPILHADOS no mesmo ponto e se revezam
+     por opacidade: as etapas do método, os argumentos da seção Web. Sem
+     animação não há revezamento — todos acendem ao mesmo tempo, e como são
+     `position: absolute` no mesmo lugar, o resultado é literalmente texto
+     por cima de texto.
+     Reduzir movimento não pode significar destruir a leitura: aqui eles
+     voltam ao fluxo e viram a lista que sempre foram. */
   .maquina__etapas {
     display: grid;
     gap: 1.2rem;
@@ -4111,6 +4166,29 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     opacity: 1;
     text-align: left;
     padding: 0;
+  }
+
+  .web__razoes {
+    display: grid;
+    gap: 1.1rem;
+    min-height: 0;
+    max-width: 30rem;
+  }
+
+  .razao-web {
+    position: relative;
+    inset: auto;
+  }
+
+  /* Com os três argumentos em fluxo, a seção Web deixa de caber em uma tela. */
+  .sec--web .web {
+    grid-template-rows: auto auto auto;
+    gap: clamp(1.5rem, 4vh, 3rem);
+  }
+
+  .entregas--web {
+    justify-self: start;
+    align-self: start;
   }
 
   .social__palco,

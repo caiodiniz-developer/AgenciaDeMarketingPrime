@@ -10,7 +10,9 @@
     "encode:hero": "node scripts/encode-hero.mjs",
     "encode:videos": "node scripts/encode-videos.mjs",
     "verify": "node scripts/verify.mjs",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "overlap": "node scripts/overlap.mjs",
+    "trim:footer": "node scripts/trim-footer.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -27,7 +27,7 @@ import { maquina } from "../content/story";
  */
 
 /** Coordenadas do palco. Tudo aqui fala este espaço. */
-export const PALCO = { w: 1200, h: 360 };
+export const PALCO = { w: 1200, h: 520 };
 
 /**
  * A esteira. Uma curva só, da entrada à saída, passando pelo núcleo no meio.
@@ -35,13 +35,13 @@ export const PALCO = { w: 1200, h: 360 };
  * peças que andam sobre ela.
  */
 export const ESTEIRA =
-  "M30 250 C 180 250, 210 120, 380 110 C 500 103, 540 180, 600 180 C 660 180, 700 103, 820 110 C 990 120, 1020 250, 1170 250";
+  "M40 440 C 190 440, 270 350, 420 312 C 500 292, 552 276, 600 272 C 652 268, 700 250, 790 220 C 940 170, 1010 130, 1165 96";
 
 /** Os três caminhos que se abrem em DECIDIR. O do meio é o que fica. */
 export const RAMOS = [
-  { id: "alto", d: "M600 180 C 700 180, 760 60, 900 52", fica: false },
-  { id: "meio", d: "M600 180 C 700 180, 760 180, 900 180", fica: true },
-  { id: "baixo", d: "M600 180 C 700 180, 760 300, 900 308", fica: false },
+  { id: "alto", d: "M600 272 C 700 262, 760 150, 900 116", fica: false },
+  { id: "meio", d: "M600 272 C 700 250, 760 218, 900 178", fica: true },
+  { id: "baixo", d: "M600 272 C 700 296, 760 380, 900 424", fica: false },
 ];
 
 export default function Maquina({ section }) {
@@ -84,6 +84,13 @@ export default function Maquina({ section }) {
             <path className="maquina__fio" data-maquina-fio d={ESTEIRA} />
           </svg>
 
+          <span className="maquina__extremo maquina__extremo--entra" aria-hidden="true">
+            Entra
+          </span>
+          <span className="maquina__extremo maquina__extremo--sai" aria-hidden="true">
+            Sai
+          </span>
+
           {/* ── O núcleo ─────────────────────────────────────────────────
               Fica no meio da esteira. Os anéis marcam o lugar onde a
               transformação acontece; as etapas se revezam dentro dele. */}
@@ -115,22 +122,23 @@ export default function Maquina({ section }) {
             ))}
           </ul>
         </div>
-      </div>
 
-      {/* As etapas ficam FORA do palco: dentro do núcleo elas competiam com
-          as peças que passam por ali, e o texto é o que explica o que se
-          está vendo — precisa de um lugar estável. */}
-      <ol className="maquina__etapas" data-maquina-legenda>
-        {etapas.map((et, i) => (
-          <li className="etapa" data-maquina-etapa={i} key={et.id}>
-            <span className="etapa__num" aria-hidden="true">
-              {et.numero}
-            </span>
-            <h3 className="etapa__titulo">{et.titulo}</h3>
-            <p className="etapa__texto">{et.texto}</p>
-          </li>
-        ))}
-      </ol>
+        {/* O texto da etapa ocupa o canto VAZIO do palco — acima do começo da
+            esteira, onde a curva não passa. Mora DENTRO do vão porque é ele
+            o ancestral posicionado: ancorado na seção, o bloco subia até o
+            topo da tela, por cima da barra e do próprio título. */}
+        <ol className="maquina__etapas" data-maquina-legenda>
+          {etapas.map((et, i) => (
+            <li className="etapa" data-maquina-etapa={i} key={et.id}>
+              <span className="etapa__num" aria-hidden="true">
+                {et.numero}
+              </span>
+              <h3 className="etapa__titulo">{et.titulo}</h3>
+              <p className="etapa__texto">{et.texto}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       <p className="maquina__fecho" data-maquina-fecho>
         {fecho}

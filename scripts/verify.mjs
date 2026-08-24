@@ -161,7 +161,11 @@ for (const [id, ax, ay] of PARADAS) {
     continue;
   }
   trajeto.push({ id, ...pose });
-  const perto = Math.abs(pose.x - ax) < 0.12 && Math.abs(pose.y - ay) < 0.12;
+  /* Tolerância larga de propósito: a pose NÃO é estática dentro de uma
+     seção — ela escorre até o fim da faixa (ver `derivar` em Story.jsx), e a
+     deriva vale 0,17 em x e 0,09 em y. O que este teste verifica é que o
+     objeto CHEGOU à parada certa, não que ele congelou nela. */
+  const perto = Math.abs(pose.x - ax) < 0.25 && Math.abs(pose.y - ay) < 0.2;
   checar(`pose alvo em ${id}`, perto, `x=${pose.x.toFixed(2)} y=${pose.y.toFixed(2)}`);
 }
 

@@ -449,6 +449,43 @@ export default function Story() {
    ═════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * Seções em que o objeto NÃO deriva.
+ *
+ * Em WEB ele precisa ficar frontal e centrado: é de lá que a câmera entra na
+ * tela, e um objeto ainda girando arruinaria o único momento em que ele tem
+ * de estar imóvel.
+ */
+const SEM_DERIVA = new Set(["web"]);
+
+/**
+ * Para onde a pose ESCORRE enquanto a seção é lida.
+ *
+ * A versão anterior fazia o objeto chegar à pose nos primeiros 25% da faixa
+ * e segurar o resto. Como as faixas das seções presas têm quatro mil pixels,
+ * na prática ele passava a maior parte do site PARADO — e objeto parado numa
+ * página que rola lê como imagem colada, não como coisa no espaço.
+ *
+ * Agora a pose continua escorrendo até o fim da faixa: gira um pouco mais,
+ * aproxima ou afasta, e desliza para o lado. O destino da deriva é calculado
+ * com a mesma função que a produz, e é ELE que vira o ponto de partida do
+ * trecho seguinte — sem isso haveria um salto na emenda.
+ *
+ * A direção alterna com o índice: duas seções seguidas derivando para o mesmo
+ * lado somariam num único movimento longo em vez de parecerem duas decisões.
+ */
+function derivar(pose, i, t) {
+  if (!pose) return pose;
+  const lado = i % 2 ? 1 : -1;
+  return {
+    x: pose.x + lado * 0.17 * t,
+    y: pose.y + (i % 3 === 0 ? 0.09 : -0.07) * t,
+    scale: pose.scale * (1 + lado * 0.13 * t),
+    rotY: pose.rotY - lado * 0.34 * t,
+    rotX: pose.rotX + 0.045 * t,
+  };
+}
+
+/**
  * O CAMINHO DO NOTEBOOK.
  *
  * Uma tween com scrub por seção, cada uma partindo exatamente de onde a
@@ -549,24 +586,34 @@ function caminhoDoNotebook(raiz) {
       })
     );
 
-    /* A PAUSA. Um gatilho que, no resto da faixa, reafirma a pose a cada
-       quadro.
+    /* A DERIVA. No resto da faixa a pose continua escorrendo, em vez de
+       congelar no alvo.
 
-       Sem ele, uma tween com scrub que já chegou ao fim para de escrever —
-       e a pose ficava congelada na última seção VISITADA. Descendo ninguém
-       notava, porque a próxima assumia logo. Subindo, o objeto acompanhava
-       o leitor de volta parado no lugar errado. */
+       Este gatilho também é quem mantém a AUTORIDADE sobre a pose: uma tween
+       com scrub que já chegou ao fim para de escrever, e sem ninguém no
+       comando a pose ficava travada na última seção visitada — descendo
+       ninguém notava, porque a próxima assumia logo; subindo, o objeto
+       acompanhava o leitor de volta parado no lugar errado. */
+    const derivaAtiva = !SEM_DERIVA.has(s.id);
+
     gatilhos.push(
       ScrollTrigger.create({
         trigger: alvo,
         start: i === 0 ? "top -20%" : "top 32%",
         endTrigger: alvoProximo || alvo,
         end: alvoProximo ? "top bottom" : "bottom bottom",
-        onUpdate: () => Object.assign(cena.pose, s.laptop),
+        onUpdate: (self) =>
+          Object.assign(
+            cena.pose,
+            derivaAtiva ? derivar(s.laptop, i, self.progress) : s.laptop
+          ),
       })
     );
 
-    anterior = s.laptop;
+    /* O trecho seguinte parte DE ONDE A DERIVA TERMINOU, e não da pose
+       nominal da seção. Partir da nominal daria um salto na emenda, do
+       tamanho exato da deriva. */
+    anterior = derivaAtiva ? derivar(s.laptop, i, 1) : s.laptop;
   });
 
   /* ── O REFLEXO ────────────────────────────────────────────────────────
@@ -1392,7 +1439,12 @@ function maquinaPrime(q, desktop) {
            distinto. Com origens a três centésimos umas das outras, as quatro
            chegavam à linha praticamente no mesmo lugar e no mesmo instante:
            uma pilha de etiquetas se movendo junto, não uma esteira. */
-        ...sobreAEsteira(f, i * 0.1, 0.33 + i * 0.065),
+        /* Espaçamento de 0,135 do comprimento do caminho: uma ficha mede
+           cerca de 0,11 dele. Com 0,065 — metade da própria largura — as
+           quatro chegavam empilhadas em diagonal, que foi exatamente o que
+           apareceu na tela. A última para NO núcleo; as outras formam a fila
+           que o alimenta. */
+        ...sobreAEsteira(f, i * 0.1, 0.13 + i * 0.135),
         rotate: 0,
         scale: 1,
         duration: 0.8,

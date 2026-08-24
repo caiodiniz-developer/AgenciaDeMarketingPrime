@@ -19,6 +19,12 @@ import puppeteer from "puppeteer-core";
 const URL = process.argv[2] || "http://localhost:5402/";
 const W = Number(process.argv[3] || 1440);
 const H = Number(process.argv[4] || 900);
+/* `--reduce` varre o caminho de movimento reduzido.
+   É onde mora a pior classe de sobreposição deste site: grupos que se
+   revezam por opacidade e estão todos no mesmo ponto. Com animação, um por
+   vez; sem ela, todos ao mesmo tempo, um em cima do outro. Sem esta opção o
+   defeito ficava invisível para o teste e visível para o leitor. */
+const REDUZIDO = process.argv.includes("--reduce");
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -29,7 +35,9 @@ const browser = await puppeteer.launch({
 });
 
 const page = await browser.newPage();
-await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
+await page.emulateMediaFeatures([
+  { name: "prefers-reduced-motion", value: REDUZIDO ? "reduce" : "no-preference" },
+]);
 await page.setViewport({ width: W, height: H });
 await page.goto(URL, { waitUntil: "networkidle2" });
 await sleep(2500);
@@ -133,6 +141,9 @@ for (const id of SECOES) {
   }
 }
 
-console.log(total ? `\n${total} sobreposições` : "\nnenhuma sobreposição de texto");
+const modo = REDUZIDO ? " (movimento reduzido)" : "";
+console.log(
+  total ? `\n${total} sobreposições${modo}` : `\nnenhuma sobreposição de texto${modo}`
+);
 await browser.close();
 process.exit(total ? 1 : 0);

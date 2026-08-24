@@ -53,8 +53,27 @@ export default function NavBar() {
      só de qual seção está em cena — e o observer faz isso sem tocar no
      scroll, que é o recurso mais disputado desta página. */
   useEffect(() => {
-    const alvos = navItems
-      .map(({ id }) => document.getElementById(id))
+    /* A barra tem quatro entradas e a página tem onze seções. Sem este mapa,
+       o indicador ficava preso na última seção que POR ACASO estava no menu:
+       durante Estratégia ele continuava apontando "Web", que é a entrada
+       anterior — e uma barra que aponta para o lugar errado é pior do que uma
+       barra sem indicador. */
+    const DONO = {
+      manifesto: "servicos",
+      servicos: "servicos",
+      social: "servicos",
+      web: "web",
+      design: "servicos",
+      branding: "servicos",
+      estrategia: "servicos",
+      metodo: "metodo",
+      porque: "metodo",
+      clientes: "clientes",
+      contato: "clientes",
+    };
+
+    const alvos = Object.keys(DONO)
+      .map((id) => document.getElementById(id))
       .filter(Boolean);
     if (!alvos.length) return undefined;
 
@@ -65,7 +84,7 @@ export default function NavBar() {
         /* A que estiver mais alta na tela ganha: com duas seções cruzando a
            faixa central, a de cima é a que o leitor está terminando de ler. */
         dentro.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        setSecao(dentro[0].target.id);
+        setSecao(DONO[dentro[0].target.id] || null);
       },
       { rootMargin: "-45% 0px -45% 0px" }
     );
