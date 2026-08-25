@@ -454,8 +454,13 @@ export default function Story() {
  * Em WEB ele precisa ficar frontal e centrado: é de lá que a câmera entra na
  * tela, e um objeto ainda girando arruinaria o único momento em que ele tem
  * de estar imóvel.
+ *
+ * No CONTATO ele POUSA. A deriva o empurrava trinta centésimos para fora do
+ * centro justamente no fecho — e o pouso é sob o botão, que é o único lugar
+ * da seção onde a posição precisa ser exata. Chegar e parar também é o gesto
+ * certo para o fim de uma narrativa.
  */
-const SEM_DERIVA = new Set(["web"]);
+const SEM_DERIVA = new Set(["web", "contato"]);
 
 /**
  * Para onde a pose ESCORRE enquanto a seção é lida.
@@ -503,153 +508,147 @@ function derivar(pose, i, t) {
  * uma pose e o modelo era apagado para saltar sem ser visto.
  */
 function caminhoDoNotebook(raiz) {
-  const tweens = [];
-  const gatilhos = [];
-  let anterior = { ...NASCIMENTO };
+  /**
+   * A pose é CALCULADA a partir do scroll, a cada quadro — não escrita por
+   * callbacks de gatilho.
+   *
+   * A versão anterior tinha dois ScrollTriggers por seção: um com scrub para
+   * a chegada, outro para a deriva. Isso produziu a mesma classe de defeito
+   * três vezes seguidas:
+   *
+   *   · uma tween com scrub que chegou ao fim PARA de escrever — subindo, a
+   *     pose ficava congelada na última seção visitada;
+   *   · o `onUpdate` de um gatilho sem scrub só roda enquanto ele está ativo,
+   *     e "ativo" exclui as bordas — parar em cima de uma deixava a pose no
+   *     valor do extremo oposto;
+   *   · um salto de scroll que PULA um gatilho inteiro não dispara nem
+   *     `onUpdate` nem `onToggle` — e ninguém escreve nada.
+   *
+   * Todos os três somem quando a pose deixa de ser um efeito colateral de
+   * eventos e passa a ser uma FUNÇÃO da posição do scroll: para qualquer
+   * scroll, existe exatamente uma resposta, e ela não depende de por onde se
+   * chegou ali. É também mais barato — uma tabela e uma interpolação por
+   * quadro, no lugar de vinte e dois gatilhos.
+   */
+  const paradas = [];
+  let nascimento = { de: 0, ate: 1 };
 
-  /* ── O NASCIMENTO ─────────────────────────────────────────────────────
-     Durante a hero o objeto não existe: a cena sticky mora dentro de
-     `.story`, cujo topo está na base da janela, então ele fica abaixo da
-     dobra sem nenhuma regra extra.
+  /* As posições são medidas em coordenadas de DOCUMENTO, e remedidas a cada
+     refresh: os pins mudam a altura da página, e uma tabela calculada uma vez
+     só descreveria um layout que deixou de existir. */
+  const medir = () => {
+    paradas.length = 0;
+    const vh = window.innerHeight;
+    const doc = (el) => (el ? el.getBoundingClientRect().top + window.scrollY : 0);
 
-     Aqui ele NASCE. Vem do fundo do quadro — minúsculo, no centro, tombado
-     para trás —, cresce e sai para a primeira pose. Entrar deslizando pela
-     borda seria "mais um elemento chegando"; vir do escuro é um começo.
-     A presença sobe junto, então a primeira coisa que se vê é um ponto de
-     luz virando objeto. */
+    const raizTopo = doc(raiz);
+    nascimento = { de: raizTopo - vh * 0.45, ate: raizTopo + vh * 0.2 };
+
+    let anterior = { ...NASCIMENTO };
+    const comLaptop = sections.filter((n) => n.laptop);
+
+    comLaptop.forEach((sec, k) => {
+      const i = sections.indexOf(sec);
+      const alvo = ancoraDe(sec.id);
+      if (!alvo) return;
+      const topo = doc(alvo);
+      const seguinte = comLaptop[k + 1];
+      const topoSeguinte = seguinte ? doc(ancoraDe(seguinte.id)) : topo + alvo.offsetHeight;
+
+      /* A primeira seção é onde o objeto NASCE, e o nascimento tem de
+         coincidir com o momento em que a cena 3D já cobre a janela. */
+      const inicio = k === 0 ? topo - vh * 0.45 : topo - vh;
+      const chegada = k === 0 ? topo + vh * 0.2 : topo - vh * 0.62;
+      const fimDaFaixa = topoSeguinte - vh;
+
+      const deriva = !SEM_DERIVA.has(sec.id);
+      paradas.push({
+        id: sec.id,
+        inicio,
+        chegada,
+        fim: Math.max(fimDaFaixa, chegada + 1),
+        de: { ...anterior },
+        ate: sec.laptop,
+        deriva,
+        i,
+      });
+
+      /* O trecho seguinte parte DE ONDE A DERIVA TERMINOU. Partir da pose
+         nominal daria um salto na emenda, do tamanho exato da deriva. */
+      anterior = deriva ? derivar(sec.laptop, i, 1) : sec.laptop;
+    });
+  };
+
+  const entre = (a, b, t) => a + (b - a) * t;
+  const trava = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+  const aplicar = () => {
+    if (!paradas.length) return;
+    const y = window.scrollY;
+
+    cena.nascido = trava(
+      (y - nascimento.de) / Math.max(1, nascimento.ate - nascimento.de)
+    );
+
+    /* Qual trecho responde por este scroll. Antes do primeiro, o primeiro;
+       depois do último, o último — a pose nunca fica indefinida. */
+    let p = paradas[0];
+    for (let k = 0; k < paradas.length; k++) {
+      if (y >= paradas[k].inicio) p = paradas[k];
+      else break;
+    }
+
+    if (y < p.chegada) {
+      const t = trava((y - p.inicio) / Math.max(1, p.chegada - p.inicio));
+      cena.pose.x = entre(p.de.x, p.ate.x, t);
+      cena.pose.y = entre(p.de.y, p.ate.y, t);
+      cena.pose.scale = entre(p.de.scale, p.ate.scale, t);
+      cena.pose.rotY = entre(p.de.rotY, p.ate.rotY, t);
+      cena.pose.rotX = entre(p.de.rotX, p.ate.rotX, t);
+      return;
+    }
+
+    const t = p.deriva ? trava((y - p.chegada) / Math.max(1, p.fim - p.chegada)) : 0;
+    Object.assign(cena.pose, p.deriva ? derivar(p.ate, p.i, t) : p.ate);
+  };
+
   cena.nascido = 0;
   cena.presenca = 0;
   cena.presente = 1;
   Object.assign(cena.pose, NASCIMENTO);
-  const nascer = { p: 0 };
-  tweens.push(
-    gsap.to(nascer, {
-      p: 1,
-      ease: "none",
-      onUpdate: () => (cena.nascido = nascer.p),
-      scrollTrigger: {
-        trigger: raiz,
-        /* Depois de a cena PRENDER, não antes.
-           A camada 3D é sticky dentro de `.story`: enquanto o topo da
-           narrativa ainda está descendo pela tela, o canvas inteiro está
-           abaixo da dobra. Um nascimento agendado ali acontece fora do
-           quadro — a presença sobe, o objeto cresce, e o leitor não vê nada.
-           A partir de "top 45%" a cena já cobre a janela. */
-        start: "top 45%",
-        end: "top -20%",
-        scrub: 1,
-        invalidateOnRefresh: true,
-      },
-    })
-  );
 
-  /* ── O TRAJETO ────────────────────────────────────────────────────────
-     Um trecho por seção, e cada trecho COBRE A FAIXA INTEIRA da sua seção —
-     do momento em que ela entra pela base até a seguinte fazer o mesmo.
+  medir();
+  aplicar();
 
-     A versão anterior recortava cada trecho só na chegada ("top bottom" →
-     "top 30%") e deixava o resto da seção sem ninguém escrevendo. Descendo
-     funcionava, porque o trecho seguinte assumia logo. SUBINDO, não: uma
-     tween com scrub que já está no fim não reescreve nada, então a pose
-     ficava travada na última seção visitada e o objeto acompanhava o leitor
-     de volta parado no lugar errado.
+  /* Um relógio só: o `ticker` do GSAP é o mesmo que move o Lenis e o
+     ScrollTrigger, então a pose é recalculada no mesmo quadro em que o
+     scroll muda — sem o atraso de um listener próprio. */
+  gsap.ticker.add(aplicar);
+  ScrollTrigger.addEventListener("refresh", medir);
 
-     Agora a viagem ocupa os primeiros 25% da faixa e os 75% restantes são
-     uma pausa — que continua sendo renderizada. Em qualquer ponto da página
-     existe exatamente um trecho ativo, e ele é sempre o dono da pose. */
-  sections.forEach((s, i) => {
-    if (!s.laptop) return;
-    const de = { ...anterior };
-    const proxima = sections.slice(i + 1).find((n) => n.laptop);
-    const alvo = ancoraDe(s.id);
-    const alvoProximo = proxima && ancoraDe(proxima.id);
-    if (!alvo) return;
-
-    /* A VIAGEM. Distância de scroll FIXA — da base da tela até a seção
-       assumir o quadro —, e não uma fração da faixa.
-
-       Fração não serve porque as faixas têm tamanhos absurdamente
-       diferentes: uma seção presa mede quatro mil pixels e uma solta mede
-       novecentos. Vinte e cinco por cento de quatro mil é mais de uma tela
-       de viagem: o objeto só chegava à pose depois que o leitor já tinha
-       lido metade da seção. */
-    tweens.push(
-      gsap.fromTo(cena.pose, de, {
-        ...s.laptop,
-        ease: "none",
-        immediateRender: false,
-        scrollTrigger: {
-          /* A primeira seção começa mais tarde: é ali que o objeto NASCE, e
-             o nascimento tem de coincidir com o momento em que a cena 3D já
-             cobre a janela. */
-          trigger: alvo,
-          start: i === 0 ? "top 45%" : "top bottom",
-          end: i === 0 ? "top -20%" : "top 62%",
-          scrub: 0.9,
-          invalidateOnRefresh: true,
-        },
-      })
-    );
-
-    /* A DERIVA. No resto da faixa a pose continua escorrendo, em vez de
-       congelar no alvo.
-
-       Este gatilho também é quem mantém a AUTORIDADE sobre a pose: uma tween
-       com scrub que já chegou ao fim para de escrever, e sem ninguém no
-       comando a pose ficava travada na última seção visitada — descendo
-       ninguém notava, porque a próxima assumia logo; subindo, o objeto
-       acompanhava o leitor de volta parado no lugar errado. */
-    const derivaAtiva = !SEM_DERIVA.has(s.id);
-
-    gatilhos.push(
-      ScrollTrigger.create({
-        trigger: alvo,
-        start: i === 0 ? "top -20%" : "top 62%",
-        endTrigger: alvoProximo || alvo,
-        end: alvoProximo ? "top bottom" : "bottom bottom",
-        onUpdate: (self) =>
-          Object.assign(
-            cena.pose,
-            derivaAtiva ? derivar(s.laptop, i, self.progress) : s.laptop
-          ),
-      })
-    );
-
-    /* O trecho seguinte parte DE ONDE A DERIVA TERMINOU, e não da pose
-       nominal da seção. Partir da nominal daria um salto na emenda, do
-       tamanho exato da deriva. */
-    anterior = derivaAtiva ? derivar(s.laptop, i, 1) : s.laptop;
-  });
-
-  /* ── O REFLEXO ────────────────────────────────────────────────────────
+  /* ── O REFLEXO E O GIRO ───────────────────────────────────────────────
      Uma volta e meia de luz de contorno ao longo da narrativa inteira: o
      dourado corre pelo alumínio enquanto a página corre. É lento de
      propósito — reflexo que pisca vira estroboscópio. */
   const luz = { v: 0, g: 0 };
-  tweens.push(
-    gsap.to(luz, {
-      v: 1.5,
-      /* Um terço de volta ao longo da página inteira. É pouco de propósito:
-         somado às poses, dá a sensação de um objeto que nunca para — sem
-         nunca virar um carrossel girando sozinho. */
-      g: 1.1,
-      ease: "none",
-      onUpdate: () => {
-        cena.brilho = luz.v;
-        cena.giro = luz.g;
-      },
-      scrollTrigger: { trigger: raiz, start: "top bottom", end: "bottom bottom", scrub: 1.4 },
-    })
-  );
+  const brilho = gsap.to(luz, {
+    v: 1.5,
+    g: 1.1,
+    ease: "none",
+    onUpdate: () => {
+      cena.brilho = luz.v;
+      cena.giro = luz.g;
+    },
+    scrollTrigger: { trigger: raiz, start: "top bottom", end: "bottom bottom", scrub: 1.4 },
+  });
 
   return () => {
-    tweens.forEach((t) => {
-      t.scrollTrigger?.kill();
-      t.kill();
-    });
-    gatilhos.forEach((g) => g.kill());
-    cena.presente = 1;
+    gsap.ticker.remove(aplicar);
+    ScrollTrigger.removeEventListener("refresh", medir);
+    brilho.scrollTrigger?.kill();
+    brilho.kill();
     cena.presenca = 1;
+    cena.presente = 1;
     cena.nascido = 1;
   };
 }
@@ -1521,7 +1520,10 @@ function maquinaPrime(q, desktop) {
            entregas saem em COMBOIO. Empilhadas no mesmo ponto, sete viram
            três, e o "sai presença" perde a quantidade — que é metade do
            argumento. */
-        ...sobreAEsteira(el, 0.52, 0.56 + i * 0.064),
+        /* 0,07 de espaçamento: uma pílula mede cerca de 0,06 do caminho, e
+           com 0,064 as vizinhas ainda se tocavam nos trechos em que a curva
+           é mais horizontal. */
+        ...sobreAEsteira(el, 0.52, 0.53 + i * 0.07),
         duration: 0.9,
         ease: "power1.inOut",
       },

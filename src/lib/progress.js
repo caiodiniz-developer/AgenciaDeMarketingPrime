@@ -159,6 +159,23 @@ export const CANAIS = {
  * simplesmente não existir.
  */
 if (typeof window !== "undefined") {
+  /* Quais gatilhos de pose estão ativos e em que progresso. Sem isto,
+     "a pose está errada" não distingue entre pose errada, gatilho errado e
+     gatilho certo no progresso errado. */
+  window.__trilhos = () => {
+    const ST = window.ScrollTrigger;
+    if (!ST) return [];
+    return ST.getAll()
+      .filter((t) => typeof t.vars.id === "string" && t.vars.id.startsWith("deriva:"))
+      .map((t) => ({
+        id: t.vars.id,
+        ativo: t.isActive,
+        p: +t.progress.toFixed(3),
+        start: Math.round(t.start),
+        end: Math.round(t.end),
+      }));
+  };
+
   window.__cena = () => ({
     x: cena.pose.x,
     y: cena.pose.y,

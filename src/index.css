@@ -4154,18 +4154,44 @@ html[data-nav-theme="bone"] .nav__links a:hover {
      por cima de texto.
      Reduzir movimento não pode significar destruir a leitura: aqui eles
      voltam ao fluxo e viram a lista que sempre foram. */
+  /* A lista das etapas é ABSOLUTA sobre o palco no caminho normal: uma de
+     cada vez, no canto que a esteira deixa livre. Sem animação não há
+     revezamento — as quatro acendem juntas —, e uma pilha de quatro blocos
+     de texto por cima da esteira e do fecho é o pior encavalamento do site.
+     Aqui ela volta ao fluxo, depois do palco. */
+  .maquina {
+    height: auto;
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .maquina__vao {
+    min-height: clamp(14rem, 34vh, 20rem);
+  }
+
   .maquina__etapas {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
     display: grid;
     gap: 1.2rem;
     min-height: 0;
+    margin-top: clamp(1.5rem, 4vh, 2.5rem);
   }
 
   .etapa {
     position: relative;
     inset: auto;
     opacity: 1;
+    max-width: none;
     text-align: left;
     padding: 0;
+  }
+
+  /* O fecho deixa de disputar a mesma linha da última etapa. */
+  .maquina__fecho {
+    margin-top: clamp(1rem, 3vh, 2rem);
+    text-align: left;
   }
 
   .web__razoes {

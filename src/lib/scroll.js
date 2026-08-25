@@ -39,6 +39,12 @@ export function initSmoothScroll() {
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
 
+  /* Exposta para o harness de verificação. Rolar com `window.scrollTo` cru
+     desincroniza o scroll suavizado — o Lenis arrasta a página de volta para
+     o alvo dele no quadro seguinte —, e sem esta porta o teste media sempre
+     um ponto diferente do que pediu. */
+  if (typeof window !== "undefined") window.__lenis = lenis;
+
   return lenis;
 }
 

@@ -19,6 +19,25 @@ mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Rola a página do jeito que o site entende.
+ *
+ * `window.scrollTo` cru BRIGA com o scroll suavizado: o Lenis guarda um alvo
+ * próprio e, no quadro seguinte, arrasta a página de volta para ele. O teste
+ * media a posição certa, o Lenis desfazia, e a leitura saía de um ponto
+ * centenas de pixels adiante — o que fazia uma pose correta parecer errada.
+ *
+ * Dirigir pelo Lenis, com `immediate`, é também o que se aproxima de um
+ * usuário: é a mesma porta que os links de âncora do site usam.
+ */
+async function rolarPara(page, y) {
+  await page.evaluate((destino) => {
+    const l = window.__lenis;
+    if (l) l.scrollTo(destino, { immediate: true, force: true });
+    else window.scrollTo(0, destino);
+  }, Math.max(0, Math.round(y)));
+}
+
 /** Lê a sonda da cena 3D. Serializa DENTRO da página: devolver o objeto
  *  cru pelo canal do Puppeteer vinha como `undefined`. */
 const lerCena = async (page) => {
@@ -57,7 +76,7 @@ async function irPara(page, id, espera = 1100) {
       return el ? el.getBoundingClientRect().top : 0;
     }, id);
     if (Math.abs(delta) < 6) break;
-    await page.evaluate((d) => window.scrollTo(0, window.scrollY + d), delta);
+    await rolarPara(page, await page.evaluate(() => window.scrollY) + delta);
     await sleep(espera);
   }
   await sleep(600);
@@ -65,10 +84,10 @@ async function irPara(page, id, espera = 1100) {
 
 /** Rola para uma fração do documento. */
 async function fracao(page, f, espera = 1200) {
-  await page.evaluate((x) => {
-    const alt = document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo(0, alt * x);
-  }, f);
+  const alt = await page.evaluate(
+    () => document.documentElement.scrollHeight - window.innerHeight
+  );
+  await rolarPara(page, alt * f);
   await sleep(espera);
 }
 
@@ -164,7 +183,7 @@ async function irParaChegada(page, id) {
       return sp.getBoundingClientRect().top - window.innerHeight * 0.62;
     }, id);
     if (Math.abs(delta) < 6) break;
-    await page.evaluate((d) => window.scrollTo(0, window.scrollY + d), delta);
+    await rolarPara(page, (await page.evaluate(() => window.scrollY)) + delta);
     await sleep(1000);
   }
   await sleep(900);
@@ -179,10 +198,6 @@ for (const [id, ax, ay] of PARADAS) {
     continue;
   }
   trajeto.push({ id, ...pose });
-  if (process.env.DEBUG_POSE) {
-    const topo = await page.evaluate((sid) => { const e=document.getElementById(sid); const sp=e.closest(".pin-spacer")||e; return Math.round(sp.getBoundingClientRect().top); }, id);
-    log(`       [debug] topo=${topo} (alvo ${Math.round(900*0.62)}) scrollY=${await page.evaluate(()=>Math.round(scrollY))}`);
-  }
   /* Tolerância apertada, porque a medição é feita no ponto exato em que a
      viagem termina: ali a deriva ainda é zero e a pose tem de ser a nominal.
      A folga que sobra é só o atraso do `scrub`. */
@@ -235,7 +250,7 @@ const meioDaSecao = async (id) => {
     const sp = el.closest(".pin-spacer") || el;
     return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
   }, id);
-  await page.evaluate((y) => window.scrollTo(0, y), g.topo + g.alt * 0.5);
+  await rolarPara(page, g.topo + g.alt * 0.5);
   await sleep(1500);
 };
 
@@ -257,7 +272,7 @@ checar(
   JSON.stringify(ausencias)
 );
 
-await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await rolarPara(page, await page.evaluate(() => document.documentElement.scrollHeight));
 await sleep(2400);
 const fimCena = await lerCena(page);
 checar("a tampa fecha no fecho", fimCena && fimCena.tampa > 0.9, "tampa " + fimCena?.tampa?.toFixed(2));
@@ -288,7 +303,7 @@ const secSocial = await page.evaluate(() => {
   return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
 });
 for (const f of [0.08, 0.5, 0.92]) {
-  await page.evaluate((y) => window.scrollTo(0, y), secSocial.topo + secSocial.alt * f);
+  await rolarPara(page, secSocial.topo + secSocial.alt * f);
   await sleep(1400);
   estadosSociais.push(
     await page.evaluate(() => document.querySelector("[data-social-palco]")?.dataset.estado)
@@ -323,7 +338,7 @@ const secWeb = await page.evaluate(() => {
 let zoomMax = 0;
 let clipMax = 0;
 for (const f of [0.1, 0.35, 0.5, 0.62, 0.72, 0.8, 0.97]) {
-  await page.evaluate((y) => window.scrollTo(0, y), secWeb.topo + secWeb.alt * f);
+  await rolarPara(page, secWeb.topo + secWeb.alt * f);
   await sleep(1100);
   const m = await page.evaluate(() => {
     const z = window.__cena ? window.__cena().zoom : 0;
@@ -338,7 +353,7 @@ for (const f of [0.1, 0.35, 0.5, 0.62, 0.72, 0.8, 0.97]) {
 checar("a câmera chega à tela cheia", zoomMax > 0.9, `zoom máximo ${zoomMax.toFixed(2)}`);
 checar("a página nasce dentro do painel", clipMax > 40, `clip-path até ${clipMax}%`);
 
-await page.evaluate((y) => window.scrollTo(0, y), secWeb.topo + secWeb.alt + 400);
+await rolarPara(page, secWeb.topo + secWeb.alt + 400);
 await sleep(1600);
 const zoomDepois = (await lerCena(page))?.zoom ?? 1;
 checar(
@@ -354,7 +369,7 @@ const secDesign = await page.evaluate(() => {
   const sp = s.closest(".pin-spacer") || s;
   return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
 });
-await page.evaluate((y) => window.scrollTo(0, y), secDesign.topo + secDesign.alt * 0.75);
+await rolarPara(page, secDesign.topo + secDesign.alt * 0.75);
 await sleep(1600);
 const cartazes = await page.evaluate(() =>
   [...document.querySelectorAll(".cartaz")].map((c) => {
@@ -384,7 +399,7 @@ const secBrand = await page.evaluate(() => {
 });
 const desenho = [];
 for (const f of [0.05, 0.45, 0.9]) {
-  await page.evaluate((y) => window.scrollTo(0, y), secBrand.topo + secBrand.alt * f);
+  await rolarPara(page, secBrand.topo + secBrand.alt * f);
   await sleep(1300);
   desenho.push(
     await page.evaluate(() => {
@@ -430,7 +445,7 @@ const secEst = await page.evaluate(() => {
   const sp = s.closest(".pin-spacer") || s;
   return { topo: window.scrollY + sp.getBoundingClientRect().top, alt: sp.offsetHeight };
 });
-await page.evaluate((y) => window.scrollTo(0, y), secEst.topo + secEst.alt * 0.6);
+await rolarPara(page, secEst.topo + secEst.alt * 0.6);
 await sleep(1600);
 const desvio = await page.evaluate(() => {
   const rot = document.querySelector('[data-est-rotulo="publico"]');
@@ -464,7 +479,7 @@ const secMaq = await page.evaluate(() => {
 });
 const etapasVistas = new Set();
 for (const f of [0.34, 0.42, 0.5, 0.58, 0.66, 0.73]) {
-  await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * f);
+  await rolarPara(page, secMaq.topo + secMaq.alt * f);
   await sleep(1500);
   const idx = await page.evaluate(() =>
     [...document.querySelectorAll("[data-maquina-etapa]")].findIndex(
@@ -478,14 +493,14 @@ checar("as etapas se revezam", etapasVistas.size >= 3, `etapas vistas: ${[...eta
 /* As pecas precisam PERCORRER a esteira, nao aparecer nas pontas. Mede-se a
    posicao das mesmas fichas em dois momentos: se elas nao andaram, a esteira
    e decoracao. */
-await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.12);
+await rolarPara(page, secMaq.topo + secMaq.alt * 0.12);
 await sleep(1600);
 const fichasAntes = await page.evaluate(() =>
   [...document.querySelectorAll("[data-maquina-ficha]")].map((e) =>
     Math.round(e.getBoundingClientRect().left)
   )
 );
-await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.46);
+await rolarPara(page, secMaq.topo + secMaq.alt * 0.46);
 await sleep(1800);
 const fichasDepois = await page.evaluate(() =>
   [...document.querySelectorAll("[data-maquina-ficha]")].map((e) =>
@@ -499,7 +514,7 @@ checar(
   andaram + "/4 fichas se deslocaram mais de 120px"
 );
 
-await page.evaluate((y) => window.scrollTo(0, y), secMaq.topo + secMaq.alt * 0.9);
+await rolarPara(page, secMaq.topo + secMaq.alt * 0.9);
 await sleep(1700);
 const saidas = await page.evaluate(() => {
   const els = [...document.querySelectorAll("[data-maquina-saida]")];
@@ -658,7 +673,7 @@ log(
 
 /* ═══ 12 · WhatsApp ═══════════════════════════════════════════════════════ */
 log("\n── WhatsApp ──");
-await page.evaluate(() => window.scrollTo(0, 0));
+await rolarPara(page, 0);
 await sleep(1200);
 const zapTopo = await page.evaluate(() => {
   const z = document.querySelector(".zap");
@@ -733,7 +748,7 @@ for (const [w, h] of [
 ]) {
   await page.setViewport({ width: w, height: h });
   await sleep(1200);
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await rolarPara(page, 0);
   await sleep(800);
   const extra = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth
@@ -745,7 +760,7 @@ for (const [w, h] of [
 log("\n── Menu mobile ──");
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await sleep(1200);
-await page.evaluate(() => window.scrollTo(0, window.innerHeight * 3));
+await rolarPara(page, await page.evaluate(() => window.innerHeight * 3));
 await sleep(1200);
 const botaoMenu = await page.$(".nav__menu, [data-menu-toggle], .nav__burger");
 checar("existe botão de menu", Boolean(botaoMenu));
@@ -844,7 +859,7 @@ log(`  info  mídia transferida até aqui: ${(relPeso / 1048576).toFixed(1)} MB`
 
 /* FPS durante uma rolagem contínua — é o único jeito de medir o custo real
    das seções presas, do shader e do WebGL rodando juntos. */
-await page.evaluate(() => window.scrollTo(0, 0));
+await rolarPara(page, 0);
 await sleep(800);
 const fps = await page.evaluate(async () => {
   const quadros = [];
