@@ -4194,6 +4194,51 @@ html[data-nav-theme="bone"] .nav__links a:hover {
     text-align: left;
   }
 
+  /* O PALCO DA MÁQUINA VIRA FLUXO.
+     As fichas e as pílulas são posicionadas pelo MotionPath — quem as põe
+     sobre a esteira é a animação. Sem ela, todas ficam na origem do palco:
+     onze blocos de texto exatamente sobrepostos, que era a maior parte das
+     sobreposições do caminho reduzido.
+     Aqui a esteira continua desenhada (é o desenho que explica a seção), e
+     o que viajava sobre ela vira duas fileiras legíveis. */
+  .maquina__vao {
+    min-height: 0;
+  }
+
+  .maquina__cena {
+    position: relative;
+    inset: auto;
+    margin: 0;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+
+  .maquina__trilha {
+    position: relative;
+    height: clamp(8rem, 20vh, 13rem);
+  }
+
+  .maquina__nucleo,
+  .maquina__extremo {
+    display: none;
+  }
+
+  .maquina__entradas,
+  .maquina__saidas {
+    position: static;
+    inset: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+  }
+
+  .ficha,
+  .saida {
+    position: static;
+    transform: none !important;
+  }
+
   .web__razoes {
     display: grid;
     gap: 1.1rem;
