@@ -24,7 +24,32 @@
  * primeira pose. Entrar deslizando pela borda seria "mais um elemento
  * chegando"; nascer do fundo é um começo.
  */
-export const NASCIMENTO = { x: 0, y: -0.08, scale: 0.13, rotY: -0.4, rotX: 0.42 };
+export const NASCIMENTO = {
+  x: 0,
+  y: -0.08,
+  scale: 0.13,
+  /**
+   * z: profundidade REAL, não escala disfarçada.
+   *
+   * -1 é longe da câmera, +1 é perto. A escala muda o tamanho do objeto na
+   * tela; o z muda a DISTÂNCIA — e com uma câmera em perspectiva isso muda o
+   * escorço: aproximar exagera a fuga das linhas do teclado, afastar achata o
+   * volume. É a diferença entre um objeto que cresce e um objeto que vem.
+   *
+   * O nascimento acontece longe: o notebook vem do fundo do escuro.
+   */
+  z: -0.85,
+  rotY: -0.4,
+  rotX: 0.42,
+  /**
+   * rotZ: a rolagem lateral, em radianos.
+   *
+   * É o eixo que menos se percebe conscientemente e o que mais separa "um
+   * render girando" de "um objeto no espaço": um plano nunca cruza o quadro
+   * perfeitamente nivelado. Poucos graus, sempre.
+   */
+  rotZ: 0.12,
+};
 
 /** Compatibilidade: a pose de repouso é a de nascimento. */
 export const FORA = NASCIMENTO;
@@ -179,9 +204,11 @@ if (typeof window !== "undefined") {
   window.__cena = () => ({
     x: cena.pose.x,
     y: cena.pose.y,
+    z: cena.pose.z,
     scale: cena.pose.scale,
     rotY: cena.pose.rotY,
     rotX: cena.pose.rotX,
+    rotZ: cena.pose.rotZ,
     zoom: cena.zoom,
     presenca: cena.presenca,
     tampa: cena.tampa,

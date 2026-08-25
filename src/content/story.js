@@ -368,7 +368,7 @@ export const sections = [
     ],
     /** O diagnóstico em uma palavra, atravessando a tela. */
     palavra: "PERCEPÇÃO",
-    laptop: { x: 1.14, y: -0.44, scale: 0.5, rotY: -1.1, rotX: 0.2 },
+    laptop: { x: 1.14, y: -0.44, z: -0.5, scale: 0.5, rotY: -1.1, rotX: 0.2, rotZ: 0.06 },
     canal: "social",
   },
   {
@@ -383,7 +383,7 @@ export const sections = [
       { text: "sustentam entre si", tone: "gold" },
       { text: " — e que, juntas, substituem o departamento de marketing que a sua empresa não tem." },
     ],
-    laptop: { x: 0.98, y: 0.46, scale: 0.36, rotY: -1.28, rotX: 0.26 },
+    laptop: { x: 0.98, y: 0.46, z: -0.95, scale: 0.36, rotY: -1.28, rotX: 0.26, rotZ: -0.09 },
     canal: "social",
   },
 
@@ -394,7 +394,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: 0.74, y: -0.72, scale: 0.58, rotY: -0.52, rotX: 0.1 },
+    laptop: { x: 0.74, y: -0.72, z: 0.4, scale: 0.58, rotY: -0.52, rotX: 0.1, rotZ: 0.05 },
     canal: "social",
   },
   {
@@ -405,7 +405,7 @@ export const sections = [
     servico: "web",
     /* O clímax do 3D: centro, de frente, tamanho real. Daqui a câmera entra
        na tela. */
-    laptop: { x: 0, y: -0.16, scale: 1.12, rotY: 0, rotX: 0.03 },
+    laptop: { x: 0, y: -0.16, z: 0, scale: 1.12, rotY: 0, rotX: 0.03, rotZ: 0 },
     canal: "web",
   },
   {
@@ -414,7 +414,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -0.92, y: -0.78, scale: 0.62, rotY: 0.72, rotX: 0.12 },
+    laptop: { x: -0.92, y: -0.78, z: 0.3, scale: 0.62, rotY: 0.72, rotX: 0.12, rotZ: -0.07 },
     canal: "design",
   },
   {
@@ -424,7 +424,7 @@ export const sections = [
     rays: false,
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
-    laptop: { x: -1.5, y: -0.1, scale: 0.34, rotY: 1.35, rotX: 0.18 },
+    laptop: { x: -1.5, y: -0.1, z: -1, scale: 0.34, rotY: 1.35, rotX: 0.18, rotZ: 0.1 },
     /* AUSÊNCIA. A construção da marca é o palco desta seção inteira, e o
        objeto ali seria um segundo assunto disputando o mesmo bege. Ele
        continua percorrendo o trajeto por baixo — só não é desenhado. */
@@ -437,7 +437,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -1.3, y: 0.52, scale: 0.4, rotY: 1.15, rotX: 0.22 },
+    laptop: { x: -1.3, y: 0.52, z: -0.7, scale: 0.4, rotY: 1.15, rotX: 0.22, rotZ: -0.08 },
     canal: "branding",
   },
 
@@ -454,7 +454,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.36, y: -0.58, scale: 0.52, rotY: 1.05, rotX: 0.12 },
+    laptop: { x: -1.36, y: -0.58, z: -0.15, scale: 0.52, rotY: 1.05, rotX: 0.12, rotZ: 0.05 },
     canal: "design",
   },
   {
@@ -472,7 +472,7 @@ export const sections = [
       { text: "Escolha uma força. O que acontece com as peças é o que acontece com a comunicação de uma empresa quando " },
       { text: "falta justamente ela.", tone: "gold" },
     ],
-    laptop: { x: -1.44, y: 0.56, scale: 0.42, rotY: 1.3, rotX: 0.16 },
+    laptop: { x: -1.44, y: 0.56, z: -0.85, scale: 0.42, rotY: 1.3, rotX: 0.16, rotZ: -0.06 },
     // A segunda ausência: o campo das forças precisa da tela para ele.
     presente: false,
     canal: "prime",
@@ -489,7 +489,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.44, y: 0.3, scale: 0.38, rotY: 1.25, rotX: 0.2 },
+    laptop: { x: -1.44, y: 0.3, z: -0.55, scale: 0.38, rotY: 1.25, rotX: 0.2, rotZ: 0.07 },
     canal: "prime",
   },
   {
@@ -507,7 +507,7 @@ export const sections = [
     cta: { label: "Falar com a Prime", href: CONTATO.whatsapp.link },
     /* Fim da jornada: o notebook volta ao centro, aberto, encarando o leitor.
        O objeto que apresentou a experiência fecha a narrativa. */
-    laptop: { x: 0, y: -0.78, scale: 0.74, rotY: 0, rotX: 0.06 },
+    laptop: { x: 0, y: -0.78, z: 0.5, scale: 0.74, rotY: 0, rotX: 0.06, rotZ: 0 },
     canal: "prime",
   },
 ];
