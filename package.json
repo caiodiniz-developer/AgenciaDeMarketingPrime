@@ -12,7 +12,8 @@
     "verify": "node scripts/verify.mjs",
     "shots": "node scripts/shots.mjs",
     "overlap": "node scripts/overlap.mjs",
-    "trim:footer": "node scripts/trim-footer.mjs"
+    "trim:footer": "node scripts/trim-footer.mjs",
+    "overlap:reduce": "node scripts/overlap.mjs http://localhost:5402/ 1440 900 --reduce"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
