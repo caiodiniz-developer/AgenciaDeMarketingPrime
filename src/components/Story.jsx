@@ -11,6 +11,8 @@ import Section from "./Section";
 import Rays from "./Rays";
 
 // three.js sozinho pesa mais que todo o resto do site: sai do caminho da hero.
+import CenaSegura from "./CenaSegura";
+
 const LaptopScene = lazy(() => import("./LaptopScene"));
 
 /**
@@ -427,9 +429,11 @@ export default function Story() {
           </div>
 
           <div className="story__scene story__scene--front" ref={laptopBox} aria-hidden="true">
-            <Suspense fallback={null}>
-              <LaptopScene active={active} />
-            </Suspense>
+            <CenaSegura>
+              <Suspense fallback={null}>
+                <LaptopScene active={active} />
+              </Suspense>
+            </CenaSegura>
           </div>
         </>
       )}

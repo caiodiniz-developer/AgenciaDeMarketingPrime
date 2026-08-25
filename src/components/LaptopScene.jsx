@@ -6,7 +6,7 @@ import { cena, FORA, CANAIS } from "../lib/progress";
 import { prefersReducedMotion } from "../lib/media";
 import { pointer, damp, isTouch } from "../lib/pointer";
 
-const MODEL = "/laptop.glb";
+const MODEL = "/laptop3D.glb";
 useGLTF.preload(MODEL);
 
 /**
