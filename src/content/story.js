@@ -575,11 +575,22 @@ export const clientes = [
  */
 export const cases = [];
 
-/** Navegação: derivada das seções, para não existirem duas listas. */
+/**
+ * Navegação.
+ *
+ * "Web" saiu: era uma das cinco frentes ocupando um lugar de primeiro nível
+ * ao lado de "O que fazemos", que já leva às cinco. No lugar dela entra
+ * NOSSO DIFERENCIAL, apontando para a seção que de fato faz esse argumento —
+ * as cinco forças que sustentam uma marca.
+ *
+ * A ordem segue a da PÁGINA, e não a da importância: uma barra que lista
+ * seções fora da ordem em que elas aparecem faz o leitor procurar para cima
+ * o que está para baixo.
+ */
 export const navItems = [
   { id: "servicos", label: "O que fazemos" },
-  { id: "web", label: "Web" },
   { id: "metodo", label: "Como funciona" },
+  { id: "porque", label: "Nosso diferencial" },
   { id: "clientes", label: "Quem confia" },
 ];
 

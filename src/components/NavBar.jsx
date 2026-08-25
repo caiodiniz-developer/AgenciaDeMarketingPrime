@@ -61,13 +61,15 @@ export default function NavBar() {
     const DONO = {
       manifesto: "servicos",
       servicos: "servicos",
+      /* As cinco frentes pertencem todas a "O que fazemos": são o
+         desenvolvimento daquele índice, não destinos de primeiro nível. */
       social: "servicos",
-      web: "web",
+      web: "servicos",
       design: "servicos",
       branding: "servicos",
       estrategia: "servicos",
       metodo: "metodo",
-      porque: "metodo",
+      porque: "porque",
       clientes: "clientes",
       contato: "clientes",
     };
