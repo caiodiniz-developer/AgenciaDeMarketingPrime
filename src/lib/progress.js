@@ -149,6 +149,20 @@ export const cena = {
    */
   canal: "social",
 
+  /**
+   * O POUSO, de 0 a 1.
+   *
+   * O último movimento da narrativa. Enquanto sobe de 0 a 1, o objeto avança
+   * na direção da câmera e tudo que ainda o mantinha em movimento é
+   * desligado: o giro contínuo, o torque da rolagem, a rolagem lateral.
+   *
+   * Existe como número, e não como "a última seção", porque quem precisa dele
+   * é o loop de render — que não sabe o que é uma seção — e porque a
+   * desaceleração tem de ser GRADUAL. Chegar de frente num quadro só seria um
+   * corte; chegar endireitando ao longo de uma tela de rolagem é um pouso.
+   */
+  pouso: 0,
+
   /** Ligado enquanto a região da narrativa está na viewport. */
   ativo: false,
 
@@ -210,6 +224,7 @@ if (typeof window !== "undefined") {
     rotX: cena.pose.rotX,
     rotZ: cena.pose.rotZ,
     zoom: cena.zoom,
+    pouso: cena.pouso,
     presenca: cena.presenca,
     tampa: cena.tampa,
     canal: cena.canal,

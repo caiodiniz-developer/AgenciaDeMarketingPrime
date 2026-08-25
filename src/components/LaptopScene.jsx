@@ -7,23 +7,77 @@ import { prefersReducedMotion } from "../lib/media";
 import { pointer, damp, isTouch } from "../lib/pointer";
 
 const MODEL = "/laptop3D.glb";
+
+/**
+ * Distância da câmera até o plano z = 0.
+ *
+ * Fica aqui em cima porque DOIS lugares dependem dela: a própria câmera e a
+ * conta de profundidade do loop de render, que precisa saber quanto mundo
+ * cabe num pixel a cada distância. Duplicada, um ajuste de enquadramento
+ * arrastaria o objeto para fora do lugar sem nenhum aviso.
+ */
+const DIST_CAMERA = 4.2;
 useGLTF.preload(MODEL);
 
 /**
  * Orientação de repouso do modelo.
  *
- * O arquivo vem do Sketchfab deitado: o conjunto da tampa é um plano
- * horizontal e o do teclado, um plano vertical. Estes dois giros põem o
- * objeto de pé — teclado para cima, tela encarando a câmera.
+ * O arquivo atual já vem de pé — base no plano XZ, tampa levantada em Y — mas
+ * VIRADO PARA O LADO: a tampa está encostada na aresta esquerda da base, de
+ * modo que a tela encara +X enquanto a câmera está em +Z. Este quarto de
+ * volta em Y põe a tela de frente.
  *
- * Os valores estão aqui em cima, e não enterrados no meio da montagem, porque
- * são a única coisa deste arquivo que depende do .glb: trocar o modelo é
- * mexer nestas duas linhas.
+ * O valor está aqui em cima, e não enterrado no meio da montagem, porque é a
+ * única coisa deste arquivo que depende do .glb.
+ *
+ * HISTÓRICO, porque isto já custou caro duas vezes: o modelo anterior vinha
+ * deitado e do Sketchfab, e precisava de -90° em X mais o cancelamento da
+ * conversão Z-up gravada no nó raiz. O arquivo foi TROCADO no disco sem que a
+ * constante mudasse, e o resultado não foi um erro — foi um notebook de
+ * perfil, plausível o bastante para passar despercebido numa leitura de
+ * código. É por isso que a tela, abaixo, deixou de ser encontrada por nome.
  */
-const ROT_BASE = [-Math.PI / 2, 0, 0];
+const ROT_BASE = [0, -Math.PI / 2, 0];
 
-/** Material do painel da tela no arquivo original. É ele que vira vídeo. */
+/**
+ * Material do painel da tela, quando o arquivo traz um nome utilizável.
+ *
+ * É uma DICA, não um requisito: se não casar, a tela é deduzida da geometria
+ * (ver `acharPainel`). O modelo anterior tinha este material; o atual chama
+ * tudo de `MaterialNN-material`, e com a busca só por nome o painel ficava
+ * nulo — o vídeo continuava decodificando, ligado a nada, e o que se via na
+ * tampa era a textura que veio dentro do arquivo. Um defeito silencioso:
+ * havia imagem, só não era a nossa.
+ */
 const MATERIAL_DA_TELA = "aiStandardSurface7SG";
+
+/**
+ * A tela, deduzida da FORMA.
+ *
+ * Um notebook aberto tem uma assinatura geométrica que independe de quem
+ * exportou o arquivo: entre as peças chapadas — uma dimensão muito menor que
+ * as outras duas —, a tela é a que está MAIS ALTA. A base é chapada e fica no
+ * chão; a tampa é chapada e fica em pé sobre ela.
+ *
+ * Isso vale para qualquer .glb de notebook aberto, que é exatamente a
+ * garantia que faltava.
+ */
+function acharPainel(malhas) {
+  const chapadas = malhas
+    .map((m) => {
+      const cx = new THREE.Box3().setFromObject(m);
+      const t = cx.getSize(new THREE.Vector3());
+      const maior = Math.max(t.x, t.y, t.z);
+      const menor = Math.min(t.x, t.y, t.z);
+      return { malha: m, alturaCentro: cx.getCenter(new THREE.Vector3()).y, chatura: menor / (maior || 1), area: maior };
+    })
+    /* 0,25 é generoso de propósito: uma tampa com moldura grossa continua
+       sendo uma chapa, e recusá-la deixaria o site sem vídeo nenhum. */
+    .filter((m) => m.chatura < 0.25);
+
+  if (!chapadas.length) return null;
+  return chapadas.sort((a, b) => b.alturaCentro - a.alturaCentro)[0].malha;
+}
 
 /**
  * Sondagem do modelo.
@@ -247,6 +301,7 @@ function Laptop({ luzOuro, sonda }) {
     const alvoTela = parametro("tela") || MATERIAL_DA_TELA;
     const relatorio = [];
     const materiais = [];
+    const candidatas = [];
     let painel = null;
     let n = 0;
 
@@ -281,6 +336,7 @@ function Laptop({ luzOuro, sonda }) {
         painel = child;
         return;
       }
+      candidatas.push(child);
 
       if (child.material) {
         child.material = child.material.clone();
@@ -297,6 +353,19 @@ function Laptop({ luzOuro, sonda }) {
         }
       }
     });
+
+    /* Nome não casou: a forma decide. Acontece sempre que o .glb é trocado,
+       e é a diferença entre "a tela mostra outra coisa" e "a tela mostra o
+       nosso vídeo". */
+    if (!painel && !debug) {
+      painel = acharPainel(candidatas);
+      if (painel) {
+        /* A peça deduzida saiu da lista dos materiais que recebem opacidade:
+           ela passa a usar o shader da tela, que tem a própria presença. */
+        const i = materiais.indexOf(painel.material);
+        if (i >= 0) materiais.splice(i, 1);
+      }
+    }
 
     let caixaTela = null;
     if (painel) {
@@ -447,9 +516,14 @@ function Laptop({ luzOuro, sonda }) {
     const l = parado ? 0.5 : 0.16;
     c.x = damp(c.x, alvo.x, l, dt);
     c.y = damp(c.y, alvo.y, l, dt);
+    /* A profundidade persegue MAIS DEVAGAR que o resto (0,11 contra 0,16).
+       Distância é a grandeza que o olho lê como massa: um objeto que muda de
+       distância no mesmo tempo em que desliza para o lado parece leve. */
+    c.z = damp(c.z, alvo.z ?? 0, parado ? 0.5 : 0.11, dt);
     c.scale = damp(c.scale, alvo.scale, l, dt);
     c.rotY = damp(c.rotY, alvo.rotY, l, dt);
     c.rotX = damp(c.rotX, alvo.rotX, l, dt);
+    c.rotZ = damp(c.rotZ, alvo.rotZ ?? 0, l, dt);
     s.zoom = damp(s.zoom, cena.zoom || 0, 0.16, dt);
 
     /* PRESENÇA. Sai de cena apagando, não saltando — e a pose continua
@@ -551,14 +625,33 @@ function Laptop({ luzOuro, sonda }) {
     const fator = 1 + (precisa - 1) * s.zoom;
     const escala = escalaBase * fator;
 
-    const px = c.x * viewport.width * 0.5;
-    const py = c.y * viewport.height * 0.5;
+    /* ── PROFUNDIDADE ──────────────────────────────────────────────────
+       O z da pose vira deslocamento no eixo da câmera. Duas consequências,
+       as duas desejadas: o objeto muda de tamanho por PERSPECTIVA — não por
+       escala — e o escorço muda junto, que é o que a escala nunca dá.
+
+       O teto de 1,9 existe porque a câmera está a 4,2: mais que isso e o
+       objeto atravessaria o plano dela.
+
+       Durante a aproximação da seção Web o z é anulado. Aquele momento tem
+       geometria própria — a tela tem de encher a janela exatamente —, e uma
+       distância extra por baixo desalinharia a conta. */
+    const zMundo = Math.max(-2.4, Math.min(1.9, (c.z || 0) * 1.25)) * (1 - s.zoom);
+
+    /* x e y são medidos no plano z = 0. Com o objeto fora desse plano, a
+       mesma coordenada de mundo cai num ponto diferente da TELA — o objeto
+       derivaria para a borda ao se afastar. Este fator devolve a régua:
+       quanto mais perto da câmera, menos mundo por pixel. */
+    const regua = (DIST_CAMERA - zMundo) / DIST_CAMERA;
+
+    const px = c.x * viewport.width * 0.5 * regua;
+    const py = c.y * viewport.height * 0.5 * regua;
 
     /* Durante a aproximação, o objeto é puxado para que o CENTRO DO PAINEL
        — e não o centro do notebook — fique no meio da janela. */
     const cx = telaLocal.centro.x * escala;
     const cy = telaLocal.centro.y * escala;
-    g.position.set(px * (1 - s.zoom) - cx * s.zoom, py * (1 - s.zoom) - cy * s.zoom, 0);
+    g.position.set(px * (1 - s.zoom) - cx * s.zoom, py * (1 - s.zoom) - cy * s.zoom, zMundo);
 
     /* Ao entrar na tela, a perspectiva se endireita: uma tela cheia e torta
        lê como erro, não como câmera. */
@@ -571,15 +664,26 @@ function Laptop({ luzOuro, sonda }) {
     /* O arrasto contínuo já não é atenuado pela escala: atenuado, ele
        desaparecia exatamente nas seções em que o objeto é grande — que são
        aquelas em que o giro seria visível. */
-    const arrasto = cena.giro || 0;
+    /* NO POUSO, TUDO PARA.
+       O giro contínuo existe para o objeto nunca estar completamente imóvel
+       no caminho — e é exatamente o que não pode acontecer no fecho, onde a
+       tela precisa ficar de frente. Medido, ele sozinho deixava o notebook a
+       63° de perfil embaixo do botão, com a pose mandando zero.
+
+       O torque some junto: um objeto que ainda reage à velocidade da rolagem
+       não chegou, está passando. */
+    const calmaria = 1 - (cena.pouso || 0);
+    const arrasto = (cena.giro || 0) * calmaria;
     /* O torque entra em DOIS eixos: gira e mergulha. Só girar lê como um
        carrossel; girar e inclinar lê como massa sendo empurrada. */
     g.rotation.set(
-      (c.rotX + s.rx + s.torque * 0.12) * endireita,
-      (c.rotY + s.ry + arrasto + s.torque * 0.34) * endireita,
-      /* Um grau e meio de rolagem lateral no pico. Passa despercebido
-         conscientemente e é o que faz o movimento parecer físico. */
-      s.torque * 0.026 * endireita
+      (c.rotX + s.rx + s.torque * 0.12 * calmaria) * endireita,
+      (c.rotY + s.ry + arrasto + s.torque * 0.34 * calmaria) * endireita,
+      /* A rolagem lateral tem duas fontes: a POSE, que é composição — um
+         plano nunca cruza o quadro perfeitamente nivelado —, e o TORQUE, que
+         é física: um grau e meio no pico da rolagem, imperceptível
+         conscientemente e responsável por metade da sensação de peso. */
+      (c.rotZ + s.torque * 0.026 * calmaria) * endireita
     );
     g.scale.setScalar(escala);
 
@@ -587,8 +691,25 @@ function Laptop({ luzOuro, sonda }) {
        opinião sobre um pixel num canvas. */
     if (sonda) {
       const caixa = new THREE.Box3().setFromObject(g);
+      /* A caixa em PIXELS DE TELA, não em unidades de mundo.
+         "O objeto está cortado pelo rodapé" é uma frase sobre pixels, e
+         convertê-la à mão em cada teste é como se erra. A régua leva a
+         distância em conta: o mesmo tamanho de mundo ocupa mais tela perto
+         da câmera. */
+      const meiaH = viewport.height / 2;
+      const meiaW = viewport.width / 2;
+      const kk = DIST_CAMERA / Math.max(0.001, DIST_CAMERA - zMundo);
+      const paraY = (wy) => size.height / 2 - (wy * kk / meiaH) * (size.height / 2);
+      const paraX = (wx) => size.width / 2 + (wx * kk / meiaW) * (size.width / 2);
       sonda.current = {
+        telaPx: {
+          topo: Math.round(paraY(caixa.max.y)),
+          base: Math.round(paraY(caixa.min.y)),
+          esq: Math.round(paraX(caixa.min.x)),
+          dir: Math.round(paraX(caixa.max.x)),
+        },
         rot: [+g.rotation.x.toFixed(3), +g.rotation.y.toFixed(3), +g.rotation.z.toFixed(3)],
+        z: +zMundo.toFixed(3),
         torque: +s.torque.toFixed(3),
         impulso: +(cena.impulso || 0).toFixed(3),
         grupo: [+g.position.x.toFixed(3), +g.position.y.toFixed(3)],
@@ -638,7 +759,7 @@ export default function LaptopScene({ active }) {
            preenchimento dobra em telas retina. */
         dpr={magro ? [1, 1] : [1, 1.5]}
         frameloop={active ? "always" : "never"}
-        camera={{ position: [0, 0, 4.2], fov: 34 }}
+        camera={{ position: [0, 0, DIST_CAMERA], fov: 34 }}
         gl={{
           antialias: true,
           alpha: true,

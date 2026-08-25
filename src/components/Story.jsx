@@ -482,22 +482,81 @@ const SEM_DERIVA = new Set(["web", "contato"]);
  * A direção alterna com o índice: duas seções seguidas derivando para o mesmo
  * lado somariam num único movimento longo em vez de parecerem duas decisões.
  */
-function derivar(pose, i, t) {
+function derivar(pose, i, t, amp = 1) {
   if (!pose) return pose;
   const lado = i % 2 ? 1 : -1;
+  const a = amp * t;
   return {
-    x: pose.x + lado * 0.3 * t,
-    y: pose.y + (i % 3 === 0 ? 0.16 : -0.13) * t,
+    x: pose.x + lado * 0.3 * a,
+    y: pose.y + (i % 3 === 0 ? 0.16 : -0.13) * a,
+    /* A PROFUNDIDADE também escorre: dentro da mesma seção o objeto se
+       aproxima ou recua meia unidade. É o que faz o escorço mudar enquanto se
+       lê — a mesma silhueta vista de duas distâncias. Sem isto, o eixo z
+       seria só um número diferente por seção, e a viagem entre elas
+       continuaria acontecendo num plano. */
+    z: (pose.z ?? 0) + (i % 2 ? -0.42 : 0.38) * a,
     /* A escala varia quase um quinto ao longo da seção: é o "zoom" que se
        percebe rolando, sem que o objeto mude de tamanho de repente. */
-    scale: pose.scale * (1 + lado * 0.19 * t),
+    scale: pose.scale * (1 + lado * 0.19 * a),
     /* Quarenta graus de giro dentro de uma seção só. Com os 20 anteriores o
        movimento existia no papel e não na tela: era menos do que o
        amortecimento consumia entre dois quadros de rolagem lenta. */
-    rotY: pose.rotY - lado * 0.72 * t,
-    rotX: pose.rotX + (i % 2 ? -0.1 : 0.12) * t,
+    rotY: pose.rotY - lado * 0.72 * a,
+    rotX: pose.rotX + (i % 2 ? -0.1 : 0.12) * a,
+    rotZ: (pose.rotZ ?? 0) - lado * 0.09 * a,
   };
 }
+
+/**
+ * As PARADAS.
+ *
+ * Um objeto que se move o tempo todo com a mesma energia deixa de ter ritmo:
+ * o olho normaliza a agitação e ela vira ruído de fundo. Estas seções são as
+ * de LEITURA — o método, o mapa da estratégia —, e nelas o notebook desacelera
+ * para cerca de um terço: continua vivo, respirando, mas para de disputar a
+ * atenção com o texto. Quando a seção acaba, ele volta a ganhar curso.
+ *
+ * Não é zero de propósito. Objeto 3D completamente imóvel numa página que rola
+ * lê como imagem colada — foi exatamente o defeito que originou a deriva.
+ */
+/**
+ * A mesma coreografia, na régua da tela.
+ *
+ * O que muda num celular não é "tudo menor". Muda o que cada coordenada
+ * SIGNIFICA:
+ *
+ *   · x é comprimido a 55%. Em 390px de largura, x = -1.5 põe o objeto a uma
+ *     tela e meia do centro: ele não está saindo de cena, está ausente.
+ *   · y ganha 15%. A tela é alta e estreita — a viagem vertical é a que
+ *     sobrou, então é ela que carrega o movimento.
+ *   · z é comprimido a 60%. Numa tela pequena o escorço exagerado deforma
+ *     mais do que sugere profundidade.
+ *   · a escala cresce 8%. O objeto ocupa a mesma fração de uma tela menor,
+ *     senão vira miniatura ilegível.
+ *
+ * As ROTAÇÕES ficam intactas: girar é o gesto, e é o que continua legível em
+ * qualquer largura.
+ */
+function paraTela(pose, estreito, propria) {
+  if (!pose) return pose;
+  if (!estreito) return pose;
+  /* Uma seção pode declarar a própria pose de celular. Quando declara, ela
+     manda: a regra proporcional abaixo é um bom padrão, não uma lei. */
+  if (propria) return propria;
+  return {
+    ...pose,
+    x: pose.x * 0.55,
+    y: pose.y * 1.15,
+    z: (pose.z ?? 0) * 0.6,
+    scale: pose.scale * 1.08,
+  };
+}
+
+const CALMA = new Map([
+  ["estrategia", 0.34],
+  ["metodo", 0.3],
+  ["clientes", 0.38],
+]);
 
 /**
  * O CAMINHO DO NOTEBOOK.
@@ -536,6 +595,19 @@ function caminhoDoNotebook(raiz) {
    */
   const paradas = [];
   let nascimento = { de: 0, ate: 1 };
+  /**
+   * A janela de scroll em que o objeto POUSA.
+   *
+   * Isto morava numa tween com scrub, e a tween não tinha chance: `aplicar`
+   * roda a cada quadro do ticker e reescreve a pose inteira, então tudo que a
+   * tween ajustava era apagado no mesmo quadro em que era escrito. Medido, o
+   * fecho chegava com 63° de perfil e sem aproximação nenhuma.
+   *
+   * A regra vale para o site todo: se a pose é função do scroll, TODA a pose
+   * tem de ser função do scroll. Não existe exceção — existe sobrescrita
+   * silenciosa.
+   */
+  let pouso = { de: 0, ate: 1 };
 
   /* As posições são medidas em coordenadas de DOCUMENTO, e remedidas a cada
      refresh: os pins mudam a altura da página, e uma tabela calculada uma vez
@@ -543,6 +615,12 @@ function caminhoDoNotebook(raiz) {
   const medir = () => {
     paradas.length = 0;
     const vh = window.innerHeight;
+    /* Telas estreitas não são telas largas menores. As poses de desktop
+       jogam o objeto até x = ±1.5 — quase uma tela inteira para o lado —
+       porque lá sobra largura para ele sair de cena e voltar. Num celular
+       essa mesma coordenada é o objeto simplesmente ausente durante metade
+       do site. Aqui as coordenadas são REMAPEADAS, não só reduzidas. */
+    const estreito = window.innerWidth < 760;
     const doc = (el) => (el ? el.getBoundingClientRect().top + window.scrollY : 0);
 
     const raizTopo = doc(raiz);
@@ -566,21 +644,35 @@ function caminhoDoNotebook(raiz) {
       const fimDaFaixa = topoSeguinte - vh;
 
       const deriva = !SEM_DERIVA.has(sec.id);
+      const amp = CALMA.get(sec.id) ?? 1;
+      const ate = paraTela(sec.laptop, estreito, sec.laptopMobile);
       paradas.push({
         id: sec.id,
         inicio,
         chegada,
         fim: Math.max(fimDaFaixa, chegada + 1),
         de: { ...anterior },
-        ate: sec.laptop,
+        ate,
         deriva,
+        amp,
         i,
       });
 
       /* O trecho seguinte parte DE ONDE A DERIVA TERMINOU. Partir da pose
          nominal daria um salto na emenda, do tamanho exato da deriva. */
-      anterior = deriva ? derivar(sec.laptop, i, 1) : sec.laptop;
+      anterior = deriva ? derivar(ate, i, 1, amp) : ate;
     });
+
+    /* O pouso ocupa uma tela inteira de rolagem a partir do momento em que o
+       CTA assume o quadro: é o curso mínimo para uma desaceleração ser lida
+       como desaceleração e não como parada. */
+    const fim = paradas[paradas.length - 1];
+    /* Oitenta centésimos de tela, e não uma tela inteira: DEPOIS do CTA o
+       documento acaba — só sobra a altura do rodapé de curso. Com uma tela
+       cheia de janela, o pouso chegava ao fim do documento em 0,87 e o
+       notebook parava a oito graus de perfil, que é justamente o que ele não
+       pode fazer no último quadro. Medido, não estimado. */
+    if (fim) pouso = { de: fim.chegada, ate: fim.chegada + vh * 0.8 };
   };
 
   const entre = (a, b, t) => a + (b - a) * t;
@@ -606,14 +698,34 @@ function caminhoDoNotebook(raiz) {
       const t = trava((y - p.inicio) / Math.max(1, p.chegada - p.inicio));
       cena.pose.x = entre(p.de.x, p.ate.x, t);
       cena.pose.y = entre(p.de.y, p.ate.y, t);
+      cena.pose.z = entre(p.de.z ?? 0, p.ate.z ?? 0, t);
       cena.pose.scale = entre(p.de.scale, p.ate.scale, t);
       cena.pose.rotY = entre(p.de.rotY, p.ate.rotY, t);
       cena.pose.rotX = entre(p.de.rotX, p.ate.rotX, t);
+      cena.pose.rotZ = entre(p.de.rotZ ?? 0, p.ate.rotZ ?? 0, t);
       return;
     }
 
     const t = p.deriva ? trava((y - p.chegada) / Math.max(1, p.fim - p.chegada)) : 0;
-    Object.assign(cena.pose, p.deriva ? derivar(p.ate, p.i, t) : p.ate);
+    Object.assign(cena.pose, p.deriva ? derivar(p.ate, p.i, t, p.amp) : p.ate);
+
+    /* ── O POUSO ────────────────────────────────────────────────────────
+       Só na última parada, e só depois da chegada. O objeto avança um terço
+       de unidade na direção da câmera, cresce um décimo e ENDIREITA: o que
+       sobrar de rotação é levado a zero, para a tela ficar de frente e o
+       vídeo legível logo abaixo do botão. */
+    if (p !== paradas[paradas.length - 1]) {
+      cena.pouso = 0;
+      return;
+    }
+    const q = trava((y - pouso.de) / Math.max(1, pouso.ate - pouso.de));
+    cena.pouso = q;
+    if (q <= 0) return;
+    const base = p.ate;
+    cena.pose.z = (base.z ?? 0) + 0.34 * q;
+    cena.pose.scale = base.scale * (1 + 0.1 * q);
+    cena.pose.rotY = base.rotY * (1 - q);
+    cena.pose.rotZ = (base.rotZ ?? 0) * (1 - q);
   };
 
   cena.nascido = 0;
@@ -670,7 +782,19 @@ function caminhoDoNotebook(raiz) {
  * de nomes de nó, que o arquivo não tem.
  */
 function tampaFechando() {
-  /* O gatilho é a SAÍDA DO CTA, não o espaçador do rodapé.
+  /* A TAMPA NÃO FECHA MAIS.
+     O gesto de encerramento entrava em conflito direto com o que o fecho
+     precisa mostrar: o vídeo rodando na tela, grande, logo abaixo do botão.
+     Uma tampa descendo apaga exatamente essa imagem no instante em que ela
+     deveria ser o último quadro da narrativa. Entre o gesto e a imagem,
+     ganha a imagem — fechar o notebook é uma boa saída para uma história que
+     termina em silêncio, não para uma que termina num convite.
+
+     A função continua existindo porque a outra metade dela é estrutural: é
+     quem REAFIRMA o estado final. Sem isso, um salto de âncora ou um F5 no
+     fim da página deixa o objeto na pose de uma seção qualquer do meio.
+
+     O gatilho é a SAÍDA DO CTA, não o espaçador do rodapé.
      O espaçador tem exatamente a altura do rodapé — é ele que dá curso para
      a página descobri-lo — e o rodapé encolheu para uma linha de assinatura.
      Com cento e noventa pixels de curso, a tampa parava na metade do
@@ -680,14 +804,12 @@ function tampaFechando() {
   const alvo = document.querySelector('[data-sec="contato"]');
   if (!alvo) return null;
 
-  const fecho = sections[sections.length - 1]?.laptop;
-
   const estado = { t: 0 };
   const tw = gsap.to(estado, {
     t: 1,
     ease: "none",
     onUpdate: () => {
-      cena.tampa = estado.t;
+      cena.tampa = 0;
       /* Uma tween com scrub renderiza uma vez ao ser criada, no progresso 0.
          Sem esta guarda, esse primeiro quadro escrevia a pose do FECHO logo
          no carregamento — e o notebook aparecia pronto, no centro, antes de
@@ -699,7 +821,11 @@ function tampaFechando() {
          ao recarregar, um teste automatizado — as tweens com scrub que já
          estavam completas não reescrevem nada, e o objeto herdava a pose de
          uma seção qualquer do meio da página. */
-      if (fecho) Object.assign(cena.pose, fecho);
+      /* A POSE NÃO É ESCRITA AQUI. Quem responde por ela em qualquer ponto
+         do documento — inclusive depois do fim — é `caminhoDoNotebook`, que
+         roda no ticker e reescreveria qualquer coisa posta daqui. O que
+         sobra para este gatilho é o que ele é o único a saber: qual canal a
+         tela mostra no fecho. */
       cena.canal = "prime";
       cena.nascido = 1;
       cena.presente = 1;
@@ -731,11 +857,10 @@ function tampaFechando() {
     start: "bottom 80%",
     end: "max",
     onUpdate: () => {
-      cena.tampa = 1;
+      cena.tampa = 0;
       cena.nascido = 1;
       cena.presente = 1;
       cena.canal = "prime";
-      if (fecho) Object.assign(cena.pose, fecho);
     },
   });
 
