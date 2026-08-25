@@ -393,7 +393,16 @@ function Laptop({ luzOuro, sonda }) {
   }, [tela]);
 
   const atual = useRef({ ...FORA });
-  const suave = useRef({ zoom: 0, rx: 0, ry: 0, ligada: 0.25, presenca: 0, tampa: 0 });
+  const suave = useRef({
+    zoom: 0,
+    rx: 0,
+    ry: 0,
+    ligada: 0.25,
+    presenca: 0,
+    tampa: 0,
+    /* Torque: o quanto a rolagem está torcendo o objeto neste instante. */
+    torque: 0,
+  });
   const trocando = useRef(false);
 
   /** Troca de canal: carrega no vídeo ocioso e atravessa quando ele estiver pronto. */
@@ -435,7 +444,7 @@ function Laptop({ luzOuro, sonda }) {
     /* Persegue a pose em vez de saltar: o alvo é do scroll, o movimento é do
        relógio. É o mesmo princípio do scrub do vídeo da hero — e é o que dá
        peso ao objeto. */
-    const l = parado ? 0.5 : 0.13;
+    const l = parado ? 0.5 : 0.16;
     c.x = damp(c.x, alvo.x, l, dt);
     c.y = damp(c.y, alvo.y, l, dt);
     c.scale = damp(c.scale, alvo.scale, l, dt);
@@ -469,6 +478,18 @@ function Laptop({ luzOuro, sonda }) {
     if (pivo) {
       s.tampa = damp(s.tampa, cena.tampa || 0, 0.09, dt);
       pivo.rotation.x = s.tampa * FECHAMENTO;
+    }
+
+    /* TORQUE DO SCROLL. O objeto reage ao gesto: rolando para baixo ele
+       gira um pouco mais e mergulha o nariz; parando, volta ao repouso.
+
+       A perseguição é lenta (0,05) de propósito — é o que dá inércia. E o
+       impulso DECAI aqui, e não no ouvinte de scroll: quando a página fica
+       parada nenhum evento dispara, e sem o decaimento o objeto ficaria
+       torcido para sempre no último valor lido. */
+    cena.impulso = (cena.impulso || 0) * 0.92;
+    if (!parado) {
+      s.torque = damp(s.torque, cena.impulso, 0.05, dt);
     }
 
     /* Parallax de ponteiro: poucos graus, sempre interpolados. Colar a
@@ -547,11 +568,18 @@ function Laptop({ luzOuro, sonda }) {
        ficar de frente, e um objeto ainda girando ali arruinaria o momento.
        Também é atenuado pela ESCALA: perto da câmera, o mesmo ângulo vira um
        deslocamento enorme na tela. */
-    const arrasto = (cena.giro || 0) * (1 - Math.min(1, c.scale)) * 0.7;
+    /* O arrasto contínuo já não é atenuado pela escala: atenuado, ele
+       desaparecia exatamente nas seções em que o objeto é grande — que são
+       aquelas em que o giro seria visível. */
+    const arrasto = cena.giro || 0;
+    /* O torque entra em DOIS eixos: gira e mergulha. Só girar lê como um
+       carrossel; girar e inclinar lê como massa sendo empurrada. */
     g.rotation.set(
-      (c.rotX + s.rx) * endireita,
-      (c.rotY + s.ry + arrasto) * endireita,
-      0
+      (c.rotX + s.rx + s.torque * 0.12) * endireita,
+      (c.rotY + s.ry + arrasto + s.torque * 0.34) * endireita,
+      /* Um grau e meio de rolagem lateral no pico. Passa despercebido
+         conscientemente e é o que faz o movimento parecer físico. */
+      s.torque * 0.026 * endireita
     );
     g.scale.setScalar(escala);
 
@@ -560,6 +588,9 @@ function Laptop({ luzOuro, sonda }) {
     if (sonda) {
       const caixa = new THREE.Box3().setFromObject(g);
       sonda.current = {
+        rot: [+g.rotation.x.toFixed(3), +g.rotation.y.toFixed(3), +g.rotation.z.toFixed(3)],
+        torque: +s.torque.toFixed(3),
+        impulso: +(cena.impulso || 0).toFixed(3),
         grupo: [+g.position.x.toFixed(3), +g.position.y.toFixed(3)],
         centroMundo: caixa.getCenter(new THREE.Vector3()).toArray().map((v) => +v.toFixed(3)),
         viewport: [+viewport.width.toFixed(3), +viewport.height.toFixed(3)],

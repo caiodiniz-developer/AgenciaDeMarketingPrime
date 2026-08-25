@@ -99,6 +99,20 @@ export const cena = {
   giro: 0,
 
   /**
+   * Empurrão do scroll, de -1 a 1.
+   *
+   * É a VELOCIDADE da rolagem, normalizada — não a posição. A pose já diz
+   * onde o objeto deve estar; isto diz com que força o leitor está o
+   * empurrando para lá. Rolar rápido gira mais e inclina mais; parar devolve
+   * o objeto ao repouso.
+   *
+   * É o que separa "um modelo animado pelo scroll" de "um objeto que responde
+   * ao gesto": sem isso, rolar devagar e rolar rápido produzem exatamente a
+   * mesma imagem em cada ponto da página.
+   */
+  impulso: 0,
+
+  /**
    * Ângulo da varredura dourada no alumínio, em voltas.
    * Conduzido pelo scroll: o reflexo corre quando a página corre.
    */

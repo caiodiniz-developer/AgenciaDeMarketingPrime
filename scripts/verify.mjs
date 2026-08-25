@@ -152,20 +152,41 @@ checar(
   "houve quadro com presenca parcial e escala pequena"
 );
 
+/** Posiciona a seção no ponto em que a viagem termina e a deriva começa. */
+async function irParaChegada(page, id) {
+  for (let i = 0; i < 5; i++) {
+    const delta = await page.evaluate((sid) => {
+      const el = document.getElementById(sid);
+      const sp = el.closest(".pin-spacer") || el;
+      /* 62% da janela: é exatamente o `end` da tween de chegada e o `start`
+         do gatilho de deriva. Ali a viagem terminou e a deriva ainda vale
+         zero — o único instante em que a pose é a nominal. */
+      return sp.getBoundingClientRect().top - window.innerHeight * 0.62;
+    }, id);
+    if (Math.abs(delta) < 6) break;
+    await page.evaluate((d) => window.scrollTo(0, window.scrollY + d), delta);
+    await sleep(1000);
+  }
+  await sleep(900);
+}
+
 const trajeto = [];
 for (const [id, ax, ay] of PARADAS) {
-  await irPara(page, id);
+  await irParaChegada(page, id);
   const pose = await lerCena(page);
   if (!pose) {
     checar(`pose em ${id}`, false, "sonda window.__cena ausente");
     continue;
   }
   trajeto.push({ id, ...pose });
-  /* Tolerância larga de propósito: a pose NÃO é estática dentro de uma
-     seção — ela escorre até o fim da faixa (ver `derivar` em Story.jsx), e a
-     deriva vale 0,17 em x e 0,09 em y. O que este teste verifica é que o
-     objeto CHEGOU à parada certa, não que ele congelou nela. */
-  const perto = Math.abs(pose.x - ax) < 0.25 && Math.abs(pose.y - ay) < 0.2;
+  if (process.env.DEBUG_POSE) {
+    const topo = await page.evaluate((sid) => { const e=document.getElementById(sid); const sp=e.closest(".pin-spacer")||e; return Math.round(sp.getBoundingClientRect().top); }, id);
+    log(`       [debug] topo=${topo} (alvo ${Math.round(900*0.62)}) scrollY=${await page.evaluate(()=>Math.round(scrollY))}`);
+  }
+  /* Tolerância apertada, porque a medição é feita no ponto exato em que a
+     viagem termina: ali a deriva ainda é zero e a pose tem de ser a nominal.
+     A folga que sobra é só o atraso do `scrub`. */
+  const perto = Math.abs(pose.x - ax) < 0.1 && Math.abs(pose.y - ay) < 0.1;
   checar(`pose alvo em ${id}`, perto, `x=${pose.x.toFixed(2)} y=${pose.y.toFixed(2)}`);
 }
 

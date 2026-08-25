@@ -477,11 +477,16 @@ function derivar(pose, i, t) {
   if (!pose) return pose;
   const lado = i % 2 ? 1 : -1;
   return {
-    x: pose.x + lado * 0.17 * t,
-    y: pose.y + (i % 3 === 0 ? 0.09 : -0.07) * t,
-    scale: pose.scale * (1 + lado * 0.13 * t),
-    rotY: pose.rotY - lado * 0.34 * t,
-    rotX: pose.rotX + 0.045 * t,
+    x: pose.x + lado * 0.3 * t,
+    y: pose.y + (i % 3 === 0 ? 0.16 : -0.13) * t,
+    /* A escala varia quase um quinto ao longo da seção: é o "zoom" que se
+       percebe rolando, sem que o objeto mude de tamanho de repente. */
+    scale: pose.scale * (1 + lado * 0.19 * t),
+    /* Quarenta graus de giro dentro de uma seção só. Com os 20 anteriores o
+       movimento existia no papel e não na tela: era menos do que o
+       amortecimento consumia entre dois quadros de rolagem lenta. */
+    rotY: pose.rotY - lado * 0.72 * t,
+    rotX: pose.rotX + (i % 2 ? -0.1 : 0.12) * t,
   };
 }
 
@@ -579,7 +584,7 @@ function caminhoDoNotebook(raiz) {
              cobre a janela. */
           trigger: alvo,
           start: i === 0 ? "top 45%" : "top bottom",
-          end: i === 0 ? "top -20%" : "top 32%",
+          end: i === 0 ? "top -20%" : "top 62%",
           scrub: 0.9,
           invalidateOnRefresh: true,
         },
@@ -599,7 +604,7 @@ function caminhoDoNotebook(raiz) {
     gatilhos.push(
       ScrollTrigger.create({
         trigger: alvo,
-        start: i === 0 ? "top -20%" : "top 32%",
+        start: i === 0 ? "top -20%" : "top 62%",
         endTrigger: alvoProximo || alvo,
         end: alvoProximo ? "top bottom" : "bottom bottom",
         onUpdate: (self) =>

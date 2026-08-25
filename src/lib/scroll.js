@@ -1,6 +1,7 @@
 import Lenis from "lenis";
 import { gsap, ScrollTrigger } from "./gsap";
 import { prefersReducedMotion } from "./media";
+import { cena } from "./progress";
 
 let lenis = null;
 
@@ -23,7 +24,18 @@ export function initSmoothScroll() {
     autoRaf: false, // o RAF é do GSAP: um relógio só para tudo
   });
 
-  lenis.on("scroll", ScrollTrigger.update);
+  /* O Lenis já calcula a velocidade a cada quadro; ler dela é de graça.
+     Medir por conta própria com um `scroll` listener daria o mesmo número
+     com mais código e um quadro de atraso.
+
+     A normalização é por 55 px/quadro — perto do topo de uma rolagem de
+     roda comum. Acima disso satura, para que um "flick" violento não
+     arremesse o objeto. */
+  lenis.on("scroll", (e) => {
+    ScrollTrigger.update();
+    const v = e?.velocity ?? 0;
+    cena.impulso = Math.max(-1, Math.min(1, v / 55));
+  });
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
 
