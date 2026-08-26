@@ -558,6 +558,21 @@ body {
 
 .story__scene--front {
   z-index: 4;
+  /* DESCE ALÉM DA NARRATIVA, exatamente a altura do rodapé.
+
+     As camadas de dentro são `sticky`, e sticky para de grudar no fundo do
+     próprio contêiner. Como a narrativa termina antes do espaçador que
+     descobre o rodapé, no último trecho da página o canvas 3D era EMPURRADO
+     para cima junto com o fim do contêiner — cento e noventa pixels, medidos.
+
+     O efeito não era sutil: o notebook subia para cima do botão do CTA
+     justamente no quadro em que ele deveria estar embaixo dele, e nenhuma
+     pose corrigia isso, porque o deslocamento não estava na pose.
+
+     Só a camada DA FRENTE desce. A de trás carrega os raios e o véu, que têm
+     fundo próprio: estendida, ela abaixava o rodapé inteiro meio ponto de
+     contraste. */
+  bottom: calc(-1 * var(--footer-h));
 }
 
 .story__rays,

@@ -129,7 +129,13 @@ page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
 page.on("response", (r) => r.status() >= 400 && ruins.push(`${r.status()} ${r.url()}`));
 
 await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-await page.goto(URL, { waitUntil: "networkidle2" });
+/* `?laptop=debug` liga a sonda de colocação — a caixa do objeto em pixels
+   de tela. Ela não existe em produção (custa uma projeção por quadro), e sem
+   ela o pouso só poderia ser verificado por uma pose nominal, que é
+   exatamente a asserção que envelhece junto com o desenho.
+   O parâmetro NÃO troca os materiais: só o valor `debug` faz isso, e aqui a
+   página é carregada normal. */
+await page.goto(URL + (URL.includes("?") ? "&" : "?") + "laptop=medir", { waitUntil: "networkidle2" });
 await sleep(3000);
 
 /* ═══ 1 · O caminho do notebook ═══════════════════════════════════════════
@@ -147,7 +153,11 @@ const PARADAS = [
   ["social", 0.78, -0.74],
   ["web", 0, -0.16],
   ["design", -0.98, -0.82],
-  ["contato", 0, -0.78],
+  /* O fecho SAIU desta tabela. A pose dele deixou de ser um par de números
+     escolhido a olho e passou a ser um encaixe: o objeto tem de cair entre a
+     base do botão e o topo do rodapé, e é isso que se mede lá embaixo, em
+     pixels de tela. Uma constante aqui só voltaria a envelhecer junto com o
+     desenho. */
 ];
 
 /* O NASCIMENTO. O objeto não pode existir durante a hero — é o pedido
@@ -275,7 +285,59 @@ checar(
 await rolarPara(page, await page.evaluate(() => document.documentElement.scrollHeight));
 await sleep(2400);
 const fimCena = await lerCena(page);
-checar("a tampa fecha no fecho", fimCena && fimCena.tampa > 0.9, "tampa " + fimCena?.tampa?.toFixed(2));
+
+/* ── O POUSO ──────────────────────────────────────────────────────────────
+   O último quadro da narrativa tem um contrato explícito: o notebook para
+   de frente, centrado, ABAIXO do botão e ACIMA do rodapé, com a tela aberta
+   e o vídeo rodando.
+
+   Cada uma dessas cinco coisas já esteve errada em algum momento — o giro
+   contínuo deixava o objeto a 63° de perfil; a função de pose no ticker
+   apagava a aproximação escrita por uma tween; o `sticky` da camada 3D era
+   empurrado 190px para cima pela revelação do rodapé e punha o objeto em
+   cima do botão; a tampa fechava justamente sobre o vídeo. Nenhuma dessas
+   falhas aparece lendo o código, e nenhuma delas aparece numa asserção sobre
+   a pose: todas aparecem em pixels. */
+const pouso = await page.evaluate(() => {
+  const btn = document.querySelector('[data-sec="contato"] .btn');
+  const rod = document.querySelector(".footer");
+  const cv = document.querySelector(".story__laptop canvas");
+  if (!btn || !rod || !cv || !window.__pos) return null;
+  const px = window.__pos()?.telaPx;
+  if (!px) return null;
+  return {
+    botao: Math.round(btn.getBoundingClientRect().bottom),
+    rodape: Math.round(rod.getBoundingClientRect().top),
+    canvasTopo: Math.round(cv.getBoundingClientRect().top),
+    ...px,
+  };
+});
+
+if (!pouso) {
+  checar("pouso mensurável no fecho", false, "sonda window.__pos ausente (falta ?laptop=debug)");
+} else {
+  checar(
+    "a camada 3D nao e arrastada pela revelacao do rodape",
+    Math.abs(pouso.canvasTopo) < 4,
+    "topo do canvas " + pouso.canvasTopo + "px"
+  );
+  checar("o notebook pousa ABAIXO do botao", pouso.topo > pouso.botao, `botao ${pouso.botao} · notebook ${pouso.topo}`);
+  checar("e ACIMA do rodape", pouso.base < pouso.rodape, `notebook ${pouso.base} · rodape ${pouso.rodape}`);
+  checar(
+    "centrado no eixo do botao",
+    Math.abs((pouso.esq + pouso.dir) / 2 - 720) < 40,
+    "centro " + Math.round((pouso.esq + pouso.dir) / 2)
+  );
+  checar(
+    "e grande o bastante para o video ser assunto",
+    pouso.base - pouso.topo > 200,
+    pouso.base - pouso.topo + "px de altura"
+  );
+}
+
+checar("a tela fica ABERTA no fecho", fimCena && fimCena.tampa < 0.05, "tampa " + fimCena?.tampa?.toFixed(2));
+checar("de frente para o leitor", fimCena && Math.abs(fimCena.rotY) < 0.06, "rotY " + fimCena?.rotY?.toFixed(3));
+checar("e parado", fimCena && fimCena.pouso > 0.98, "pouso " + fimCena?.pouso?.toFixed(2));
 checar("e o objeto volta ao centro", fimCena && Math.abs(fimCena.x) < 0.05, "x " + fimCena?.x);
 
 /* ═══ 3 · Seções presas ═══════════════════════════════════════════════════

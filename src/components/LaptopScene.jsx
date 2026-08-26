@@ -23,18 +23,21 @@ useGLTF.preload(MODEL);
  * Orientação de repouso do modelo.
  *
  * O arquivo guarda o objeto DE LADO. São duas chapas de 0,41 × 0,28 dobradas
- * como um livro aberto, e a dobradiça entre elas é VERTICAL: uma encara +Z, a
- * outra +X. Nenhum tombo em X resolve isso — girar em X só troca qual lado do
- * livro se vê. O que põe o notebook de pé é um quarto de volta em Z, que
- * deita a dobradiça: a chapa que encarava +Z vira a tela, de frente para a
- * câmera, e a que encarava +X vira o teclado, deitado à frente dela.
+ * como um livro, e a dobradiça entre elas é VERTICAL: o teclado
+ * (`Material19`) encara +Z e a tela (`Material20`) encara +X.
  *
- * O valor não foi deduzido do arquivo — foi VISTO, com `?rot=x,y,z` em graus
- * e uma captura por candidato. E a dedução, tentada primeiro, deu duas
- * respostas erradas com toda a confiança: as caixas que a sondagem imprime já
- * vêm giradas pelo valor em vigor, de modo que descrevem o resultado da
- * hipótese atual e não o conteúdo do arquivo. Medida contaminada pela
- * hipótese é pior que medida nenhuma.
+ * Nenhum giro em UM eixo resolve isso, e é aí que quatro tentativas se
+ * perderam: girar em Z mantém o teclado encarando a câmera, girar em X e Y
+ * põe a tela de lado. O que se precisa é de uma PERMUTAÇÃO dos três eixos —
+ * a espessura do teclado, que está em Z, tem de ir para Y; a da tela, que
+ * está em X, tem de ir para Z. Escrita como matriz, essa permutação cíclica
+ * é um giro de 120° em torno de (1,1,1); escrita como Euler XYZ, que é o que
+ * o three.js recebe, é (-90°, 0, -90°).
+ *
+ * O valor foi CONFERIDO, não deduzido: com `?laptop=debug&rot=x,y,z` cada
+ * malha imprime a própria caixa depois do giro, e a resposta certa é a única
+ * em que o teclado fica fino em Y (deitado, 0,41 × 0,02 × 0,28) e a tela fina
+ * em Z (em pé, atrás e acima, 0,41 × 0,28 × 0,02).
  *
  * O valor está aqui em cima, e não enterrado no meio da montagem, porque é a
  * única coisa deste arquivo que depende do .glb.
@@ -46,7 +49,7 @@ useGLTF.preload(MODEL);
  * perfil, plausível o bastante para passar despercebido numa leitura de
  * código. É por isso que a tela, abaixo, deixou de ser encontrada por nome.
  */
-const ROT_BASE = [0, 0, Math.PI / 2];
+const ROT_BASE = [-Math.PI / 2, 0, -Math.PI / 2];
 
 /**
  * Material do painel da tela, quando o arquivo traz um nome utilizável.
@@ -772,7 +775,13 @@ function Laptop({ luzOuro, sonda }) {
 export default function LaptopScene({ active }) {
   const luzOuro = useRef(null);
   const sonda = useRef(null);
-  if (typeof window !== "undefined" && parametro("laptop") === "debug") {
+  /* Dois modos, de propósito. `debug` pinta cada malha de uma cor sólida
+     para descobrir o que é o quê — e por isso não serve para medir a página
+     de verdade. `medir` só liga a sonda de colocação, deixando materiais,
+     vídeo e luz exatamente como o leitor vê. Sem essa separação, o teste do
+     pouso mediria uma página que ninguém visita. */
+  const modo = typeof window !== "undefined" ? parametro("laptop") : null;
+  if (modo === "debug" || modo === "medir") {
     window.__pos = () => sonda.current;
   }
   /* Aparelho pequeno paga o dobro por pixel e costuma ter menos memória de
@@ -794,18 +803,28 @@ export default function LaptopScene({ active }) {
           alpha: true,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
+          /* Uma parada abaixo do neutro. A página é preta; um objeto exposto
+             para "correto" nela lê como recortado e colado. */
+          toneMappingExposure: 0.82,
         }}
       >
         {/* Preto, dourado e neutro — nada de neon. */}
-        <ambientLight intensity={0.6} color="#8f95a3" />
-        {/* Chave neutra: é ela que desenha a forma. Dourada, pintava o
-            alumínio inteiro de mostarda e o objeto perdia o volume. */}
-        <directionalLight position={[2.6, 3, 4]} intensity={2.4} color="#fdfbf6" />
+        <ambientLight intensity={0.42} color="#8f95a3" />
+        {/* Chave neutra: é ela que desenha a forma. Dourada, pintava o corpo
+            inteiro de mostarda e o objeto perdia o volume.
+
+            A intensidade caiu de 2,4 para 1,15 e a luz desceu de y=3 para
+            y=1,7 quando o modelo foi trocado: a peça deitada deste notebook
+            é uma superfície horizontal grande e clara, e uma chave forte
+            vinda de cima a estourava em branco puro — um retângulo chapado no
+            lugar do teclado. Luz mais rasante devolve o relevo das teclas, que
+            é o que faz o objeto parecer um objeto. */}
+        <directionalLight position={[2.6, 1.7, 4]} intensity={1.15} color="#fdfbf6" />
         {/* Contorno dourado. A posição é escrita a cada quadro pelo loop: é
             ela que faz o reflexo correr pelo alumínio conforme a página
             corre — o mesmo dourado da hero, agora no objeto. */}
         <directionalLight ref={luzOuro} position={[-3.4, 1.6, -2.6]} intensity={2.6} color="#c9a84c" />
-        <pointLight position={[0.4, -2, 3]} intensity={1.4} color="#cfd6e2" distance={12} />
+        <pointLight position={[0.4, -2, 3]} intensity={0.8} color="#cfd6e2" distance={12} />
 
         <Suspense fallback={null}>
           {/* Reflexo: sem environment o alumínio fica plástico. `studio` é
