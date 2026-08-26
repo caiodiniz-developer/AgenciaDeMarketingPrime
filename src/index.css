@@ -1356,8 +1356,15 @@ html[data-nav-theme="bone"] .nav__links a:hover {
      para fora é o TOPO. Medido: 190px de título fora do quadro no desktop,
      340px no celular, onde o título do fecho simplesmente não existia. */
   min-height: calc(100svh - var(--footer-h));
-  padding-top: clamp(2.5rem, 6vh, 5rem);
-  padding-bottom: clamp(6rem, 17vh, 13rem);
+  /* ANCORADO NO TOPO, não centrado.
+     Centrado, o bloco de texto ficava no meio da faixa útil e o vão do
+     notebook era o que sobrasse embaixo — quase sempre menos do que o objeto
+     precisa. Encostado no alto, o texto ocupa o que é dele e todo o resto
+     vira palco: é a composição que o fecho pede, título → texto → botão →
+     objeto, de cima para baixo. */
+  align-content: start;
+  padding-top: clamp(1.5rem, 4vh, 3rem);
+  padding-bottom: 0;
 }
 
 /* O título do fecho é o único da página que divide a tela com um objeto.

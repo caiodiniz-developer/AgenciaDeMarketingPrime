@@ -13,7 +13,8 @@
     "shots": "node scripts/shots.mjs",
     "overlap": "node scripts/overlap.mjs",
     "trim:footer": "node scripts/trim-footer.mjs",
-    "overlap:reduce": "node scripts/overlap.mjs http://localhost:5402/ 1440 900 --reduce"
+    "overlap:reduce": "node scripts/overlap.mjs http://localhost:5402/ 1440 900 --reduce",
+    "laptop:rot": "node scripts/laptop-orientacao.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

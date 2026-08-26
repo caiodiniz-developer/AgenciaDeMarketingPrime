@@ -248,6 +248,20 @@ export default function Story() {
           /* ═══ Assinaturas ══════════════════════════════════════════════ */
           if (reduce) {
             estadoFinalSemMovimento(q);
+            /* O NOTEBOOK CONTINUA ANDANDO — e este é o ponto.
+
+               Movimento reduzido pede que a página não se mexa SOZINHA. Não
+               pede que um objeto de meio metro de tela fique parado num canto
+               enquanto o leitor rola: isso não é sobriedade, é um enfeite
+               encalhado. Aqui o trajeto continua sendo função do scroll, e
+               tudo que se movia por conta própria — a deriva dentro da seção,
+               o giro contínuo, o torque da velocidade, o parallax do ponteiro
+               — fica desligado. O objeto só vai aonde o leitor o leva.
+
+               O sintoma que trouxe isto: com as animações do Windows
+               desligadas, o notebook aparecia colado no canto inferior
+               direito e não saía de lá em página nenhuma. */
+            limpezas.push(caminhoDoNotebook(root.current, true), autoplayDeFundo(root.current));
           } else {
             /* Ordem importa: as assinaturas que PRENDEM seções vêm primeiro.
                Cada pin acrescenta telas de altura ao documento e empurra para
@@ -587,7 +601,7 @@ const CALMA = new Map([
  * exatamente o "teletransporte" que o briefing proíbe: antes cada seção fixava
  * uma pose e o modelo era apagado para saltar sem ser visto.
  */
-function caminhoDoNotebook(raiz) {
+function caminhoDoNotebook(raiz, sereno = false) {
   /**
    * A pose é CALCULADA a partir do scroll, a cada quadro — não escrita por
    * callbacks de gatilho.
@@ -660,7 +674,9 @@ function caminhoDoNotebook(raiz) {
       const chegada = k === 0 ? topo + vh * 0.2 : topo - vh * 0.62;
       const fimDaFaixa = topoSeguinte - vh;
 
-      const deriva = !SEM_DERIVA.has(sec.id);
+      /* No modo sereno não há deriva em seção nenhuma: a pose é o destino,
+         e entre dois destinos existe só a viagem que o scroll conduz. */
+      const deriva = !sereno && !SEM_DERIVA.has(sec.id);
       const amp = CALMA.get(sec.id) ?? 1;
       const ate = paraTela(sec.laptop, estreito, sec.laptopMobile);
       paradas.push({
@@ -688,8 +704,18 @@ function caminhoDoNotebook(raiz) {
        documento acaba — só sobra a altura do rodapé de curso. Com uma tela
        cheia de janela, o pouso chegava ao fim do documento em 0,87 e o
        notebook parava a oito graus de perfil, que é justamente o que ele não
-       pode fazer no último quadro. Medido, não estimado. */
-    if (fim) pouso = { de: fim.chegada, ate: fim.chegada + vh * 0.8 };
+       pode fazer no último quadro. Medido, não estimado.
+
+       E o fim da janela é PRESO no fim do documento. Sem isso, o modo
+       reduzido — que não tem pin nenhum e por isso tem um documento muito
+       mais curto — nunca chegava ao fim do pouso: a última rolagem possível
+       parava em 0,78 e o objeto ficava eternamente a caminho. */
+    if (fim) {
+      const fimDoDocumento =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const ate = Math.min(fim.chegada + vh * 0.8, fimDoDocumento);
+      pouso = { de: fim.chegada, ate: Math.max(ate, fim.chegada + 1) };
+    }
   };
 
   const entre = (a, b, t) => a + (b - a) * t;
@@ -763,6 +789,18 @@ function caminhoDoNotebook(raiz) {
      Uma volta e meia de luz de contorno ao longo da narrativa inteira: o
      dourado corre pelo alumínio enquanto a página corre. É lento de
      propósito — reflexo que pisca vira estroboscópio. */
+  if (sereno) {
+    /* Sem a varredura do reflexo e sem o giro de arrasto: as duas coisas
+       correm por conta própria ao longo da narrativa, que é exatamente o que
+       o modo reduzido dispensa. */
+    cena.giro = 0;
+    cena.brilho = 0;
+    return () => {
+      gsap.ticker.remove(aplicar);
+      ScrollTrigger.removeEventListener("refresh", medir);
+    };
+  }
+
   const luz = { v: 0, g: 0 };
   const brilho = gsap.to(luz, {
     v: 1.5,
@@ -2173,14 +2211,12 @@ function estadoFinalSemMovimento(q) {
   const mostrar = (sel, props = {}) =>
     gsap.set(q(sel), { autoAlpha: 1, x: 0, y: 0, scale: 1, ...props });
 
-  /* Sem o trajeto, a pose ficaria na de NASCIMENTO — um ponto minúsculo no
-     centro da tela, que é o começo de uma animação que não vai acontecer.
-     Aqui o objeto assume de uma vez a pose do fecho: presente, de frente,
-     parado. Reduzir movimento não é remover o personagem. */
-  Object.assign(cena.pose, { x: 0.62, y: -0.5, scale: 0.7, rotY: -0.5, rotX: 0.08 });
-  cena.nascido = 1;
+  /* A POSE NÃO É FIXADA AQUI.
+     Fixá-la era o defeito: o objeto assumia uma pose de canto e ficava nela a
+     página inteira. Quem responde pela pose no modo reduzido é o mesmo
+     `caminhoDoNotebook`, em modo sereno — sem deriva, sem giro, sem torque.
+     Só o canal inicial e a presença precisam de um valor de partida. */
   cena.presente = 1;
-  cena.presenca = 1;
   cena.canal = "prime";
 
   gsap.set(q("[data-bd-linha], [data-bd-guia], [data-bd-cota], [data-bd-traco]"), {

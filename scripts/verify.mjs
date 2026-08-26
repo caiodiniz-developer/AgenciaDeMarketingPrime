@@ -997,6 +997,33 @@ for (const id of [
   }, id);
 }
 checar("nada some no caminho reduzido", escondidos === 0, `${escondidos} elementos escondidos`);
+
+/* O NOTEBOOK TAMBÉM ANDA NO CAMINHO REDUZIDO.
+
+   Este teste existe por um relato: "o laptop não está mexendo, está parado no
+   canto inferior direito". Era verdade, e nenhuma das outras 78 asserções
+   pegava — todas rodam com movimento normal. No modo reduzido a pose era
+   FIXADA uma vez, num canto, e ficava lá a página inteira.
+
+   Movimento reduzido pede que a página não se mexa sozinha; não pede que um
+   objeto do tamanho de meia tela fique encalhado num canto enquanto se rola.
+   O trajeto continua preso ao scroll — o que sai são os floreios autônomos. */
+const posesReduzidas = [];
+for (const id of ["social", "web", "metodo", "contato"]) {
+  await pagina2.evaluate((sid) => {
+    const el = document.getElementById(sid);
+    if (el) el.scrollIntoView();
+  }, id);
+  await sleep(700);
+  const c = await pagina2.evaluate(() => (window.__cena ? window.__cena() : null));
+  if (c) posesReduzidas.push({ id, x: +c.x.toFixed(2), scale: +c.scale.toFixed(2) });
+}
+const distintas = new Set(posesReduzidas.map((p) => `${p.x}|${p.scale}`)).size;
+checar(
+  "o notebook percorre o site tambem com movimento reduzido",
+  distintas >= 3,
+  JSON.stringify(posesReduzidas)
+);
 checar("sem erros no caminho reduzido", erros2.length === 0, erros2.join(" | "));
 await pagina2.close();
 
