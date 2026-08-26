@@ -1367,6 +1367,18 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   padding-bottom: 0;
 }
 
+/* Espaço para a BARRA, só onde ela cobre.
+   Encostado no topo da faixa útil, o rótulo da seção ia parar atrás da barra
+   flutuante — translúcida, então o texto aparecia por baixo dela em vez de
+   sumir. No desktop o rótulo já passa livre; aplicar o respiro nas duas
+   larguras tirava 83px da faixa em que o notebook pousa e ele voltava a
+   encostar no botão. Medido nas duas. */
+@media (max-width: 760px) {
+  .sec--cta {
+    padding-top: 5.2rem;
+  }
+}
+
 /* O título do fecho é o único da página que divide a tela com um objeto.
    No tamanho dos outros, ele sozinho comia um terço da faixa útil. */
 .sec--cta .sec__title {
@@ -3944,16 +3956,59 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   color: var(--color-bone);
 }
 
+/* ── O RODAPÉ NO CELULAR ──────────────────────────────────────────────
+   Empilhado, ele media 340px numa janela de 844 — quarenta por cento da
+   tela, reservados o tempo todo pela variável `--footer-h`. O preço não é
+   estético: essa altura sai da faixa em que o notebook pousa no fecho, e
+   sobravam 175px para o último quadro da narrativa.
+
+   Aqui o rodapé volta a ser o que ele deve ser em qualquer largura — uma
+   assinatura, não uma página. A marca em cima, navegação e contato lado a
+   lado embaixo, e a linha de crédito numa linha só. */
 @media (max-width: 760px) {
   .footer__inner {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.85rem;
+    padding-top: 1.1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .footer__wordmark {
+    width: clamp(8.5rem, 42vw, 11rem);
+  }
+
+  /* Lado a lado: as duas colunas somam quatro linhas de texto miúdo, e
+     empilhadas viravam oito. */
+  .footer__colunas {
+    width: 100%;
+    flex-wrap: nowrap;
     gap: 1.2rem;
+    justify-content: space-between;
+  }
+
+  .footer__nav ul {
+    gap: 0.2rem 0.9rem;
+  }
+
+  .footer__titulo {
+    margin-bottom: 0.3rem;
   }
 
   .footer__brilho {
     left: 40%;
     top: 25%;
+  }
+}
+
+/* A linha de crédito cabe numa linha só até bem estreito: empilhá-la
+   custava mais altura do que o texto vale. */
+@media (max-width: 860px) {
+  .footer__base {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.58rem;
   }
 }
 

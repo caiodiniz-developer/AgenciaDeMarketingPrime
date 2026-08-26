@@ -552,8 +552,18 @@ const RITMO = {
   porque: { espera: 0.12, amp: 1.35 },
   /* DESTAQUE FINAL antes do fecho: o vídeo assume. */
   clientes: { espera: 0.6, amp: 0.42 },
-  /* O pouso tem coreografia própria, mais abaixo. */
-  contato: { espera: 1, amp: 0 },
+  /* O POUSO. `avanco` é o momento mais perto de toda a narrativa, e ele
+     acontece na VIAGEM até aqui — não numa seção.
+
+     A razão é de composição, e foi medida: o objeto grande precisa de meia
+     tela livre, e nenhuma seção tem meia tela livre. Em "quem confia", com
+     37% da janela, ele cobria o cartão da Real Pisos — o próprio assunto da
+     seção. A travessia final, ao contrário, acontece entre duas composições:
+     a anterior está saindo, o CTA ainda não chegou, e a tela fica livre para
+     o vídeo por alguns segundos de rolagem. É o "aproxima novamente, o vídeo
+     ganha destaque, chega à seção final" do briefing, e é o único lugar da
+     página onde ele cabe de verdade. */
+  contato: { espera: 1, amp: 0, avanco: 0.62 },
 };
 
 const RITMO_PADRAO = { espera: 0.4, amp: 1 };
@@ -682,6 +692,7 @@ function caminhoDoNotebook(raiz, sereno = false) {
       const fimDaFaixa = topoSeguinte - vh;
 
       const r = RITMO[sec.id] || RITMO_PADRAO;
+      const avanco = sereno ? 0 : r.avanco || 0;
       /* No modo sereno o objeto só viaja entre destinos: nada de saída com
          floreio, nada de respiração no encaixe. */
       const espera = sereno ? 1 : Math.min(r.espera, 0.999);
@@ -703,6 +714,7 @@ function caminhoDoNotebook(raiz, sereno = false) {
         proxima,
         espera,
         amp,
+        avanco,
         i,
       });
 
@@ -777,14 +789,22 @@ function caminhoDoNotebook(raiz, sereno = false) {
          e o que devia ser a revelação virava um ponto no escuro. */
       const dz = (p.ate.z ?? 0) - (p.de.z ?? 0);
       const cede = 1 - 0.62 * trava(dz / 1.5);
-      const arco = (0.28 + 0.8 * Math.min(1, Math.abs(dx) / 1.8)) * meio * cede;
+      /* Quando a viagem TEM avanço, o arco desliga: são gestos opostos, e o
+         arco é o que fazia o objeto recuar justo quando ele deveria vir. */
+      const arco = p.avanco
+        ? 0
+        : (0.28 + 0.8 * Math.min(1, Math.abs(dx) / 1.8)) * meio * cede;
 
       /* A INCLINAÇÃO DE CURVA. Ele se deita para o lado para onde vai e volta
          ao prumo ao chegar. É o eixo que ninguém percebe conscientemente e o
          que separa "está sendo movido" de "está indo". */
       const inclina = -dx * 0.14 * meio;
 
-      cena.pose.x = entre(p.de.x, p.ate.x, t);
+      /* Com avanço, a lateral chega adiantada: `t` elevado a 0,6 sobe mais
+         depressa no começo. O objeto termina de se centrar enquanto ainda é
+         pequeno e só então cresce — um quadro grande encostado na borda é
+         desperdício de um momento que só acontece uma vez na página. */
+      cena.pose.x = entre(p.de.x, p.ate.x, p.avanco ? Math.pow(t, 0.6) : t);
       /* O DESVIO VERTICAL foge do centro, não sobe sempre.
          Levantar o objeto no meio de toda viagem era conveniente e errado:
          numa travessia longa vinda do alto para a base — é o caso de "quem
@@ -804,13 +824,22 @@ function caminhoDoNotebook(raiz, sereno = false) {
          precisa desviar; a que atravessa a tela inteira precisa passar bem
          longe do miolo, que é onde mora o texto de toda seção. */
       const alvoY = p.ate.y ?? 0;
-      const desvio =
-        (alvoY >= 0 ? 1 : -1) *
-        (0.1 + 0.14 * Math.min(1, Math.abs(dx) / 1.8) + 0.18 * Math.min(1, Math.abs(alvoY)));
+      const desvio = p.avanco
+        ? 0.07
+        : (alvoY >= 0 ? 1 : -1) *
+          (0.1 + 0.14 * Math.min(1, Math.abs(dx) / 1.8) + 0.18 * Math.min(1, Math.abs(alvoY)));
       cena.pose.y = entre(p.de.y, p.ate.y, t) + meio * desvio;
       cena.pose.z = entre(p.de.z ?? 0, p.ate.z ?? 0, t) - arco;
-      cena.pose.scale = entre(p.de.scale, p.ate.scale, t);
-      cena.pose.rotY = entre(p.de.rotY, p.ate.rotY, t);
+      /* O AVANÇO. No meio da viagem o objeto cresce e vem para a frente, e
+         depois assenta na pose de destino. Sem isso, uma viagem que termina
+         pequena só encolhe do começo ao fim — e o momento em que a tela
+         poderia ser grande passa em branco. */
+      const incha = 1 + p.avanco * meio;
+      cena.pose.scale = entre(p.de.scale, p.ate.scale, t) * incha;
+      cena.pose.z += p.avanco * meio * 0.55;
+      /* Chegar de frente é parte do avanço: quanto mais perto, mais a tela
+         encara o leitor. */
+      cena.pose.rotY = entre(p.de.rotY, p.ate.rotY, t) * (1 - p.avanco * meio * 0.7);
       cena.pose.rotX = entre(p.de.rotX, p.ate.rotX, t) + meio * 0.05;
       cena.pose.rotZ = entre(p.de.rotZ ?? 0, p.ate.rotZ ?? 0, t) + inclina;
       return;

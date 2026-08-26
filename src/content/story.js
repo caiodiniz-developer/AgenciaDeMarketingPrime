@@ -489,7 +489,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -0.46, y: -0.62, z: 1.1, scale: 1.08, rotY: 0.28, rotX: 0.05, rotZ: 0.03 },
+    laptop: { x: -0.64, y: -0.98, z: 0.55, scale: 0.9, rotY: 0.3, rotX: 0.06, rotZ: 0.04 },
     canal: "prime",
   },
   {
@@ -517,7 +517,7 @@ export const sections = [
        para baixo) leva o objeto para o lugar errado justamente aqui. Este é
        o único ponto da narrativa em que a posição precisa ser exata, então
        ele tem coordenadas próprias em vez de uma correção proporcional. */
-    laptopMobile: { x: 0, y: -0.05, z: 0.5, scale: 0.62, rotY: 0, rotX: 0.06, rotZ: 0 },
+    laptopMobile: { x: 0, y: -0.17, z: 0.5, scale: 0.9, rotY: 0, rotX: 0.06, rotZ: 0 },
     canal: "prime",
   },
 ];
