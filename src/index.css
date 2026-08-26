@@ -1363,7 +1363,11 @@ html[data-nav-theme="bone"] .nav__links a:hover {
      vira palco: é a composição que o fecho pede, título → texto → botão →
      objeto, de cima para baixo. */
   align-content: start;
-  padding-top: clamp(1.5rem, 4vh, 3rem);
+  /* O respiro do topo é o da BARRA, não um valor de composição: a seção
+     encosta no alto da faixa útil e o rótulo dela ia parar atrás da barra
+     flutuante — que é translúcida, então o texto aparecia por baixo em vez
+     de sumir. Medido: rótulo em 36..53, barra em 17..66. */
+  padding-top: clamp(3.4rem, 7.5vh, 5rem);
   padding-bottom: 0;
 }
 

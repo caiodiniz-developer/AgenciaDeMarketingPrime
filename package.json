@@ -14,7 +14,9 @@
     "overlap": "node scripts/overlap.mjs",
     "trim:footer": "node scripts/trim-footer.mjs",
     "overlap:reduce": "node scripts/overlap.mjs http://localhost:5402/ 1440 900 --reduce",
-    "laptop:rot": "node scripts/laptop-orientacao.mjs"
+    "laptop:rot": "node scripts/laptop-orientacao.mjs",
+    "coreografia": "node scripts/coreografia.mjs",
+    "espaco": "node scripts/espaco.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

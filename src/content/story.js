@@ -511,7 +511,7 @@ export const sections = [
        do botão e o topo do rodapé, e o objeto ocupava 380 — três quartos da
        tampa ficavam atrás do rodapé, justamente no quadro em que o vídeo
        deveria ser o assunto. */
-    laptop: { x: 0, y: -0.24, z: 0.5, scale: 0.6, rotY: 0, rotX: 0.06, rotZ: 0 },
+    laptop: { x: 0, y: -0.253, z: 0.5, scale: 0.53, rotY: 0, rotX: 0.06, rotZ: 0 },
     /* Num celular a mesma faixa fica muito mais alta na tela — o botão sobe,
        o rodapé desce — e a regra geral de telas estreitas (que empurra o y
        para baixo) leva o objeto para o lugar errado justamente aqui. Este é
