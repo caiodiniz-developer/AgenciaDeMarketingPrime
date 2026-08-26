@@ -1152,7 +1152,7 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    ═════════════════════════════════════════════════════════════ */
 /* O halo sangra para fora da coluna de propósito — é o que o tira da cara
    de caixa —, e para fora da JANELA sem querer: em 768px ele acrescentava
-   89px de rolagem lateral, e em 390px, 44.  corta sem criar
+   89px de rolagem lateral, e em 390px, 44. O recorte por clip corta sem criar
    contêiner de rolagem, então o pin da seção continua funcionando. */
 .sec--retrato {
   overflow: clip;

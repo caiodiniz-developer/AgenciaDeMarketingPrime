@@ -661,6 +661,91 @@ await sleep(1400);
 const campoB = await lerPecas();
 checar("o campo responde ao cursor", campoA !== campoB, "as pecas se deslocam com o ponteiro");
 
+/* ═══ 11 · Retrato: a única parte que o leitor conduz ═════════════════════ */
+log("\n── Retrato ──");
+await irPara(page, "retrato");
+await sleep(900);
+
+const inicio = await page.evaluate(() => {
+  const itens = [...document.querySelectorAll("[data-retrato-perguntas] .pergunta")];
+  return {
+    n: itens.length,
+    estados: itens.map((e) => e.dataset.estado),
+    opcoes: document.querySelectorAll(".pergunta .opcao").length,
+  };
+});
+checar("as quatro perguntas existem", inicio.n === 4, JSON.stringify(inicio.estados));
+checar(
+  "e so a primeira comeca em foco",
+  inicio.estados[0] === "ativa" && inicio.estados.slice(1).every((e) => e === "espera"),
+  JSON.stringify(inicio.estados)
+);
+checar("com duas saidas honestas cada", inicio.opcoes === 8, inicio.opcoes + " opcoes");
+
+/* Responder de verdade: duas fortes e duas fracas, com CLIQUE — é a única
+   interação do site que não é conduzida pelo scroll, e um teste que chamasse
+   o estado do React direto não provaria que ela é clicável. */
+const ESCOLHAS = [0, 1, 1, 0];
+for (let i = 0; i < 4; i++) {
+  const alvo = await page.evaluateHandle(
+    ([idx, esc]) => document.querySelectorAll(".pergunta")[idx].querySelectorAll(".opcao")[esc],
+    [i, ESCOLHAS[i]]
+  );
+  await alvo.asElement()?.click();
+  await sleep(320);
+}
+await sleep(900);
+
+const leitura = await page.evaluate(() => {
+  const raiz = document.querySelector("[data-retrato]");
+  const l = document.querySelector("[data-retrato-leitura]");
+  const escolhidas = [...document.querySelectorAll('.opcao[data-escolhida="true"]')].length;
+  return {
+    estado: raiz?.dataset.estado,
+    titulo: l?.querySelector(".leitura__titulo")?.textContent || "",
+    forca: l?.querySelector(".leitura__forca")?.textContent || "",
+    frente: l?.querySelector(".leitura__frente")?.getAttribute("href") || "",
+    nota: l?.querySelector(".leitura__nota")?.textContent || "",
+    escolhidas,
+    aoVivo: l?.getAttribute("aria-live"),
+  };
+});
+checar("responder as quatro produz uma leitura", leitura.estado === "lido" && leitura.titulo.length > 8, leitura.titulo);
+checar("as quatro escolhas ficam marcadas", leitura.escolhidas === 4, leitura.escolhidas + " marcadas");
+checar("a leitura nomeia a forca que caiu", leitura.forca.length > 3, leitura.forca);
+
+/* O destino tem de EXISTIR: um resultado que aponta para uma âncora morta é
+   pior que resultado nenhum. */
+const destinoVivo = await page.evaluate(
+  (href) => Boolean(href && document.querySelector(href)),
+  leitura.frente
+);
+checar("e aponta para uma frente que existe na pagina", destinoVivo, leitura.frente);
+
+/* A regra que não se negocia nesta seção: nada de nota, nada de porcentagem,
+   nada afirmado sobre a empresa de quem respondeu. */
+const semNumeroInventado = !/\d+\s*%|nota\s*\d|score/i.test(leitura.titulo + " " + leitura.forca);
+checar("sem nota e sem porcentagem inventada", semNumeroInventado, leitura.titulo);
+checar(
+  "e a ausencia da qualidade e dita em voz alta",
+  /qualidade/i.test(leitura.nota),
+  leitura.nota.slice(0, 60)
+);
+checar("o resultado e anunciado a quem nao ve a tela", leitura.aoVivo === "polite", String(leitura.aoVivo));
+
+/* Refazer volta ao começo — sem isso a seção é de uso único por visita. */
+await page.evaluate(() => document.querySelector(".leitura__refazer")?.click());
+await sleep(700);
+const depois = await page.evaluate(() => ({
+  estado: document.querySelector("[data-retrato]")?.dataset.estado,
+  marcadas: document.querySelectorAll('.opcao[data-escolhida="true"]').length,
+}));
+checar(
+  "e da para responder de novo",
+  depois.estado === "perguntando" && depois.marcadas === 0,
+  JSON.stringify(depois)
+);
+
 /* ═══ 11 · Clientes ═══════════════════════════════════════════════════════ */
 log("\n── Clientes ──");
 await irPara(page, "clientes");
