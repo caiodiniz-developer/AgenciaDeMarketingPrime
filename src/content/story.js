@@ -507,7 +507,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: 0.34, y: -0.86, z: 0.75, scale: 1, rotY: -0.3, rotX: 0.06, rotZ: 0.04 },
+    laptop: { x: 0.36, y: -0.97, z: 0.78, scale: 1.04, rotY: -0.3, rotX: 0.06, rotZ: 0.04 },
     canal: "social",
   },
   {
@@ -527,7 +527,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -0.88, y: -0.95, z: 0.45, scale: 0.94, rotY: 0.46, rotX: 0.08, rotZ: -0.07 },
+    laptop: { x: -0.54, y: -0.94, z: 0.5, scale: 1.12, rotY: 0.44, rotX: 0.07, rotZ: -0.06 },
     canal: "design",
   },
   {
@@ -605,7 +605,7 @@ export const sections = [
     /* O RETORNO. Depois da ausência em "por que funciona", o objeto volta
        pequeno e encostado na borda: esta seção é do leitor, não dele. Ele
        assiste. */
-    laptop: { x: 1.12, y: -0.42, z: -0.9, scale: 0.62, rotY: -1.05, rotX: 0.16, rotZ: -0.08 },
+    laptop: { x: -0.62, y: -0.66, z: -0.15, scale: 0.72, rotY: 0.62, rotX: 0.14, rotZ: 0.05 },
     canal: "prime",
   },
   {

@@ -85,7 +85,14 @@ for (let k = 0; k <= PASSOS; k++) {
     return {
       secao: c.secao,
       presenca: c.presenca,
-      fracao: areaObj / (vw * vh),
+      /* Presença é a área VISÍVEL, não a caixa inteira. Medindo a caixa, o
+         quadro campeão de cada seção passou a ser o do meio da travessia —
+         objeto enorme com metade para fora — em vez do encaixe, que é o que
+         o leitor de fato olha. */
+      fracao:
+        (Math.max(0, Math.min(px.dir, vw) - Math.max(px.esq, 0)) *
+          Math.max(0, Math.min(px.base, vh) - Math.max(px.topo, 0))) /
+        (vw * vh),
       invasao: Math.min(1, invadida / areaObj),
       z: pos.z,
       rotY: pos.rot[1],
@@ -137,7 +144,8 @@ for (let k = 0; k <= PASSOS; k++) {
 
 const ORDEM = [
   "manifesto", "servicos", "social", "web", "design", "branding",
-  "estrategia", "metodo", "porque", "clientes", "contato",
+  "estrategia", "metodo", "porque", "retrato",
+  "clientes", "contato",
 ];
 const gr = (r) => ((r * 180) / Math.PI).toFixed(0).padStart(4);
 

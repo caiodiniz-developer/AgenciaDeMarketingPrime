@@ -30,7 +30,8 @@ const CY = 26;
 
 const SECOES = [
   "manifesto", "servicos", "social", "web", "design", "branding",
-  "estrategia", "metodo", "porque", "clientes", "contato",
+  "estrategia", "metodo", "porque", "retrato",
+  "clientes", "contato",
 ];
 
 const browser = await puppeteer.launch({

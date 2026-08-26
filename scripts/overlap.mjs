@@ -52,6 +52,7 @@ const SECOES = [
   "estrategia",
   "metodo",
   "porque",
+  "retrato",
   "clientes",
   "contato",
 ];
