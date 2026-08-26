@@ -9,6 +9,7 @@ import ServicoEstrategia from "./ServicoEstrategia";
 import Maquina from "./Maquina";
 import SistemaPrime from "./SistemaPrime";
 import Clientes from "./Clientes";
+import Retrato from "./Retrato";
 
 /* ── Layouts ──────────────────────────────────────────────────────────────
    Cada um tem composição e interação-assinatura próprias, e nenhuma se
@@ -136,7 +137,7 @@ export default function Section({ section }) {
   /* Estas montam o próprio cabeçalho, dentro da composição delas. */
   const cabecalhoProprio =
     Boolean(Frente) ||
-    ["manifesto", "indice", "maquina", "sistema", "clientes"].includes(layout);
+    ["manifesto", "indice", "maquina", "sistema", "clientes", "retrato"].includes(layout);
 
   return (
     <section
@@ -161,6 +162,7 @@ export default function Section({ section }) {
         {layout === "maquina" && <Maquina section={section} />}
         {layout === "sistema" && <SistemaPrime section={section} />}
         {layout === "clientes" && <Clientes section={section} />}
+        {layout === "retrato" && <Retrato section={section} />}
 
         {!cabecalhoProprio && (
           <>

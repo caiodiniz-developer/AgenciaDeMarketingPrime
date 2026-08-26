@@ -273,7 +273,8 @@ export default function Story() {
               interfaceViraEditorial(q, desktop),
               marcaSendoConstruida(q, desktop),
               sistemaConvergindo(q, desktop),
-              maquinaPrime(q, desktop)
+              maquinaPrime(q, desktop),
+              retratoNoPalco(q, desktop)
             );
 
             /* Autoplay dos fundos: um observador para todos, ligado aqui e não
@@ -550,6 +551,10 @@ const RITMO = {
   /* Encaixe longo: a seção mais densa de leitura da página. */
   metodo: { espera: 0.62, amp: 0.3 },
   porque: { espera: 0.12, amp: 1.35 },
+  /* O RETORNO. Depois da ausência, ele reaparece encostado na borda e fica
+     quieto: esta seção é do leitor, e um objeto se mexendo ao lado de quatro
+     perguntas rouba justamente a atenção que elas pedem. */
+  retrato: { espera: 0.72, amp: 0.22 },
   /* DESTAQUE FINAL antes do fecho: o vídeo assume. */
   clientes: { espera: 0.6, amp: 0.42 },
   /* O POUSO. `avanco` é o momento mais perto de toda a narrativa, e ele
@@ -2314,6 +2319,72 @@ function ctaCinematografico(q, desktop) {
   }
 
   return () => tweens.forEach((t) => t.scrollTrigger?.kill());
+}
+
+/**
+ * RETRATO — a seção fica presa enquanto o leitor responde.
+ *
+ * O pin não existe aqui pelo mesmo motivo das outras seções. Nas outras, ele
+ * dá curso de scroll para uma animação acontecer. Aqui ele serve para o
+ * contrário: para que NADA aconteça por scroll enquanto o leitor decide.
+ * Sem pin, responder a segunda pergunta empurrava a primeira para fora do
+ * quadro, e a leitura final chegava com metade das respostas fora da tela.
+ *
+ * A faixa é curta de propósito — pouco mais de uma tela. Quem responde tem
+ * tempo de sobra; quem não quer responder sai com dois giros de roda, e não
+ * se sente preso numa seção que exige interação para liberar a página. Uma
+ * seção interativa que sequestra o scroll é pior que uma seção sem interação
+ * nenhuma.
+ */
+function retratoNoPalco(q, desktop) {
+  const [sec] = q('[data-sec="retrato"]');
+  if (!sec) return null;
+
+  const perguntas = q("[data-retrato-perguntas] .pergunta");
+  const limpezas = [];
+
+  /* A entrada é escrita AQUI, e não no CSS, para o caminho de movimento
+     reduzido não precisar de um estado final correspondente: sem GSAP, as
+     perguntas simplesmente já estão visíveis. */
+  if (perguntas.length) {
+    gsap.set(perguntas, { autoAlpha: 0, y: 18 });
+    const entrada = gsap.to(perguntas, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.7,
+      ease: EASE.out,
+      stagger: 0.09,
+      scrollTrigger: {
+        trigger: sec,
+        start: "top 62%",
+        once: true,
+      },
+      /* DEVOLVE O CONTROLE AO CSS.
+         `autoAlpha` termina escrevendo `opacity: 1` inline, e inline vence
+         qualquer regra de folha — então a pergunta que deveria estar apagada
+         esperando a vez ficava tão acesa quanto a pergunta em cena, e o
+         revezamento de foco simplesmente não existia na tela. Limpar as duas
+         propriedades no fim faz o estado voltar a ser decidido por
+         `data-estado`, que é quem sabe qual pergunta está valendo. */
+      onComplete: () => gsap.set(perguntas, { clearProps: "opacity,visibility" }),
+    });
+    limpezas.push(() => {
+      entrada.scrollTrigger?.kill();
+      entrada.kill();
+    });
+  }
+
+  const st = ScrollTrigger.create({
+    trigger: sec,
+    start: "top top",
+    end: () => `+=${window.innerHeight * (desktop ? 1.15 : 0.8)}`,
+    pin: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+  });
+  limpezas.push(() => st.kill());
+
+  return () => limpezas.forEach((fn) => fn && fn());
 }
 
 /**

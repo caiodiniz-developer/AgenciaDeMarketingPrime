@@ -263,6 +263,119 @@ export const maquina = {
   fecho: "A Prime transforma comunicação em sistema.",
 };
 
+/* ── RETRATO DA MARCA ──────────────────────────────────────────────────
+ *
+ * A única parte do site que o leitor CONDUZ. Todo o resto é conduzido pelo
+ * scroll; aqui ele responde quatro perguntas sobre a própria empresa e recebe
+ * uma leitura.
+ *
+ * TRÊS REGRAS QUE NÃO SE NEGOCIAM AQUI:
+ *
+ *   1. Nada é inventado sobre o leitor. O resultado não é uma nota, não é uma
+ *      porcentagem e não é um diagnóstico: é a devolução do que ele mesmo
+ *      acabou de responder, dita em uma frase. Um número inventado sobre a
+ *      empresa de alguém seria exatamente o "número inflado" que a seção de
+ *      clientes se orgulha de não ter.
+ *
+ *   2. As perguntas testam as forças que a seção anterior acabou de
+ *      apresentar. Um questionário com critérios próprios seria um enxerto;
+ *      apoiado nas cinco forças, ele é a continuação do argumento.
+ *
+ *   3. QUALIDADE fica de fora — e a ausência é dita em voz alta. É a única
+ *      das cinco que não é o dono da empresa quem julga, e o próprio texto da
+ *      força diz isso ("ninguém audita seu processo interno; julgam pelo que
+ *      veem"). Perguntar "sua comunicação tem qualidade?" só colheria "tem".
+ */
+export const retrato = {
+  label: "Um minuto",
+  title: ["Onde a sua marca", "está vazando."],
+  body: [
+    { text: "Quatro perguntas sobre a sua empresa. No fim, " },
+    { text: "não é uma nota", tone: "gold" },
+    { text: " — é o que você acabou de responder, dito de uma vez só." },
+  ],
+
+  perguntas: [
+    {
+      id: "consistencia",
+      forca: "consistencia",
+      pergunta: "Ponha lado a lado três peças que sua empresa publicou.",
+      opcoes: [
+        { texto: "Parecem da mesma marca", forte: true },
+        { texto: "Parecem de três fornecedores", forte: false },
+      ],
+    },
+    {
+      id: "frequencia",
+      forca: "frequencia",
+      pergunta: "A última vez que sua empresa publicou alguma coisa foi…",
+      opcoes: [
+        { texto: "Esta semana", forte: true },
+        { texto: "Não sei dizer", forte: false },
+      ],
+    },
+    {
+      id: "estrategia",
+      forca: "estrategia",
+      pergunta: "O post de terça e a campanha de junho.",
+      opcoes: [
+        { texto: "Puxam para o mesmo lugar", forte: true },
+        { texto: "Nunca se falaram", forte: false },
+      ],
+    },
+    {
+      id: "direcao",
+      forca: "direcao",
+      pergunta: "Na hora de decidir o que vai ao ar.",
+      opcoes: [
+        { texto: "Existe um critério", forte: true },
+        { texto: "Decide quem estiver livre", forte: false },
+      ],
+    },
+  ],
+
+  /* Qual frente responde por cada força. Não é arbitrário: é o que o texto de
+     cada uma já diz. Identidade é o que faz peça nenhuma recomeçar do zero;
+     ritmo é social; direção criativa é design; objetivo é estratégia. */
+  frentePorForca: {
+    consistencia: "branding",
+    frequencia: "social",
+    estrategia: "estrategia",
+    direcao: "design",
+  },
+
+  /* A leitura, por quantidade de pilares caídos. O texto NUNCA afirma nada
+     que o leitor não tenha respondido. */
+  leituras: {
+    0: {
+      titulo: "Sua marca já tem sistema.",
+      texto: "Os quatro pilares estão de pé — e isso é mais raro do que parece. O que falta não é arrumar, é escalar. E escala sem decisão vira volume.",
+      frente: "estrategia",
+    },
+    1: {
+      titulo: "Quase inteiro.",
+      texto: "Três pilares de pé e um caído. É por ele que a lembrança vaza — e é o único lugar em que mexer agora muda alguma coisa.",
+    },
+    2: {
+      titulo: "Está sendo visto, não construído.",
+      texto: "Metade dos pilares está no chão. Atacar os dois ao mesmo tempo é como não atacar nenhum: começa pelo primeiro.",
+    },
+    3: {
+      titulo: "Está sendo visto, não construído.",
+      texto: "Três dos quatro pilares estão no chão. Atacar todos ao mesmo tempo é como não atacar nenhum: começa pelo primeiro.",
+    },
+    4: {
+      titulo: "Não é falta de esforço.",
+      texto: "É falta de sistema. Nada disso se resolve peça por peça — se resolve decidindo primeiro e só então produzindo.",
+      frente: "estrategia",
+    },
+  },
+
+  /* Dita em voz alta no fim. É a frase mais honesta da página. */
+  nota: "Qualidade ficou de fora desta conta de propósito: é a única das cinco que não é você quem julga.",
+  refazer: "Responder de novo",
+};
+
 /* ── SISTEMA PRIME (por que funciona) ──────────────────────────────────── */
 
 /**
@@ -475,6 +588,24 @@ export const sections = [
     laptop: { x: 1.25, y: 0.5, z: -1.9, scale: 0.55, rotY: -1.5, rotX: 0.24, rotZ: -0.12 },
     // A segunda ausência: o campo das forças precisa da tela para ele.
     presente: false,
+    canal: "prime",
+  },
+  {
+    id: "retrato",
+    layout: "retrato",
+    theme: "ink",
+    rays: false,
+    label: "Um minuto",
+    title: ["Onde a sua marca", "está vazando."],
+    body: [
+      { text: "Quatro perguntas sobre a sua empresa. No fim, " },
+      { text: "não é uma nota", tone: "gold" },
+      { text: " — é o que você acabou de responder, dito de uma vez só." },
+    ],
+    /* O RETORNO. Depois da ausência em "por que funciona", o objeto volta
+       pequeno e encostado na borda: esta seção é do leitor, não dele. Ele
+       assiste. */
+    laptop: { x: 1.12, y: -0.42, z: -0.9, scale: 0.62, rotY: -1.05, rotX: 0.16, rotZ: -0.08 },
     canal: "prime",
   },
   {

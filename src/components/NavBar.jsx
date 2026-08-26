@@ -70,6 +70,7 @@ export default function NavBar() {
       estrategia: "servicos",
       metodo: "metodo",
       porque: "porque",
+      retrato: "porque",
       clientes: "clientes",
       contato: "clientes",
     };

@@ -1143,6 +1143,406 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 /* ═════════════════════════════════════════════════════════════
+   RETRATO — a parte que o leitor conduz
+
+   Duas colunas: o argumento à esquerda, as perguntas à direita. É a
+   composição inversa da seção anterior, e de propósito — depois de cinco
+   frentes lidas da esquerda para a direita, o olho precisa de um lugar novo
+   para pousar, senão a página inteira vira um só gesto repetido.
+   ═════════════════════════════════════════════════════════════ */
+/* O halo sangra para fora da coluna de propósito — é o que o tira da cara
+   de caixa —, e para fora da JANELA sem querer: em 768px ele acrescentava
+   89px de rolagem lateral, e em 390px, 44.  corta sem criar
+   contêiner de rolagem, então o pin da seção continua funcionando. */
+.sec--retrato {
+  overflow: clip;
+}
+
+.retrato {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(1.8rem, 5vw, 4.5rem);
+  align-items: center;
+  height: 100%;
+}
+
+/* O título desta seção divide a tela com quatro perguntas e não pode ter o
+   corpo dos outros: na medida padrão, "ONDE A SUA MARCA ESTÁ VAZANDO"
+   quebrava em cinco linhas dentro da coluna e empurrava o parágrafo para
+   fora do centro óptico. */
+.sec--retrato .sec__title {
+  font-size: clamp(1.75rem, 3.1vw, 2.9rem);
+}
+
+.retrato__texto {
+  align-self: center;
+  max-width: 30rem;
+}
+
+.retrato__palco {
+  position: relative;
+  display: grid;
+  gap: clamp(1rem, 2.4vh, 1.8rem);
+  align-content: center;
+  min-height: 0;
+}
+
+/* Um halo frio atrás das perguntas: separa a coluna interativa do preto sem
+   desenhar caixa nenhuma. Caixa aqui viraria formulário. */
+.retrato__brilho {
+  position: absolute;
+  right: -6%;
+  top: 50%;
+  z-index: -1;
+  width: min(46vw, 34rem);
+  aspect-ratio: 1.25 / 1;
+  translate: 0 -50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(201, 168, 76, 0.09) 0%,
+    rgba(201, 168, 76, 0) 70%
+  );
+  pointer-events: none;
+}
+
+/* ── As perguntas ─────────────────────────────────────────────── */
+.retrato__perguntas {
+  display: grid;
+  gap: clamp(0.55rem, 1.4vh, 1rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pergunta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 clamp(0.7rem, 1.6vw, 1.2rem);
+  align-items: start;
+  padding-bottom: clamp(0.55rem, 1.4vh, 1rem);
+  border-bottom: 1px solid rgba(217, 217, 217, 0.08);
+  transition:
+    opacity var(--t-ui) ease,
+    filter var(--t-ui) ease;
+}
+
+/* A pergunta em cena é a única em foco pleno. As já respondidas continuam
+   legíveis — o leitor tem de poder reler o que disse — e as que ainda vêm
+   ficam esperando, apagadas. Esconder as futuras seria um formulário de uma
+   pergunta por vez; deixá-las acesas seria uma lista. */
+.pergunta[data-estado="espera"] {
+  opacity: 0.26;
+  filter: saturate(0.4);
+}
+
+.pergunta[data-estado="respondida"] {
+  opacity: 0.64;
+}
+
+.pergunta__num {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 2.1;
+  color: rgba(201, 168, 76, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.pergunta[data-estado="ativa"] .pergunta__num {
+  color: var(--color-gold);
+}
+
+.pergunta__corpo {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pergunta__texto {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.95rem, 1.5vw, 1.22rem);
+  line-height: 1.35;
+  color: var(--color-bone);
+  text-wrap: pretty;
+}
+
+.pergunta__opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+}
+
+/* ── A escolha ────────────────────────────────────────────────── */
+.opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.42rem 0.9rem 0.42rem 0.7rem;
+  border: 1px solid rgba(217, 217, 217, 0.16);
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: rgba(217, 217, 217, 0.78);
+  cursor: pointer;
+  transition:
+    border-color var(--t-ui) ease,
+    color var(--t-ui) ease,
+    transform var(--t-ui) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* O ponto que acende. Trocar só a cor do texto seria feedback; um ponto que
+   enche é um gesto — e é o mesmo vocabulário do rótulo de cada seção. */
+.opcao__marca {
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(201, 168, 76, 0.5);
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    background var(--t-ui) ease,
+    box-shadow var(--t-ui) ease,
+    border-color var(--t-ui) ease;
+}
+
+.opcao:hover,
+.opcao:focus-visible {
+  border-color: rgba(201, 168, 76, 0.6);
+  color: var(--color-bone);
+  transform: translateY(-1px);
+}
+
+.opcao[data-escolhida="true"] {
+  border-color: rgba(201, 168, 76, 0.85);
+  color: var(--color-bone);
+}
+
+.opcao[data-escolhida="true"] .opcao__marca {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.14);
+}
+
+/* A recusada não some — some seria esconder o que ele decidiu não ser. */
+.opcao[data-escolhida="false"] {
+  opacity: 0.4;
+  border-color: rgba(217, 217, 217, 0.1);
+}
+
+/* ── A leitura ────────────────────────────────────────────────── */
+.retrato__leitura {
+  display: grid;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.retrato[data-estado="perguntando"] .retrato__leitura {
+  /* Nem `display: none` nem altura zero: a região precisa continuar na
+     árvore para o `aria-live` anunciar quando ela mudar. */
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+}
+
+.retrato[data-estado="lido"] .retrato__leitura {
+  animation: retrato-abre 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes retrato-abre {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+
+.leitura__titulo {
+  margin: 0;
+  font-size: clamp(1.3rem, 2.6vw, 2.05rem);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.02;
+  text-transform: uppercase;
+  background: linear-gradient(96deg, var(--color-gold) 0%, var(--color-bone) 62%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.leitura__texto {
+  margin: 0;
+  max-width: 34rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(0.9rem, 1.35vw, 1.05rem);
+  line-height: 1.55;
+  color: var(--color-ash);
+  text-wrap: pretty;
+}
+
+.leitura__forca {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-gold);
+}
+
+/* A frente sugerida usa o mesmo desenho de linha do índice: o leitor já
+   aprendeu a ler aquilo lá em cima. */
+.leitura__frente {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.1rem 0.9rem;
+  align-items: baseline;
+  margin-top: 0.35rem;
+  padding: 0.7rem 0 0;
+  border-top: 1px solid rgba(201, 168, 76, 0.28);
+  text-decoration: none;
+  transition: border-color var(--t-ui) ease;
+}
+
+.leitura__frente:hover,
+.leitura__frente:focus-visible {
+  border-color: var(--color-gold);
+}
+
+.leitura__frente-num {
+  grid-row: span 2;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(201, 168, 76, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.leitura__frente-nome {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+  transition: color var(--t-ui) ease;
+}
+
+.leitura__frente:hover .leitura__frente-nome,
+.leitura__frente:focus-visible .leitura__frente-nome {
+  color: var(--color-gold);
+}
+
+.leitura__frente-linha {
+  font-family: var(--font-editorial);
+  font-size: 0.82rem;
+  color: rgba(217, 217, 217, 0.6);
+}
+
+.leitura__nota {
+  margin: 0.2rem 0 0;
+  max-width: 30rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: rgba(217, 217, 217, 0.42);
+}
+
+.leitura__refazer {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(217, 217, 217, 0.25);
+  background: none;
+  font-family: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(217, 217, 217, 0.55);
+  cursor: pointer;
+  transition:
+    color var(--t-ui) ease,
+    border-color var(--t-ui) ease;
+}
+
+.leitura__refazer:hover,
+.leitura__refazer:focus-visible {
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+/* ── A régua ──────────────────────────────────────────────────── */
+.retrato__regua {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  transition: opacity var(--t-ui) ease;
+}
+
+.retrato__regua[data-oculto="sim"] {
+  opacity: 0;
+}
+
+.retrato__traco {
+  width: 1.6rem;
+  height: 2px;
+  background: rgba(217, 217, 217, 0.16);
+  transition: background var(--t-ui) ease;
+}
+
+.retrato__traco[data-feito="sim"] {
+  background: var(--color-gold);
+}
+
+@media (max-width: 1023px) {
+  .retrato {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.4rem, 4vh, 2.4rem);
+    align-content: center;
+  }
+
+  .retrato__texto {
+    max-width: none;
+  }
+
+  .retrato__brilho {
+    right: -20%;
+    top: 62%;
+  }
+}
+
+@media (max-width: 600px) {
+  .pergunta__opcoes {
+    /* Empilhadas: lado a lado, cada pílula ficava com duas palavras por
+       linha e a escolha virava um exercício de leitura. */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sem sequência: as quatro perguntas chegam legíveis ao mesmo tempo. O
+     revezamento por foco é uma decisão de RITMO, e ritmo é a primeira coisa
+     que o movimento reduzido dispensa — o conteúdo, não. */
+  .pergunta[data-estado="espera"],
+  .pergunta[data-estado="respondida"] {
+    opacity: 1;
+    filter: none;
+  }
+
+  .retrato[data-estado="lido"] .retrato__leitura {
+    animation: none;
+  }
+
+  .opcao {
+    transition: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
    CTA — fecho cinematográfico
    ═════════════════════════════════════════════════════════════ */
 /* O fecho fica ACIMA da camada 3D. O notebook pousa logo abaixo do botão,
