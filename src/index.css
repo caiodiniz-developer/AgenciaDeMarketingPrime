@@ -1514,6 +1514,76 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   }
 }
 
+/* ── O RETRATO NO CELULAR ─────────────────────────────────────────────
+   Numa janela de 844px, quatro perguntas com duas pílulas cada — empilhadas,
+   porque lado a lado elas quebram em duas linhas — somavam mais altura do
+   que a tela inteira. A seção é presa, então o excesso não rolava: o título
+   ia para trás da barra e a régua ficava fora do quadro.
+
+   A resposta não é encolher tudo até caber. É mudar o que se mostra: UMA
+   pergunta por vez, e as já respondidas viram uma linha compacta com a
+   escolha. O leitor continua vendo o que disse — que é o que importa para a
+   leitura final fazer sentido — sem carregar oito pílulas na tela.
+
+   Vale também no movimento reduzido: isto é falta de espaço, não excesso de
+   animação. */
+@media (max-width: 760px) {
+  .sec--retrato {
+    /* O mesmo respiro do fecho: a barra flutuante é translúcida e o rótulo
+       da seção aparecia por baixo dela em vez de sumir. */
+    padding-top: 6.1rem;
+  }
+
+  .sec--retrato .sec__title {
+    font-size: clamp(1.45rem, 7.4vw, 2rem);
+  }
+
+  .retrato {
+    gap: clamp(1rem, 3vh, 1.6rem);
+  }
+
+  .retrato__texto .sec__body {
+    font-size: 0.9rem;
+  }
+
+  .pergunta[data-estado="espera"] {
+    display: none;
+  }
+
+  /* Respondida: fica a pergunta, em corpo menor, e só a escolha. */
+  .pergunta[data-estado="respondida"] .pergunta__texto {
+    font-size: 0.86rem;
+  }
+
+  .pergunta[data-estado="respondida"] .opcao[data-escolhida="false"] {
+    display: none;
+  }
+
+  .pergunta__opcoes {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Com a leitura na tela, as perguntas viram RECIBO: some o enunciado,
+     fica a escolha. Sem isto o resultado empurrava o título para trás da
+     barra — a coluna é centrada, e o que cresce empurra para os dois lados. */
+  .retrato[data-estado="lido"] .retrato__perguntas {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem 0.5rem;
+  }
+
+  .retrato[data-estado="lido"] .pergunta {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .retrato[data-estado="lido"] .pergunta__num,
+  .retrato[data-estado="lido"] .pergunta__texto {
+    display: none;
+  }
+}
+
 @media (max-width: 600px) {
   .pergunta__opcoes {
     /* Empilhadas: lado a lado, cada pílula ficava com duas palavras por
@@ -3006,16 +3076,35 @@ html[data-nav-theme="bone"] .nav__links a:hover {
   grid-column: 1;
   grid-row: 1;
   display: grid;
+  /* TRÊS PEÇAS EM DUAS COLUNAS.
+     O palco tem o desenho, a amostra e as especificações — três itens em
+     fluxo automático numa grade de duas colunas, então a terceira caía numa
+     SEGUNDA LINHA. O resultado media 980px de altura numa janela de 900: as
+     especificações ficavam meio cortadas e a lista de entregas ia parar em
+     y=1013, fora da tela, dentro de uma seção presa em tela cheia.
+
+     Colocação explícita resolve e ainda melhora a composição: o desenho ocupa
+     a coluna inteira à esquerda — é o assunto da seção —, e a amostra e as
+     specs se empilham à direita, na ordem em que se lê uma prancha de marca. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-  gap: clamp(1rem, 3vw, 2.5rem);
+  grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+  gap: clamp(0.8rem, 2vh, 1.4rem) clamp(1rem, 3vw, 2.5rem);
   align-items: center;
   height: 100%;
+  min-height: 0;
+  /* A linha do pai é minmax(0, 1fr) — mas o mínimo automático de um item
+     de grid é o conteúdo dele, e sem isto a coluna do palco simplesmente
+     ignorava o teto: a lista de entregas ia parar em y=1013 numa janela de
+     900, invisível dentro de uma seção presa em tela cheia. */
+  min-height: 0;
 }
 
 /* A MARCA REAL, no centro da construção. Revelada por clip-path: ela é arte
    pronta, e fingir que está sendo traçada seria mentir sobre o que a peça é. */
 .branding__desenho {
   position: relative;
+  grid-column: 1;
+  grid-row: 1 / -1;
   display: grid;
   place-items: center;
   min-height: 0;
@@ -3087,6 +3176,8 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    transformaria em mais uma seção escura. */
 .branding__amostra {
   position: relative;
+  grid-column: 2;
+  grid-row: 1;
   margin: 0;
   border-radius: 0.4rem;
   overflow: hidden;
@@ -3118,6 +3209,8 @@ html[data-nav-theme="bone"] .nav__links a:hover {
 }
 
 .branding__specs {
+  grid-column: 2;
+  grid-row: 2;
   display: grid;
   gap: clamp(0.5rem, 1.4vh, 1rem);
   align-content: center;
