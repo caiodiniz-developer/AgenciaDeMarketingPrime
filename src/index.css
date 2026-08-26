@@ -1337,8 +1337,37 @@ html[data-nav-theme="bone"] .nav__links a:hover {
    das máscaras. */
 .sec--cta {
   text-align: center;
-  /* Reserva a base para o laptop, que chega de frente aqui. */
-  padding-bottom: clamp(13rem, 36vh, 24rem);
+  /* ── O FECHO TEM DE CABER ──────────────────────────────────────────────
+     Esta seção divide a última tela com duas coisas que não se mexem: a
+     barra, no alto, e o rodapé revelado, embaixo. Numa janela de 900px isso
+     deixa 640px úteis — e a seção media 970. O excesso não empurrava nada
+     para baixo: a seção é ancorada pela BASE, então quem saía do quadro era
+     o topo, e o título do fecho aparecia cortado pela barra. No celular ele
+     não aparecia: começava 169px acima da janela.
+
+     Então tudo aqui é medido contra a altura útil, e não contra a tela
+     inteira. A reserva de base continua existindo — é ela que abre o vão em
+     que o notebook pousa —, mas encolhe junto quando a janela é baixa. */
+  /* A ALTURA ÚTIL, e não a tela inteira.
+
+     `.sec` pede `min-height: 100svh`. Como esta é a última seção e o rodapé
+     revelado ocupa os últimos `--footer-h` pixels, uma seção de uma tela
+     inteira não cabe no que sobra — e, ancorada pela base, o que ela empurra
+     para fora é o TOPO. Medido: 190px de título fora do quadro no desktop,
+     340px no celular, onde o título do fecho simplesmente não existia. */
+  min-height: calc(100svh - var(--footer-h));
+  padding-top: clamp(2.5rem, 6vh, 5rem);
+  padding-bottom: clamp(6rem, 17vh, 13rem);
+}
+
+/* O título do fecho é o único da página que divide a tela com um objeto.
+   No tamanho dos outros, ele sozinho comia um terço da faixa útil. */
+.sec--cta .sec__title {
+  font-size: clamp(1.9rem, 4.3vw, 3.4rem);
+}
+
+.sec--cta .sec__cta {
+  margin-top: clamp(1.3rem, 2.8vw, 2.2rem);
 }
 
 .sec--cta .sec__label {

@@ -74,11 +74,28 @@ export default function Story() {
            parava de desenhar e guardava o último quadro, então o notebook
            congelava no meio do trajeto e a tampa nunca fechava. */
         end: "max",
+        /* NO ÚLTIMO PIXEL, `isActive` é FALSO.
+           O ScrollTrigger considera ativo o intervalo [start, end) — aberto no
+           fim. Com `end: "max"`, parar no fim do documento desligava o
+           `frameloop`, o canvas guardava o último quadro desenhado e o
+           notebook ficava congelado onde estivesse. Chegando de rolagem
+           contínua o quadro guardado era quase o certo e o defeito passava
+           despercebido; chegando de um salto — âncora, F5 no fim da página,
+           tecla End — ele ficava preso na pose de uma seção do meio.
+           O progresso, esse, chega a 1 e fica: é ele que decide aqui. */
         onToggle: (self) => {
-          setActive(self.isActive);
-          cena.ativo = self.isActive;
+          const vivo = self.isActive || self.progress >= 1;
+          setActive(vivo);
+          cena.ativo = vivo;
         },
-        onRefresh: (self) => setActive(self.isActive),
+        onRefresh: (self) => setActive(self.isActive || self.progress >= 1),
+        onUpdate: (self) => {
+          const vivo = self.isActive || self.progress >= 1;
+          if (cena.ativo !== vivo) {
+            cena.ativo = vivo;
+            setActive(vivo);
+          }
+        },
       });
 
       mm.add(

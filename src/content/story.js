@@ -437,7 +437,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -1.3, y: 0.52, z: -0.7, scale: 0.4, rotY: 1.15, rotX: 0.22, rotZ: -0.08 },
+    laptop: { x: -1.04, y: 0.5, z: -0.7, scale: 0.44, rotY: 1.15, rotX: 0.22, rotZ: -0.08 },
     canal: "branding",
   },
 
@@ -454,7 +454,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.36, y: -0.58, z: -0.15, scale: 0.52, rotY: 1.05, rotX: 0.12, rotZ: 0.05 },
+    laptop: { x: -1.02, y: -0.6, z: -0.15, scale: 0.56, rotY: 1.05, rotX: 0.12, rotZ: 0.05 },
     canal: "design",
   },
   {
@@ -489,7 +489,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.44, y: 0.3, z: -0.55, scale: 0.38, rotY: 1.25, rotX: 0.2, rotZ: 0.07 },
+    laptop: { x: -1.06, y: 0.34, z: -0.55, scale: 0.42, rotY: 1.25, rotX: 0.2, rotZ: 0.07 },
     canal: "prime",
   },
   {
@@ -511,13 +511,13 @@ export const sections = [
        do botão e o topo do rodapé, e o objeto ocupava 380 — três quartos da
        tampa ficavam atrás do rodapé, justamente no quadro em que o vídeo
        deveria ser o assunto. */
-    laptop: { x: 0, y: -0.17, z: 0.5, scale: 0.74, rotY: 0, rotX: 0.06, rotZ: 0 },
+    laptop: { x: 0, y: -0.17, z: 0.5, scale: 0.66, rotY: 0, rotX: 0.06, rotZ: 0 },
     /* Num celular a mesma faixa fica muito mais alta na tela — o botão sobe,
        o rodapé desce — e a regra geral de telas estreitas (que empurra o y
        para baixo) leva o objeto para o lugar errado justamente aqui. Este é
        o único ponto da narrativa em que a posição precisa ser exata, então
        ele tem coordenadas próprias em vez de uma correção proporcional. */
-    laptopMobile: { x: 0, y: 0.21, z: 0.5, scale: 1.42, rotY: 0, rotX: 0.06, rotZ: 0 },
+    laptopMobile: { x: 0, y: 0.21, z: 0.5, scale: 1.27, rotY: 0, rotX: 0.06, rotZ: 0 },
     canal: "prime",
   },
 ];
