@@ -484,6 +484,8 @@ function Laptop({ luzOuro, sonda }) {
   const atual = useRef({ ...FORA });
   const suave = useRef({
     zoom: 0,
+    relogio: 0,
+    idle: 0,
     rx: 0,
     ry: 0,
     ligada: 0.25,
@@ -529,6 +531,19 @@ function Laptop({ luzOuro, sonda }) {
     const alvo = cena.pose || FORA;
     const c = atual.current;
     const s = suave.current;
+
+    /* ── O IDLE DO POUSO ──────────────────────────────────────────────
+       Chegar e congelar não é chegar: é a animação acabar. Um objeto real
+       parado ainda tem massa — assenta, respira, quase nada. São oito
+       milésimos de unidade em Y e meio grau em Y de rotação, num ciclo de
+       dez segundos: consciente, ninguém vê; a diferença é entre "o site
+       terminou" e "o objeto está ali".
+
+       Só depois do pouso completo, e nunca com movimento reduzido — quem
+       pediu menos movimento não pediu um objeto respirando na tela. */
+    s.relogio += dt;
+    const pousado = (cena.pouso || 0) > 0.985 && !parado ? 1 : 0;
+    s.idle = damp(s.idle, pousado, 0.05, dt);
 
     /* Persegue a pose em vez de saltar: o alvo é do scroll, o movimento é do
        relógio. É o mesmo princípio do scrub do vídeo da hero — e é o que dá
@@ -665,7 +680,8 @@ function Laptop({ luzOuro, sonda }) {
     const regua = (DIST_CAMERA - zMundo) / DIST_CAMERA;
 
     const px = c.x * viewport.width * 0.5 * regua;
-    const py = c.y * viewport.height * 0.5 * regua;
+    const py =
+      (c.y + s.idle * Math.sin(s.relogio * 0.63) * 0.008) * viewport.height * 0.5 * regua;
 
     /* Durante a aproximação, o objeto é puxado para que o CENTRO DO PAINEL
        — e não o centro do notebook — fique no meio da janela. */
@@ -693,7 +709,8 @@ function Laptop({ luzOuro, sonda }) {
        O torque some junto: um objeto que ainda reage à velocidade da rolagem
        não chegou, está passando. */
     const calmaria = 1 - (cena.pouso || 0);
-    const arrasto = (cena.giro || 0) * calmaria;
+    const arrasto =
+      (cena.giro || 0) * calmaria + s.idle * Math.sin(s.relogio * 0.41) * 0.009;
     /* O torque entra em DOIS eixos: gira e mergulha. Só girar lê como um
        carrossel; girar e inclinar lê como massa sendo empurrada. */
     g.rotation.set(
@@ -808,8 +825,13 @@ export default function LaptopScene({ active }) {
           toneMappingExposure: 0.82,
         }}
       >
-        {/* Preto, dourado e neutro — nada de neon. */}
-        <ambientLight intensity={0.42} color="#8f95a3" />
+        {/* Preto, dourado e neutro — nada de neon.
+
+            O ambiente é o PISO: ele decide o quão escuro o objeto pode ficar
+            quando nenhuma outra luz o alcança. Baixo demais e o notebook
+            desaparecia ao atravessar as regiões sem brilho da página, o que
+            lê como bug e não como composição. */}
+        <ambientLight intensity={0.55} color="#8f95a3" />
         {/* Chave neutra: é ela que desenha a forma. Dourada, pintava o corpo
             inteiro de mostarda e o objeto perdia o volume.
 
@@ -819,17 +841,30 @@ export default function LaptopScene({ active }) {
             vinda de cima a estourava em branco puro — um retângulo chapado no
             lugar do teclado. Luz mais rasante devolve o relevo das teclas, que
             é o que faz o objeto parecer um objeto. */}
-        <directionalLight position={[2.6, 1.7, 4]} intensity={1.15} color="#fdfbf6" />
+        <directionalLight position={[2.6, 1.7, 4]} intensity={1.05} color="#fdfbf6" />
+
+        {/* CONTRALUZ. Vem de trás e de cima, do lado oposto à chave, e não
+            serve para iluminar: serve para DESENHAR A BORDA. Numa página
+            preta é ela que separa a silhueta do fundo — sem contraluz, um
+            objeto escuro sobre fundo escuro só existe onde a chave bate, e o
+            resto se dissolve. É o truque mais antigo de iluminação de
+            produto e o que mais rende aqui. */}
+        <directionalLight position={[-2.2, 2.8, -3.4]} intensity={1.9} color="#dfe6f2" />
         {/* Contorno dourado. A posição é escrita a cada quadro pelo loop: é
             ela que faz o reflexo correr pelo alumínio conforme a página
             corre — o mesmo dourado da hero, agora no objeto. */}
         <directionalLight ref={luzOuro} position={[-3.4, 1.6, -2.6]} intensity={2.6} color="#c9a84c" />
-        <pointLight position={[0.4, -2, 3]} intensity={0.8} color="#cfd6e2" distance={12} />
+        {/* Preenchimento de baixo: levanta a sombra do teclado sem lavar o
+            volume. Fraco de propósito. */}
+        <pointLight position={[0.4, -2, 3]} intensity={0.6} color="#cfd6e2" distance={12} />
 
         <Suspense fallback={null}>
           {/* Reflexo: sem environment o alumínio fica plástico. `studio` é
               neutro e barato — nada é baixado, o mapa é gerado. */}
-          {!magro && <Environment preset="studio" environmentIntensity={0.35} />}
+          {/* O reflexo do metal. Sem isto o alumínio fica plástico; com
+              intensidade alta demais, vira espelho e o objeto perde a cor da
+              página. `studio` é neutro e não baixa nada — o mapa é gerado. */}
+          {!magro && <Environment preset="studio" environmentIntensity={0.5} />}
           <Laptop luzOuro={luzOuro} sonda={sonda} />
         </Suspense>
       </Canvas>

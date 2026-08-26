@@ -145,20 +145,22 @@ await sleep(3000);
    ter sido percorrido à vista. */
 log("\n── Caminho do notebook ──");
 
-const PARADAS = [
-  /* O manifesto fica de fora: no topo dele o NASCIMENTO ainda está
-     acontecendo, e a pose alvo por definição só chega depois. Quem cobre
-     aquele trecho são as duas checagens de nascimento acima. */
-  ["servicos", 0.98, 0.46],
-  ["social", 0.78, -0.74],
-  ["web", 0, -0.16],
-  ["design", -0.98, -0.82],
-  /* O fecho SAIU desta tabela. A pose dele deixou de ser um par de números
-     escolhido a olho e passou a ser um encaixe: o objeto tem de cair entre a
-     base do botão e o topo do rodapé, e é isso que se mede lá embaixo, em
-     pixels de tela. Uma constante aqui só voltaria a envelhecer junto com o
-     desenho. */
-];
+/* As paradas são LIDAS DO CONTEÚDO, não copiadas para cá.
+   A versão anterior repetia as coordenadas à mão, e o resultado foi o
+   previsível: a coreografia mudou e o teste passou a reprovar o desenho novo
+   por não ser o desenho velho — quatro falhas que não descreviam defeito
+   nenhum. O que este teste tem de garantir não é uma coordenada específica; é
+   que a pose PROMETIDA por `story.js` seja a pose ENTREGUE na tela, o que
+   continua pegando teletransporte, gatilho invertido e trecho que não escreve.
+
+   O manifesto fica de fora: no topo dele o NASCIMENTO ainda está acontecendo,
+   e a pose alvo por definição só chega depois. O fecho também: a pose dele
+   deixou de ser um par de números e virou um encaixe entre o botão e o
+   rodapé, medido em pixels lá embaixo. */
+const { sections: SECOES_CONTEUDO } = await import("../src/content/story.js");
+const PARADAS = SECOES_CONTEUDO.filter(
+  (s) => s.laptop && !["manifesto", "contato"].includes(s.id)
+).map((s) => [s.id, s.laptop.x, s.laptop.y]);
 
 /* O NASCIMENTO. O objeto não pode existir durante a hero — é o pedido
    explícito — e tem de nascer CRESCENDO, não aparecendo pronto. */
@@ -173,12 +175,26 @@ const nascimento = [];
 for (let i = 0; i <= 26; i++) {
   await fracao(page, (i / 26) * 0.16, 150);
   const c = await lerCena(page);
-  if (c) nascimento.push({ s: c.scale, p: c.presenca });
+  if (c) nascimento.push({ x: c.x, z: c.z, s: c.scale, p: c.presenca });
 }
+
+/* A ENTRADA é um movimento, não uma opacidade.
+   O critério antigo — "houve quadro pequeno e semitransparente" — descrevia
+   um nascimento que crescia no centro. Ele foi trocado por uma entrada: o
+   objeto começa meio fora do quadro pela direita, longe da câmera e de
+   costas, e a viagem inteira é a revelação. Então o que se verifica agora é
+   que ele ESTEVE lá fora e no fundo enquanto ainda era parcialmente visível,
+   e que percorreu uma distância de verdade até a primeira pose. */
 checar(
-  "nasce crescendo, e nao aparecendo pronto",
-  nascimento.some((n) => n.p > 0.05 && n.p < 0.9 && n.s < 0.45),
-  "houve quadro com presenca parcial e escala pequena"
+  "entra de fora do quadro, e nao aparece no lugar",
+  nascimento.some((n) => n.p > 0.04 && n.p < 0.95 && n.x > 0.85 && n.z < -1),
+  "houve quadro parcial com o objeto ainda fora do quadro e no fundo"
+);
+const percursoEntrada = Math.max(...nascimento.map((n) => n.x)) - Math.min(...nascimento.map((n) => n.x));
+checar(
+  "e a entrada atravessa a composicao",
+  percursoEntrada > 1.2,
+  percursoEntrada.toFixed(2) + " de percurso horizontal"
 );
 
 /** Posiciona a seção no ponto em que a viagem termina e a deriva começa. */

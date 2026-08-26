@@ -368,7 +368,7 @@ export const sections = [
     ],
     /** O diagnóstico em uma palavra, atravessando a tela. */
     palavra: "PERCEPÇÃO",
-    laptop: { x: 1.14, y: -0.44, z: -0.5, scale: 0.5, rotY: -1.1, rotX: 0.2, rotZ: 0.06 },
+    laptop: { x: -0.6, y: -0.5, z: 0.05, scale: 1.02, rotY: -0.42, rotX: 0.11, rotZ: 0.05 },
     canal: "social",
   },
   {
@@ -383,7 +383,7 @@ export const sections = [
       { text: "sustentam entre si", tone: "gold" },
       { text: " — e que, juntas, substituem o departamento de marketing que a sua empresa não tem." },
     ],
-    laptop: { x: 0.98, y: 0.46, z: -0.95, scale: 0.36, rotY: -1.28, rotX: 0.26, rotZ: -0.09 },
+    laptop: { x: 1.16, y: 0.62, z: -1.45, scale: 0.58, rotY: -1.15, rotX: 0.26, rotZ: -0.12 },
     canal: "social",
   },
 
@@ -394,7 +394,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "social",
-    laptop: { x: 0.74, y: -0.72, z: 0.4, scale: 0.58, rotY: -0.52, rotX: 0.1, rotZ: 0.05 },
+    laptop: { x: 0.34, y: -0.86, z: 0.75, scale: 1, rotY: -0.3, rotX: 0.06, rotZ: 0.04 },
     canal: "social",
   },
   {
@@ -405,7 +405,7 @@ export const sections = [
     servico: "web",
     /* O clímax do 3D: centro, de frente, tamanho real. Daqui a câmera entra
        na tela. */
-    laptop: { x: 0, y: -0.16, z: 0, scale: 1.12, rotY: 0, rotX: 0.03, rotZ: 0 },
+    laptop: { x: 0, y: -0.36, z: 0.1, scale: 1.06, rotY: 0, rotX: 0.03, rotZ: 0 },
     canal: "web",
   },
   {
@@ -414,7 +414,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "design",
-    laptop: { x: -0.92, y: -0.78, z: 0.3, scale: 0.62, rotY: 0.72, rotX: 0.12, rotZ: -0.07 },
+    laptop: { x: -0.88, y: -0.95, z: 0.45, scale: 0.94, rotY: 0.46, rotX: 0.08, rotZ: -0.07 },
     canal: "design",
   },
   {
@@ -424,7 +424,7 @@ export const sections = [
     rays: false,
     servico: "branding",
     /* Sai de cena viajando para a esquerda, não apagando. */
-    laptop: { x: -1.5, y: -0.1, z: -1, scale: 0.34, rotY: 1.35, rotX: 0.18, rotZ: 0.1 },
+    laptop: { x: -1.1, y: 0.3, z: -1.95, scale: 0.5, rotY: 1.6, rotX: 0.26, rotZ: 0.14 },
     /* AUSÊNCIA. A construção da marca é o palco desta seção inteira, e o
        objeto ali seria um segundo assunto disputando o mesmo bege. Ele
        continua percorrendo o trajeto por baixo — só não é desenhado. */
@@ -437,7 +437,7 @@ export const sections = [
     theme: "ink",
     rays: false,
     servico: "estrategia",
-    laptop: { x: -1.04, y: 0.5, z: -0.7, scale: 0.44, rotY: 1.15, rotX: 0.22, rotZ: -0.08 },
+    laptop: { x: 0.72, y: 0.36, z: -0.5, scale: 0.8, rotY: -0.86, rotX: 0.19, rotZ: -0.07 },
     canal: "branding",
   },
 
@@ -454,7 +454,7 @@ export const sections = [
       { text: "toda semana", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.02, y: -0.6, z: -0.15, scale: 0.56, rotY: 1.05, rotX: 0.12, rotZ: 0.05 },
+    laptop: { x: 0.64, y: 0.28, z: 0.3, scale: 0.96, rotY: -0.58, rotX: 0.09, rotZ: 0.05 },
     canal: "design",
   },
   {
@@ -472,7 +472,7 @@ export const sections = [
       { text: "Escolha uma força. O que acontece com as peças é o que acontece com a comunicação de uma empresa quando " },
       { text: "falta justamente ela.", tone: "gold" },
     ],
-    laptop: { x: -1.44, y: 0.56, z: -0.85, scale: 0.42, rotY: 1.3, rotX: 0.16, rotZ: -0.06 },
+    laptop: { x: 1.25, y: 0.5, z: -1.9, scale: 0.55, rotY: -1.5, rotX: 0.24, rotZ: -0.12 },
     // A segunda ausência: o campo das forças precisa da tela para ele.
     presente: false,
     canal: "prime",
@@ -489,7 +489,7 @@ export const sections = [
       { text: "de verdade", tone: "gold" },
       { text: "." },
     ],
-    laptop: { x: -1.06, y: 0.34, z: -0.55, scale: 0.42, rotY: 1.25, rotX: 0.2, rotZ: 0.07 },
+    laptop: { x: -0.46, y: -0.62, z: 1.1, scale: 1.08, rotY: 0.28, rotX: 0.05, rotZ: 0.03 },
     canal: "prime",
   },
   {
@@ -511,7 +511,7 @@ export const sections = [
        do botão e o topo do rodapé, e o objeto ocupava 380 — três quartos da
        tampa ficavam atrás do rodapé, justamente no quadro em que o vídeo
        deveria ser o assunto. */
-    laptop: { x: 0, y: -0.26, z: 0.5, scale: 0.51, rotY: 0, rotX: 0.06, rotZ: 0 },
+    laptop: { x: 0, y: -0.24, z: 0.5, scale: 0.6, rotY: 0, rotX: 0.06, rotZ: 0 },
     /* Num celular a mesma faixa fica muito mais alta na tela — o botão sobe,
        o rodapé desce — e a regra geral de telas estreitas (que empurra o y
        para baixo) leva o objeto para o lugar errado justamente aqui. Este é

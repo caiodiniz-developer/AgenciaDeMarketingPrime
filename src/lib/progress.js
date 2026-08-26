@@ -20,14 +20,21 @@
  * O NASCIMENTO.
  *
  * O objeto não existe durante a hero. Ele nasce no escuro entre a hero e o
- * manifesto: minúsculo, no centro, longe, tombado para trás — e cresce até a
- * primeira pose. Entrar deslizando pela borda seria "mais um elemento
- * chegando"; nascer do fundo é um começo.
+ * manifesto — mas nascer aqui não é aparecer: é ENTRAR.
+ *
+ * Ele começa meio fora do quadro pela direita, longe, tombado para trás e
+ * COM A TELA VIRADA PARA O OUTRO LADO. A viagem até a primeira pose é a
+ * revelação inteira: ele atravessa o quadro, vem para a frente, cresce e gira
+ * até mostrar a tela. Quem revela o objeto é o movimento — não a opacidade.
+ *
+ * A versão anterior nascia minúscula no centro e só crescia. Funcionava como
+ * "surgir"; não funcionava como entrada, porque um objeto que só muda de
+ * tamanho no meio da tela é um fade com passos extras.
  */
 export const NASCIMENTO = {
-  x: 0,
-  y: -0.08,
-  scale: 0.13,
+  x: 1.28,
+  y: -0.3,
+  scale: 0.62,
   /**
    * z: profundidade REAL, não escala disfarçada.
    *
@@ -38,9 +45,9 @@ export const NASCIMENTO = {
    *
    * O nascimento acontece longe: o notebook vem do fundo do escuro.
    */
-  z: -0.85,
-  rotY: -0.4,
-  rotX: 0.42,
+  z: -1.8,
+  rotY: -1.3,
+  rotX: 0.38,
   /**
    * rotZ: a rolagem lateral, em radianos.
    *
@@ -48,7 +55,7 @@ export const NASCIMENTO = {
    * render girando" de "um objeto no espaço": um plano nunca cruza o quadro
    * perfeitamente nivelado. Poucos graus, sempre.
    */
-  rotZ: 0.12,
+  rotZ: 0.24,
 };
 
 /** Compatibilidade: a pose de repouso é a de nascimento. */

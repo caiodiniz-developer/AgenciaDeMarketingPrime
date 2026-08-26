@@ -484,73 +484,6 @@ export default function Story() {
    ═════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Seções em que o objeto NÃO deriva.
- *
- * Em WEB ele precisa ficar frontal e centrado: é de lá que a câmera entra na
- * tela, e um objeto ainda girando arruinaria o único momento em que ele tem
- * de estar imóvel.
- *
- * No CONTATO ele POUSA. A deriva o empurrava trinta centésimos para fora do
- * centro justamente no fecho — e o pouso é sob o botão, que é o único lugar
- * da seção onde a posição precisa ser exata. Chegar e parar também é o gesto
- * certo para o fim de uma narrativa.
- */
-const SEM_DERIVA = new Set(["web", "contato"]);
-
-/**
- * Para onde a pose ESCORRE enquanto a seção é lida.
- *
- * A versão anterior fazia o objeto chegar à pose nos primeiros 25% da faixa
- * e segurar o resto. Como as faixas das seções presas têm quatro mil pixels,
- * na prática ele passava a maior parte do site PARADO — e objeto parado numa
- * página que rola lê como imagem colada, não como coisa no espaço.
- *
- * Agora a pose continua escorrendo até o fim da faixa: gira um pouco mais,
- * aproxima ou afasta, e desliza para o lado. O destino da deriva é calculado
- * com a mesma função que a produz, e é ELE que vira o ponto de partida do
- * trecho seguinte — sem isso haveria um salto na emenda.
- *
- * A direção alterna com o índice: duas seções seguidas derivando para o mesmo
- * lado somariam num único movimento longo em vez de parecerem duas decisões.
- */
-function derivar(pose, i, t, amp = 1) {
-  if (!pose) return pose;
-  const lado = i % 2 ? 1 : -1;
-  const a = amp * t;
-  return {
-    x: pose.x + lado * 0.3 * a,
-    y: pose.y + (i % 3 === 0 ? 0.16 : -0.13) * a,
-    /* A PROFUNDIDADE também escorre: dentro da mesma seção o objeto se
-       aproxima ou recua meia unidade. É o que faz o escorço mudar enquanto se
-       lê — a mesma silhueta vista de duas distâncias. Sem isto, o eixo z
-       seria só um número diferente por seção, e a viagem entre elas
-       continuaria acontecendo num plano. */
-    z: (pose.z ?? 0) + (i % 2 ? -0.42 : 0.38) * a,
-    /* A escala varia quase um quinto ao longo da seção: é o "zoom" que se
-       percebe rolando, sem que o objeto mude de tamanho de repente. */
-    scale: pose.scale * (1 + lado * 0.19 * a),
-    /* Quarenta graus de giro dentro de uma seção só. Com os 20 anteriores o
-       movimento existia no papel e não na tela: era menos do que o
-       amortecimento consumia entre dois quadros de rolagem lenta. */
-    rotY: pose.rotY - lado * 0.72 * a,
-    rotX: pose.rotX + (i % 2 ? -0.1 : 0.12) * a,
-    rotZ: (pose.rotZ ?? 0) - lado * 0.09 * a,
-  };
-}
-
-/**
- * As PARADAS.
- *
- * Um objeto que se move o tempo todo com a mesma energia deixa de ter ritmo:
- * o olho normaliza a agitação e ela vira ruído de fundo. Estas seções são as
- * de LEITURA — o método, o mapa da estratégia —, e nelas o notebook desacelera
- * para cerca de um terço: continua vivo, respirando, mas para de disputar a
- * atenção com o texto. Quando a seção acaba, ele volta a ganhar curso.
- *
- * Não é zero de propósito. Objeto 3D completamente imóvel numa página que rola
- * lê como imagem colada — foi exatamente o defeito que originou a deriva.
- */
-/**
  * A mesma coreografia, na régua da tela.
  *
  * O que muda num celular não é "tudo menor". Muda o que cada coordenada
@@ -572,7 +505,7 @@ function paraTela(pose, estreito, propria) {
   if (!pose) return pose;
   if (!estreito) return pose;
   /* Uma seção pode declarar a própria pose de celular. Quando declara, ela
-     manda: a regra proporcional abaixo é um bom padrão, não uma lei. */
+     manda: a regra proporcional acima é um bom padrão, não uma lei. */
   if (propria) return propria;
   return {
     ...pose,
@@ -583,11 +516,85 @@ function paraTela(pose, estreito, propria) {
   };
 }
 
-const CALMA = new Map([
-  ["estrategia", 0.34],
-  ["metodo", 0.3],
-  ["clientes", 0.38],
-]);
+/**
+ * O RITMO DA COREOGRAFIA.
+ *
+ * Uma tabela, e não três conjuntos espalhados. Cada seção declara duas coisas:
+ *
+ *   espera — que fração da permanência o objeto passa ENCAIXADO na
+ *            composição, praticamente imóvel, antes de começar a sair. É o
+ *            que cria os momentos de contemplação: sem isso o trajeto é uma
+ *            corrida uniforme do começo ao fim da página, e o olho normaliza
+ *            a agitação até ela virar ruído de fundo.
+ *
+ *   amp    — quanta energia tem a SAÍDA. Zero é imobilidade absoluta (a Web,
+ *            de onde a câmera entra na tela; o fecho, onde ele pousa). Acima
+ *            de 1 é passagem: as duas seções em que o objeto está apagado são
+ *            justamente onde ele atravessa o palco de um lado ao outro, e
+ *            atravessar depressa no escuro é melhor que atravessar devagar.
+ *
+ * MOVIMENTO → DESTAQUE → MOVIMENTO → DESTAQUE → POUSO, escrito como dados.
+ */
+const RITMO = {
+  /* Nascimento: chega e já vive um pouco, mas o site ainda está começando. */
+  manifesto: { espera: 0.34, amp: 0.9 },
+  servicos: { espera: 0.28, amp: 1 },
+  /* DESTAQUE: a primeira vez que a tela fica legível. */
+  social: { espera: 0.56, amp: 0.5 },
+  /* O MERGULHO. Imóvel — quem se move é a câmera, para dentro da tela. */
+  web: { espera: 1, amp: 0 },
+  design: { espera: 0.44, amp: 0.8 },
+  /* Apagado: é aqui que ele cruza o palco. */
+  branding: { espera: 0.12, amp: 1.35 },
+  estrategia: { espera: 0.54, amp: 0.36 },
+  /* Encaixe longo: a seção mais densa de leitura da página. */
+  metodo: { espera: 0.62, amp: 0.3 },
+  porque: { espera: 0.12, amp: 1.35 },
+  /* DESTAQUE FINAL antes do fecho: o vídeo assume. */
+  clientes: { espera: 0.6, amp: 0.42 },
+  /* O pouso tem coreografia própria, mais abaixo. */
+  contato: { espera: 1, amp: 0 },
+};
+
+const RITMO_PADRAO = { espera: 0.4, amp: 1 };
+
+/** Aceleração e freio nas pontas. Nenhuma chegada começa ou termina seca. */
+const suave = (t) => t * t * (3 - 2 * t);
+
+/**
+ * A SAÍDA de uma seção, que é também a entrada da seguinte.
+ *
+ * A versão anterior derivava por fórmula — o índice par decidia o lado, o
+ * múltiplo de três decidia a altura — e o resultado era exatamente o que o
+ * briefing chama de genérico: um deslocamento que não sabia para onde o
+ * objeto ia depois. Duas seções seguidas podiam sair para o lado oposto ao
+ * destino, e a viagem seguinte tinha de desfazer o que a saída acabara de
+ * fazer.
+ *
+ * Agora a saída é ANTECIPAÇÃO: o objeto começa a ir para onde vai, um quinto
+ * do caminho, e o floreio acontece no meio do percurso — um recuo em
+ * profundidade e um giro que se resolvem sozinhos. É o gesto de um corpo que
+ * se inclina antes de virar.
+ */
+function derivar(pose, proxima, t, amp = 1) {
+  if (!pose) return pose;
+  const alvo = proxima || pose;
+  const k = 0.22 * amp * t;
+  /* Sobe e volta a zero dentro da própria saída. No fim, quem manda é só o
+     avanço: o ponto final da saída é previsível — é ele que vira o ponto de
+     partida do trecho seguinte, e uma emenda imprevisível seria um salto. */
+  const s = Math.sin(Math.PI * t) * amp;
+  const ent = (a, b) => a + (b - a) * k;
+  return {
+    x: ent(pose.x, alvo.x),
+    y: ent(pose.y, alvo.y) + s * 0.05,
+    z: ent(pose.z ?? 0, alvo.z ?? 0) - s * 0.3,
+    scale: ent(pose.scale, alvo.scale),
+    rotY: ent(pose.rotY, alvo.rotY) - s * 0.11,
+    rotX: ent(pose.rotX, alvo.rotX) + s * 0.03,
+    rotZ: ent(pose.rotZ ?? 0, alvo.rotZ ?? 0),
+  };
+}
 
 /**
  * O CAMINHO DO NOTEBOOK.
@@ -674,11 +681,18 @@ function caminhoDoNotebook(raiz, sereno = false) {
       const chegada = k === 0 ? topo + vh * 0.2 : topo - vh * 0.62;
       const fimDaFaixa = topoSeguinte - vh;
 
-      /* No modo sereno não há deriva em seção nenhuma: a pose é o destino,
-         e entre dois destinos existe só a viagem que o scroll conduz. */
-      const deriva = !sereno && !SEM_DERIVA.has(sec.id);
-      const amp = CALMA.get(sec.id) ?? 1;
+      const r = RITMO[sec.id] || RITMO_PADRAO;
+      /* No modo sereno o objeto só viaja entre destinos: nada de saída com
+         floreio, nada de respiração no encaixe. */
+      const espera = sereno ? 1 : Math.min(r.espera, 0.999);
+      const amp = sereno ? 0 : r.amp;
       const ate = paraTela(sec.laptop, estreito, sec.laptopMobile);
+      /* Para onde ele vai DEPOIS. A saída precisa saber disso, senão empurra
+         o objeto para um lado e a viagem seguinte o traz de volta. */
+      const proxima = seguinte
+        ? paraTela(seguinte.laptop, estreito, seguinte.laptopMobile)
+        : ate;
+
       paradas.push({
         id: sec.id,
         inicio,
@@ -686,14 +700,15 @@ function caminhoDoNotebook(raiz, sereno = false) {
         fim: Math.max(fimDaFaixa, chegada + 1),
         de: { ...anterior },
         ate,
-        deriva,
+        proxima,
+        espera,
         amp,
         i,
       });
 
-      /* O trecho seguinte parte DE ONDE A DERIVA TERMINOU. Partir da pose
-         nominal daria um salto na emenda, do tamanho exato da deriva. */
-      anterior = deriva ? derivar(ate, i, 1, amp) : ate;
+      /* O trecho seguinte parte DE ONDE A SAÍDA TERMINOU. Partir da pose
+         nominal daria um salto na emenda, do tamanho exato da saída. */
+      anterior = amp > 0 ? derivar(ate, proxima, 1, amp) : ate;
     });
 
     /* O pouso ocupa uma tela inteira de rolagem a partir do momento em que o
@@ -738,19 +753,91 @@ function caminhoDoNotebook(raiz, sereno = false) {
     }
 
     if (y < p.chegada) {
-      const t = trava((y - p.inicio) / Math.max(1, p.chegada - p.inicio));
+      /* ── A VIAGEM ─────────────────────────────────────────────────────
+         `bruto` é o progresso do scroll; `t` é o progresso do MOVIMENTO. A
+         diferença entre os dois é tudo: interpolar linearmente entre duas
+         poses dá velocidade constante, que começa e termina seca — lê-se
+         como transição entre coordenadas, não como um corpo se deslocando. */
+      const bruto = trava((y - p.inicio) / Math.max(1, p.chegada - p.inicio));
+      const t = suave(bruto);
+      /* Meia volta de seno: zero nas pontas, máximo no meio do caminho. */
+      const meio = Math.sin(Math.PI * bruto);
+
+      const dx = (p.ate.x ?? 0) - (p.de.x ?? 0);
+
+      /* O ARCO. Uma travessia lateral não acontece num plano: o objeto RECUA
+         para atravessar e volta a se aproximar do outro lado. Quanto maior o
+         percurso horizontal, mais fundo o arco — atravessar a tela inteira em
+         linha reta é o que faz um render 3D parecer um sprite deslizando. */
+      /* ...mas o arco CEDE quando a viagem já é uma aproximação. Entrada e
+         travessia são gestos opostos: numa, o objeto vem para a frente; na
+         outra, some para trás para reaparecer do outro lado. Somados sem
+         critério, o nascimento — que atravessa a tela E vem para a frente —
+         era jogado para 2,1 unidades atrás da câmera bem no meio da entrada,
+         e o que devia ser a revelação virava um ponto no escuro. */
+      const dz = (p.ate.z ?? 0) - (p.de.z ?? 0);
+      const cede = 1 - 0.62 * trava(dz / 1.5);
+      const arco = (0.28 + 0.8 * Math.min(1, Math.abs(dx) / 1.8)) * meio * cede;
+
+      /* A INCLINAÇÃO DE CURVA. Ele se deita para o lado para onde vai e volta
+         ao prumo ao chegar. É o eixo que ninguém percebe conscientemente e o
+         que separa "está sendo movido" de "está indo". */
+      const inclina = -dx * 0.14 * meio;
+
       cena.pose.x = entre(p.de.x, p.ate.x, t);
-      cena.pose.y = entre(p.de.y, p.ate.y, t);
-      cena.pose.z = entre(p.de.z ?? 0, p.ate.z ?? 0, t);
+      /* O DESVIO VERTICAL foge do centro, não sobe sempre.
+         Levantar o objeto no meio de toda viagem era conveniente e errado:
+         numa travessia longa vinda do alto para a base — é o caso de "quem
+         confia", que chega do outro lado da página e da outra ponta da
+         profundidade — o desvio o empurrava justamente para a faixa onde
+         mora o texto.
+
+         Agora o desvio segue o DESTINO: quem vai para a metade de cima sobe
+         no meio do caminho, quem vai para a metade de baixo afunda. Além de
+         evitar o miolo da tela, é a curva certa — um corpo que chega por
+         baixo entrou por baixo, e não mergulhando de cima no último instante.
+         A média entre origem e destino, tentada antes, decidia errado
+         justamente nas viagens longas, que são as que mais atravessam
+         conteúdo. */
+      /* ...e a AMPLITUDE do desvio cresce com o tamanho da viagem e com o
+         quanto o destino está fora do centro. Uma viagem curta quase não
+         precisa desviar; a que atravessa a tela inteira precisa passar bem
+         longe do miolo, que é onde mora o texto de toda seção. */
+      const alvoY = p.ate.y ?? 0;
+      const desvio =
+        (alvoY >= 0 ? 1 : -1) *
+        (0.1 + 0.14 * Math.min(1, Math.abs(dx) / 1.8) + 0.18 * Math.min(1, Math.abs(alvoY)));
+      cena.pose.y = entre(p.de.y, p.ate.y, t) + meio * desvio;
+      cena.pose.z = entre(p.de.z ?? 0, p.ate.z ?? 0, t) - arco;
       cena.pose.scale = entre(p.de.scale, p.ate.scale, t);
       cena.pose.rotY = entre(p.de.rotY, p.ate.rotY, t);
-      cena.pose.rotX = entre(p.de.rotX, p.ate.rotX, t);
-      cena.pose.rotZ = entre(p.de.rotZ ?? 0, p.ate.rotZ ?? 0, t);
+      cena.pose.rotX = entre(p.de.rotX, p.ate.rotX, t) + meio * 0.05;
+      cena.pose.rotZ = entre(p.de.rotZ ?? 0, p.ate.rotZ ?? 0, t) + inclina;
       return;
     }
 
-    const t = p.deriva ? trava((y - p.chegada) / Math.max(1, p.fim - p.chegada)) : 0;
-    Object.assign(cena.pose, p.deriva ? derivar(p.ate, p.i, t, p.amp) : p.ate);
+    /* ── A PERMANÊNCIA ──────────────────────────────────────────────────
+       Dividida em duas: primeiro o ENCAIXE, em que o objeto assume a pose da
+       seção e praticamente para — só respira —, e depois a SAÍDA, que já
+       aponta para a seção seguinte. É o "destaque" da coreografia: o leitor
+       ganha tempo de olhar para o objeto antes de ele ir embora. */
+    const t = trava((y - p.chegada) / Math.max(1, p.fim - p.chegada));
+
+    if (t < p.espera) {
+      Object.assign(cena.pose, p.ate);
+      if (p.amp > 0) {
+        /* Uma respiração e nada mais: sobe e volta, sem emenda nas pontas —
+           o seno é zero no começo e no fim do encaixe. Sem ela o objeto lê
+           como imagem colada; com mais que isto, deixa de ser encaixe. */
+        const q = Math.sin((t / p.espera) * Math.PI);
+        cena.pose.y = p.ate.y + q * 0.024;
+        cena.pose.z = (p.ate.z ?? 0) + q * 0.06;
+        cena.pose.rotY = p.ate.rotY + q * 0.028;
+      }
+    } else {
+      const d = suave((t - p.espera) / Math.max(0.001, 1 - p.espera));
+      Object.assign(cena.pose, derivar(p.ate, p.proxima, d, p.amp));
+    }
 
     /* ── O POUSO ────────────────────────────────────────────────────────
        Só na última parada, e só depois da chegada. O objeto avança um terço
