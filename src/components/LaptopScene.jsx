@@ -22,10 +22,19 @@ useGLTF.preload(MODEL);
 /**
  * Orientação de repouso do modelo.
  *
- * O arquivo atual já vem de pé — base no plano XZ, tampa levantada em Y — mas
- * VIRADO PARA O LADO: a tampa está encostada na aresta esquerda da base, de
- * modo que a tela encara +X enquanto a câmera está em +Z. Este quarto de
- * volta em Y põe a tela de frente.
+ * O arquivo guarda o objeto DE LADO. São duas chapas de 0,41 × 0,28 dobradas
+ * como um livro aberto, e a dobradiça entre elas é VERTICAL: uma encara +Z, a
+ * outra +X. Nenhum tombo em X resolve isso — girar em X só troca qual lado do
+ * livro se vê. O que põe o notebook de pé é um quarto de volta em Z, que
+ * deita a dobradiça: a chapa que encarava +Z vira a tela, de frente para a
+ * câmera, e a que encarava +X vira o teclado, deitado à frente dela.
+ *
+ * O valor não foi deduzido do arquivo — foi VISTO, com `?rot=x,y,z` em graus
+ * e uma captura por candidato. E a dedução, tentada primeiro, deu duas
+ * respostas erradas com toda a confiança: as caixas que a sondagem imprime já
+ * vêm giradas pelo valor em vigor, de modo que descrevem o resultado da
+ * hipótese atual e não o conteúdo do arquivo. Medida contaminada pela
+ * hipótese é pior que medida nenhuma.
  *
  * O valor está aqui em cima, e não enterrado no meio da montagem, porque é a
  * única coisa deste arquivo que depende do .glb.
@@ -37,7 +46,7 @@ useGLTF.preload(MODEL);
  * perfil, plausível o bastante para passar despercebido numa leitura de
  * código. É por isso que a tela, abaixo, deixou de ser encontrada por nome.
  */
-const ROT_BASE = [0, -Math.PI / 2, 0];
+const ROT_BASE = [0, 0, Math.PI / 2];
 
 /**
  * Material do painel da tela, quando o arquivo traz um nome utilizável.
@@ -218,7 +227,7 @@ function projetarUV(geometria) {
 function Laptop({ luzOuro, sonda }) {
   const { scene } = useGLTF(MODEL);
   const grupo = useRef(null);
-  const { viewport, size } = useThree();
+  const { viewport, size, camera } = useThree();
   const parado = prefersReducedMotion();
   const semPonteiro = parado || isTouch();
 
@@ -347,9 +356,17 @@ function Laptop({ luzOuro, sonda }) {
         materiais.push(child.material);
         child.material.envMapIntensity = 0.85;
         if (child.material.metalness !== undefined) {
-          // O alumínio original vem claro demais para uma página preta.
-          child.material.metalness = Math.min(1, (child.material.metalness || 0.4) + 0.28);
-          child.material.roughness = Math.max(0.16, (child.material.roughness ?? 0.5) - 0.12);
+          /* Escurecer e AMACIAR, em vez de espelhar.
+             O realce anterior (+0,28 de metal, -0,12 de rugosidade) foi
+             calibrado para o alumínio escovado do modelo antigo. Aplicado a
+             este, o corpo inteiro estourava em branco sob a luz de chave e o
+             objeto perdia a silhueta contra o preto da página — que é
+             justamente o que precisa ser preservado. */
+          child.material.metalness = Math.min(1, (child.material.metalness || 0.4) + 0.1);
+          child.material.roughness = Math.min(1, Math.max(0.3, (child.material.roughness ?? 0.5) + 0.08));
+          /* Um leve escurecimento do próprio material: numa página preta, um
+             objeto claro demais lê como recorte colado. */
+          if (child.material.color) child.material.color.multiplyScalar(0.72);
         }
       }
     });
@@ -691,22 +708,34 @@ function Laptop({ luzOuro, sonda }) {
        opinião sobre um pixel num canvas. */
     if (sonda) {
       const caixa = new THREE.Box3().setFromObject(g);
-      /* A caixa em PIXELS DE TELA, não em unidades de mundo.
+      /* A caixa em PIXELS DE TELA.
          "O objeto está cortado pelo rodapé" é uma frase sobre pixels, e
-         convertê-la à mão em cada teste é como se erra. A régua leva a
-         distância em conta: o mesmo tamanho de mundo ocupa mais tela perto
-         da câmera. */
-      const meiaH = viewport.height / 2;
-      const meiaW = viewport.width / 2;
-      const kk = DIST_CAMERA / Math.max(0.001, DIST_CAMERA - zMundo);
-      const paraY = (wy) => size.height / 2 - (wy * kk / meiaH) * (size.height / 2);
-      const paraX = (wx) => size.width / 2 + (wx * kk / meiaW) * (size.width / 2);
+         reconstruir a projeção à mão é exatamente como se erra: a primeira
+         versão desta sonda dizia 611–991 enquanto o objeto ocupava 220–515,
+         e a conta errada quase virou uma pose errada. Quem sabe projetar é a
+         CÂMERA — e os OITO cantos, não dois, porque um objeto girado no
+         espaço não tem seus extremos de tela nos extremos da caixa. */
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < 8; i++) {
+        v.set(
+          i & 1 ? caixa.max.x : caixa.min.x,
+          i & 2 ? caixa.max.y : caixa.min.y,
+          i & 4 ? caixa.max.z : caixa.min.z
+        ).project(camera);
+        const px = (v.x * 0.5 + 0.5) * size.width;
+        const py = (0.5 - v.y * 0.5) * size.height;
+        if (px < x0) x0 = px;
+        if (px > x1) x1 = px;
+        if (py < y0) y0 = py;
+        if (py > y1) y1 = py;
+      }
       sonda.current = {
         telaPx: {
-          topo: Math.round(paraY(caixa.max.y)),
-          base: Math.round(paraY(caixa.min.y)),
-          esq: Math.round(paraX(caixa.min.x)),
-          dir: Math.round(paraX(caixa.max.x)),
+          topo: Math.round(y0),
+          base: Math.round(y1),
+          esq: Math.round(x0),
+          dir: Math.round(x1),
         },
         rot: [+g.rotation.x.toFixed(3), +g.rotation.y.toFixed(3), +g.rotation.z.toFixed(3)],
         z: +zMundo.toFixed(3),
